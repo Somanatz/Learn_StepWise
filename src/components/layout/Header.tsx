@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/interfaces';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface NavLink {
   href: string;
@@ -32,7 +33,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const { currentUserRole, isLoadingRole } = useAuth(); // Removed setCurrentUserRole as switcher is gone
+  const { currentUserRole, isLoadingRole } = useAuth(); 
 
   useEffect(() => {
     setMounted(true);
@@ -49,12 +50,16 @@ export default function Header() {
   });
 
   if (!mounted) {
-    // Render a minimal header or nothing during server render / hydration mismatch prevention
+    // Render a minimal header or placeholder during server render / hydration mismatch prevention
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          <Logo />
-          <div className="h-6 w-6 animate-pulse bg-muted rounded-full"></div> {/* Placeholder for icons */}
+          {/* Placeholder for Logo */}
+          <div className="flex items-center gap-2" style={{ minHeight: '48px' }}>
+            <Skeleton className="h-7 w-7 rounded-md" /> 
+            <Skeleton className="h-6 w-28" /> 
+          </div>
+          <Skeleton className="h-8 w-8 rounded-full" /> {/* Placeholder for icons */}
         </div>
       </header>
     );
@@ -89,13 +94,12 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Role Switcher Removed */}
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Search..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
           </div>
-          <Button variant="ghost" size="icon" aria-label="User Profile" className="hidden sm:inline-flex">
-            <UserCircle className="h-6 w-6 text-accent" />
+          <Button variant="ghost" size="icon" aria-label="User Profile" className="hidden sm:inline-flex" asChild>
+            <Link href="/profile"><UserCircle className="h-6 w-6 text-accent" /></Link>
           </Button>
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -112,13 +116,12 @@ export default function Header() {
                   {!isLoadingRole && <NavItems isMobile={true} />}
                 </nav>
                 <div className="mt-auto p-4 border-t space-y-4">
-                  {/* Role Switcher Removed from mobile view */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
                   </div>
-                   <Button variant="outline" size="sm" className="w-full">
-                     <UserCircle className="mr-2 h-5 w-5 text-accent" /> Profile
+                   <Button variant="outline" size="sm" className="w-full" asChild>
+                     <Link href="/profile"> <UserCircle className="mr-2 h-5 w-5 text-accent" /> Profile</Link>
                    </Button>
                 </div>
               </SheetContent>
