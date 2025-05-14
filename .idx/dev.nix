@@ -5,16 +5,20 @@
   channel = "stable-24.11"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
   packages = [
-    pkgs.nodejs_20
+    pkgs.nodejs
     pkgs.zulu
+    pkgs.python310Full
+    pkgs.python310Packages.djangorestframework
   ];
   # Sets environment variables in the workspace
   env = {};
   idx = {
-    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
+    # Extensions from Open VSX
     extensions = [
-      # "vscodevim.vim"
+      "vscodevim.vim"
     ];
+
+    # Workspace settings
     workspace = {
       onCreate = {
         default.openFiles = [
@@ -22,12 +26,13 @@
         ];
       };
     };
+
     # Enable previews and customize configuration
     previews = {
       enable = true;
       previews = {
         web = {
-          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
+          command = [ "npm" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0" ];
           manager = "web";
         };
       };
