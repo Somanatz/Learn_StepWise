@@ -2,10 +2,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X } from 'lucide-react';
+import { Search, UserCircle, Menu, X, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Logo from '@/components/shared/Logo';
+// import Logo from '@/components/shared/Logo'; // Temporarily replaced for hydration debugging
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -19,6 +19,20 @@ interface NavLink {
   label: string;
   roles?: UserRole[]; // Optional: show link only for these roles
 }
+
+// Temporary Logo component directly in Header for easier debugging
+const Logo: React.FC<{ className?: string; iconSize?: number; textSize?: string; }> = ({ className = '', iconSize = 28, textSize = "text-xl" }) => {
+  return (
+    <Link href="/" className={`flex items-center gap-2 group ${className}`} style={{ minHeight: '48px' }}>
+      <Lightbulb size={iconSize} className="text-primary group-hover:text-accent transition-colors duration-200" />
+      <div className={`${textSize} font-poppins text-foreground group-hover:text-accent transition-colors duration-200`}>
+        <span className="font-medium">Learn-</span>
+        <span className="font-bold">StepWise</span>
+      </div>
+    </Link>
+  );
+};
+
 
 const allNavLinks: NavLink[] = [
   { href: '/', label: 'Dashboard' },
@@ -54,19 +68,20 @@ export default function Header() {
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
+          {/* Logo placeholder */}
           <div className="flex items-center gap-2" style={{ minHeight: '48px' }}>
             <Skeleton className="h-7 w-7 rounded-md" /> 
             <Skeleton className="h-6 w-28" /> 
           </div>
           {/* This is the section for nav links placeholder - simplified classes */}
-          <div className="flex items-center space-x-2"> {/* Removed 'hidden md:flex' */}
+          <div className="flex items-center space-x-2"> {/* Line 62 in previous error, wrapper for nav skeletons */}
             <Skeleton className="h-8 w-20 rounded-md" />
             <Skeleton className="h-8 w-20 rounded-md" />
             <Skeleton className="h-8 w-20 rounded-md" />
           </div>
           <div className="flex items-center space-x-2">
-            {/* Search icon placeholder */}
-            <Skeleton className="h-8 w-8 rounded-full hidden sm:block" /> 
+            {/* Search icon placeholder - Removed hidden sm:block for simplicity */}
+            <Skeleton className="h-8 w-8 rounded-full" /> 
             {/* User/Menu icon placeholder */}
             <Skeleton className="h-8 w-8 rounded-full" /> 
           </div>
@@ -89,7 +104,6 @@ export default function Header() {
             pathname === link.href
               ? "bg-primary/10 text-primary" // Active for both (subtle background)
               : "text-muted-foreground hover:bg-muted/50 hover:text-primary", // Default & hover for both
-            // Add a subtle ring to active desktop items for "light view border" effect
             !isMobile && pathname === link.href && "ring-1 ring-primary/20" 
           )}
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
