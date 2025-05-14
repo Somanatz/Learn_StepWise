@@ -3,6 +3,7 @@ import { Poppins, Open_Sans } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
+import { AuthProvider } from '@/context/AuthContext';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -35,14 +36,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${openSans.variable} ${poppins.variable} font-sans antialiased flex flex-col min-h-screen`}>
-        <Header />
-        <main className="flex-grow container mx-auto px-4 py-8">
-          {children}
-        </main>
-        <Toaster />
-        <footer className="bg-secondary text-secondary-foreground py-6 text-center">
-          <p className="text-sm">&copy; {new Date().getFullYear()} StepWise. All rights reserved.</p>
-        </footer>
+        <AuthProvider>
+          <Header />
+          <main className="flex-grow container mx-auto px-4 py-8">
+            {children}
+          </main>
+          <Toaster />
+          <footer className="bg-secondary text-secondary-foreground py-6 text-center">
+            <p className="text-sm">&copy; {new Date().getFullYear()} StepWise. All rights reserved.</p>
+          </footer>
+        </AuthProvider>
       </body>
     </html>
   );

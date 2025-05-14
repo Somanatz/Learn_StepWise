@@ -28,3 +28,5 @@ export interface Student {
   name: string;
   classLevel: number;
 }
+
+export type UserRole = 'student' | 'teacher' | 'parent';
