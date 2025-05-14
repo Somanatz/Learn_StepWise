@@ -2,23 +2,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, Users, Briefcase, UserCheck } from 'lucide-react';
+import { Search, UserCircle, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Logo from '@/components/shared/Logo';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/interfaces';
@@ -34,7 +24,6 @@ const allNavLinks: NavLink[] = [
   { href: '/rewards', label: 'Rewards', roles: ['student'] },
   { href: '/forum', label: 'Forum' },
   { href: '/recommendations', label: 'Suggestions', roles: ['student'] },
-  // Removed: { href: '/report-card', label: 'Report Card', roles: ['student', 'parent'] },
   { href: '/teacher', label: 'Teacher Portal', roles: ['teacher'] },
   { href: '/parent', label: 'Parent Portal', roles: ['parent'] },
 ];
@@ -43,7 +32,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const { currentUserRole, setCurrentUserRole, isLoadingRole } = useAuth();
+  const { currentUserRole, isLoadingRole } = useAuth(); // Removed setCurrentUserRole as switcher is gone
 
   useEffect(() => {
     setMounted(true);
@@ -53,13 +42,8 @@ export default function Header() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const handleRoleChange = (role: string) => {
-    if (['student', 'teacher', 'parent'].includes(role)) {
-      setCurrentUserRole(role as UserRole);
-    }
-  };
-
   const visibleNavLinks = allNavLinks.filter(link => {
+    if (isLoadingRole) return false; // Don't show links until role is loaded
     if (!link.roles) return true; // Show if no specific roles are defined
     return link.roles.includes(currentUserRole);
   });
@@ -95,48 +79,17 @@ export default function Header() {
     </>
   );
 
-  const RoleSwitcher = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-2">
-          {currentUserRole === 'student' && <UserCheck className="h-4 w-4 text-blue-500" />}
-          {currentUserRole === 'teacher' && <Briefcase className="h-4 w-4 text-green-500" />}
-          {currentUserRole === 'parent' && <Users className="h-4 w-4 text-purple-500" />}
-          <span className="capitalize">{currentUserRole}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Switch Role</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup value={currentUserRole} onValueChange={handleRoleChange}>
-          <DropdownMenuRadioItem value="student">
-            <UserCheck className="mr-2 h-4 w-4 text-blue-500" /> Student
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="teacher">
-            <Briefcase className="mr-2 h-4 w-4 text-green-500" /> Teacher
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="parent">
-            <Users className="mr-2 h-4 w-4 text-purple-500" /> Parent
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
         
         <nav className="hidden md:flex items-center space-x-4 text-sm">
-          <NavItems />
+          {!isLoadingRole && <NavItems />}
         </nav>
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="hidden sm:block">
-            {!isLoadingRole && <RoleSwitcher />}
-          </div>
+          {/* Role Switcher Removed */}
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Search..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
@@ -156,12 +109,10 @@ export default function Header() {
                   <Logo />
                 </div>
                 <nav className="flex flex-col space-y-1 p-4">
-                  <NavItems isMobile={true} />
+                  {!isLoadingRole && <NavItems isMobile={true} />}
                 </nav>
                 <div className="mt-auto p-4 border-t space-y-4">
-                  <div className="sm:hidden">
-                    {!isLoadingRole && <RoleSwitcher />}
-                  </div>
+                  {/* Role Switcher Removed from mobile view */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
