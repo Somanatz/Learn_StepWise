@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2 } from "lucide-react";
+import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { api } from '@/lib/api'; // Assuming api util is set up
 import type { Event } from '@/notifications/models'; // Assuming Event interface
@@ -166,4 +166,3 @@ export default function TeacherDashboard() {
     </div>
   );
 }
-
