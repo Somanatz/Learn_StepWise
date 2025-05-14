@@ -34,7 +34,7 @@ const allNavLinks: NavLink[] = [
   { href: '/rewards', label: 'Rewards', roles: ['student'] },
   { href: '/forum', label: 'Forum' },
   { href: '/recommendations', label: 'Suggestions', roles: ['student'] },
-  { href: '/report-card', label: 'Report Card', roles: ['student', 'parent'] },
+  // Removed: { href: '/report-card', label: 'Report Card', roles: ['student', 'parent'] },
   { href: '/teacher', label: 'Teacher Portal', roles: ['teacher'] },
   { href: '/parent', label: 'Parent Portal', roles: ['parent'] },
 ];

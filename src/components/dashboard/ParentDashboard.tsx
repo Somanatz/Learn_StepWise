@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Activity, BookOpen, CalendarDays, MessageCircle, Settings, Users, TrendingUp, ShieldCheck } from "lucide-react";
+import { Activity, FileText, CalendarDays, MessageCircle, Settings, Users, TrendingUp, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 interface Child {
@@ -89,7 +89,7 @@ export default function ParentDashboard() {
                   <Link href={`/parent/child/${child.id}/progress`}><TrendingUp className="mr-2 h-4 w-4" />View Progress</Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
-                   <Link href={`/parent/child/${child.id}/report`}><BookOpen className="mr-2 h-4 w-4" />Detailed Report</Link>
+                   <Link href={`/parent/reports/${child.id}`}><FileText className="mr-2 h-4 w-4" />View Report Card</Link>
                 </Button>
               </CardFooter>
             </Card>

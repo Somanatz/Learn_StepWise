@@ -3,14 +3,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle } from "lucide-react";
+import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText } from "lucide-react";
 import Link from "next/link";
 
 const stats = [
   { title: "Total Students", value: "125", icon: Users, color: "text-primary" },
   { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent" },
-  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500" }, // Using Tailwind direct color for variety
-  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500" }, // Using Tailwind direct color for variety
+  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500" },
+  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500" },
 ];
 
 const recentActivities = [
@@ -22,7 +22,8 @@ const recentActivities = [
 
 const quickLinks = [
     { href: "/teacher/students", label: "Manage Students" },
-    { href: "/teacher/reports", label: "Generate Reports" },
+    { href: "/teacher/report-card", label: "Generate Report Cards" },
+    { href: "/teacher/reports", label: "View Legacy Reports" },
     { href: "/teacher/content", label: "Create Content" },
     { href: "/teacher/communication", label: "Send Announcements" },
 ];

@@ -3,7 +3,10 @@
 
 import ClassSection from '@/components/dashboard/ClassSection';
 import type { ClassLevel } from '@/interfaces';
-import { BookOpen, Calculator, FlaskConical, Globe, ScrollText, Brain, Palette, Music, Users } from 'lucide-react';
+import { BookOpen, Calculator, FlaskConical, Globe, ScrollText, Brain, Palette, Music, Users, FileText } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from 'next/link';
 
 // Mock data for subjects and classes
 const MOCK_CLASS_DATA: ClassLevel[] = [
@@ -52,6 +55,19 @@ export default function StudentDashboard() {
         <ClassSection key={classLevel.level} classLevelData={classLevel} />
       ))}
       
+      <section className="mt-12 p-6 bg-card rounded-xl shadow-lg">
+        <h2 className="text-2xl font-poppins font-semibold text-foreground mb-4 flex items-center">
+          <FileText className="mr-3 text-primary" />
+          My Academic Reports
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          Access your latest report cards and academic summaries here.
+        </p>
+        <Button asChild variant="default" className="bg-primary hover:bg-primary/90">
+          <Link href="/student/view-my-report">View My Latest Report</Link>
+        </Button>
+      </section>
+
       <section className="mt-16 p-8 bg-secondary rounded-xl shadow-lg">
         <h2 className="text-3xl font-poppins font-semibold text-secondary-foreground mb-4">Stay Motivated!</h2>
         <p className="text-muted-foreground mb-6">

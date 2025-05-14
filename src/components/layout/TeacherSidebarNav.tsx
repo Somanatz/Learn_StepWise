@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,8 @@ import {
 const navItems = [
   { href: '/teacher', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/teacher/students', label: 'Students', icon: Users },
-  { href: '/teacher/reports', label: 'Reports', icon: FileText },
+  { href: '/teacher/report-card', label: 'Report Cards', icon: FileText },
+  { href: '/teacher/reports', label: 'Legacy Reports', icon: FileText }, // Kept old reports link for now
   { href: '/teacher/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/teacher/content', label: 'Content Mgmt', icon: BookCopy },
   { href: '/teacher/communication', label: 'Communication', icon: MessageSquare },
