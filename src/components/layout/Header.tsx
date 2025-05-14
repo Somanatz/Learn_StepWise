@@ -2,13 +2,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon } from 'lucide-react';
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Logo from '@/components/shared/Logo'; 
+// import Logo from '@/components/shared/Logo'; // Logo component will be rendered when mounted
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/interfaces';
@@ -22,13 +22,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-
 interface NavLink {
   href: string;
   label: string;
-  roles?: UserRole[]; 
-  authRequired?: boolean; 
-  guestOnly?: boolean; 
+  roles?: UserRole[];
+  authRequired?: boolean;
+  guestOnly?: boolean;
 }
 
 const allNavLinks: NavLink[] = [
@@ -40,68 +39,78 @@ const allNavLinks: NavLink[] = [
   { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
 ];
 
+// Re-define Logo component here for simplicity during debugging, or keep it separate if preferred
+const Logo: React.FC<{ className?: string; iconSize?: number; textSize?: string; }> = ({ className = '', iconSize = 28, textSize = "text-xl" }) => {
+  return (
+    <Link href="/" className={`flex items-center gap-2 group ${className}`} style={{ minHeight: '48px' }}>
+      <Lightbulb size={iconSize} className="text-primary group-hover:text-accent transition-colors duration-200" />
+      <div className={`${textSize} font-poppins text-foreground group-hover:text-accent transition-colors duration-200`}>
+        <span className="font-medium">Learn-</span>
+        <span className="font-bold">StepWise</span>
+      </div>
+    </Link>
+  );
+};
+
+
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const { currentUser, isLoadingAuth, logout } = useAuth(); 
+  const { currentUser, isLoadingAuth, logout } = useAuth();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    setIsMobileMenuOpen(false); // Close mobile menu on route change
   }, [pathname]);
 
   const handleLogout = () => {
     logout();
-    router.push('/login'); 
+    router.push('/login');
   };
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-
   const visibleNavLinks = allNavLinks.filter(link => {
-    if (isLoadingAuth) return false; 
-    
-    if (currentUser) { 
-      if (link.guestOnly) return false; 
-      if (!link.roles) return true; 
-      return link.roles.includes(currentUser.role as UserRole); 
-    } else { 
+    if (isLoadingAuth) return false;
+    if (currentUser) {
+      if (link.guestOnly) return false;
+      if (!link.roles) return true;
+      return link.roles.includes(currentUser.role as UserRole);
+    } else {
       return !link.authRequired || link.guestOnly;
     }
   });
 
   if (!mounted) {
+    // Render a very minimal, static placeholder for SSR and initial client render
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
+          {/* Simplified Logo Placeholder */}
           <div className="flex items-center gap-2" style={{ minHeight: '48px' }}>
-            <Skeleton className="h-7 w-7 rounded-md" /> 
-            <Skeleton className="h-6 w-28" /> 
+            <div className="h-7 w-7 rounded-md bg-muted animate-pulse"></div>
+            <div className="h-6 w-28 bg-muted animate-pulse rounded-md"></div>
           </div>
           
-          {/* Placeholder for nav links - ALWAYS RENDER THIS STRUCTURE FOR SSR/INITIAL CLIENT */}
+          <div className="flex-grow"></div> {/* Occupy space for nav links */}
+
+          {/* Simplified Right Icons Placeholder */}
           <div className="flex items-center space-x-2">
-            <Skeleton className="h-8 w-20 rounded-md" />
-            <Skeleton className="h-8 w-20 rounded-md" />
-            <Skeleton className="h-8 w-20 rounded-md" />
-          </div>
-          
-          {/* Placeholders for search, user icon, menu toggle - ALWAYS RENDER THIS STRUCTURE FOR SSR/INITIAL CLIENT */}
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-9 w-24 rounded-md" /> {/* Placeholder for search */}
-            <Skeleton className="h-8 w-8 rounded-full" /> {/* Placeholder for user icon/buttons */}
-            <Skeleton className="h-8 w-8 rounded-full md:hidden" /> {/* Placeholder for menu toggle */}
+            <div className="h-9 w-24 rounded-md bg-muted animate-pulse hidden sm:block"></div> {/* Search placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> {/* Menu toggle placeholder */}
           </div>
         </div>
       </header>
     );
   }
 
-  const NavItems = ({isMobile = false}: {isMobile?: boolean}) => (
+  // Actual component rendering after client-side mount
+  const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => (
     <>
       {visibleNavLinks.map((link) => (
         <Link
@@ -109,13 +118,13 @@ export default function Header() {
           href={link.href}
           className={cn(
             "font-medium transition-all duration-150 ease-in-out",
-            isMobile 
+            isMobile
               ? "block w-full text-left px-4 py-3 text-base rounded-md"
-              : "px-4 py-2 text-sm rounded-lg", 
+              : "px-4 py-2 text-sm rounded-lg",
             pathname === link.href
-              ? "bg-primary/10 text-primary" 
-              : "text-muted-foreground hover:bg-muted/50 hover:text-primary", 
-            !isMobile && pathname === link.href && "ring-1 ring-primary/20" 
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-primary",
+            !isMobile && pathname === link.href && "ring-1 ring-primary/20"
           )}
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
         >
@@ -129,11 +138,18 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
-        
+
         {!isAuthPage && (
-            <nav className="hidden md:flex items-center space-x-2">
+          <nav className="hidden md:flex items-center space-x-2">
             {!isLoadingAuth && <NavItems />}
-            </nav>
+            {isLoadingAuth && ( // Show skeletons for nav items while auth is loading
+              <>
+                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </>
+            )}
+          </nav>
         )}
 
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -149,11 +165,15 @@ export default function Header() {
           ) : currentUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
-                    <Link href="/profile">
-                        <UserCircle className="h-6 w-6 text-accent" />
-                    </Link>
-                 </Button>
+                <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
+                  {/* This Link wrapper for DropdownMenuTrigger might be problematic.
+                      It's often better to use router.push in DropdownMenuItem directly.
+                      For now, keeping as it was.
+                   */}
+                  <Link href="/profile">
+                    <UserCircle className="h-6 w-6 text-accent" />
+                  </Link>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account ({currentUser.username})</DropdownMenuLabel>
@@ -181,7 +201,7 @@ export default function Header() {
               )}
             </div>
           )}
-          
+
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -194,19 +214,26 @@ export default function Header() {
                   <Logo />
                 </div>
                 {!isAuthPage && (
-                    <nav className="flex flex-col space-y-1 p-4">
+                  <nav className="flex flex-col space-y-1 p-4">
                     {!isLoadingAuth && <NavItems isMobile={true} />}
-                    </nav>
+                     {isLoadingAuth && ( // Show skeletons for nav items in mobile menu
+                        <>
+                            <Skeleton className="h-10 w-full rounded-md mb-1" />
+                            <Skeleton className="h-10 w-full rounded-md mb-1" />
+                            <Skeleton className="h-10 w-full rounded-md" />
+                        </>
+                    )}
+                  </nav>
                 )}
                 <div className={cn("mt-auto p-4 border-t space-y-4", isAuthPage && "mt-0 pt-4")}>
                   {!isAuthPage && (
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
                     </div>
                   )}
                   {isLoadingAuth ? (
-                     <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
                   ) : currentUser ? (
                     <>
                       <Button variant="outline" size="sm" className="w-full" asChild>
@@ -218,20 +245,16 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                       {pathname !== '/login' && (
-                        <SheetClose asChild>
-                            <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
-                            </Button>
-                        </SheetClose>
-                       )}
-                       {pathname !== '/signup' && (
-                        <SheetClose asChild>
-                            <Button variant="default" size="sm" className="w-full" asChild>
-                            <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
-                            </Button>
-                        </SheetClose>
-                       )}
+                      {pathname !== '/login' && (
+                        <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                          <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
+                        </Button>
+                      )}
+                      {pathname !== '/signup' && (
+                        <Button variant="default" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                          <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
