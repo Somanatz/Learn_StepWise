@@ -38,9 +38,9 @@ const allNavLinks: NavLink[] = [
   { href: '/recommendations', label: 'Suggestions', roles: ['Student'], authRequired: true },
   { href: '/teacher', label: 'Teacher Portal', roles: ['Teacher'], authRequired: true },
   { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
-  // Guest links
-  { href: '/login', label: 'Login', guestOnly: true },
-  { href: '/signup', label: 'Sign Up', guestOnly: true },
+  // Guest links - these are handled by the auth block now
+  // { href: '/login', label: 'Login', guestOnly: true },
+  // { href: '/signup', label: 'Sign Up', guestOnly: true },
 ];
 
 export default function Header() {
@@ -63,13 +63,15 @@ export default function Header() {
     router.push('/login'); // Redirect to login after logout
   };
 
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   const visibleNavLinks = allNavLinks.filter(link => {
     if (isLoadingAuth) return false; 
     
     if (currentUser) { // User is logged in
       if (link.guestOnly) return false; // Hide guest-only links
       if (!link.roles) return true; // Show if no specific roles are defined for auth'd user
-      return link.roles.includes(currentUser.role);
+      return link.roles.includes(currentUser.role as UserRole); // Ensure currentUser.role is treated as UserRole
     } else { // User is not logged in (guest)
       return !link.authRequired || link.guestOnly;
     }
@@ -83,13 +85,18 @@ export default function Header() {
             <Skeleton className="h-7 w-7 rounded-md" /> 
             <Skeleton className="h-6 w-28" /> 
           </div>
+          {/* This is the section for nav links placeholder - simplified classes */}
+          {!isAuthPage && (
+            <div className="flex items-center space-x-2"> {/* Removed 'hidden md:flex' */}
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          )}
           <div className="flex items-center space-x-2">
-            <Skeleton className="h-8 w-20 rounded-md" />
-            <Skeleton className="h-8 w-20 rounded-md" />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-8 w-8 rounded-full" /> 
-            <Skeleton className="h-8 w-8 rounded-full" /> 
+            {!isAuthPage && <Skeleton className="h-9 w-24 rounded-md" /> } {/* Placeholder for search */}
+            <Skeleton className="h-8 w-8 rounded-full" /> {/* Placeholder for user icon/buttons */}
+            <Skeleton className="h-8 w-8 rounded-full md:hidden" /> {/* Placeholder for menu toggle */}
           </div>
         </div>
       </header>
@@ -125,15 +132,19 @@ export default function Header() {
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
         
-        <nav className="hidden md:flex items-center space-x-2">
-          {!isLoadingAuth && <NavItems />}
-        </nav>
+        {!isAuthPage && (
+            <nav className="hidden md:flex items-center space-x-2">
+            {!isLoadingAuth && <NavItems />}
+            </nav>
+        )}
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
-          </div>
+          {!isAuthPage && (
+            <div className="relative hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input type="search" placeholder="Search..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
+            </div>
+          )}
 
           {isLoadingAuth ? (
             <Skeleton className="h-8 w-8 rounded-full" />
@@ -158,12 +169,16 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center space-x-2">
-              <Button variant="ghost" asChild>
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
-              </Button>
-              <Button variant="default" asChild>
-                <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
-              </Button>
+              {pathname !== '/login' && (
+                <Button variant="ghost" asChild>
+                  <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
+                </Button>
+              )}
+              {pathname !== '/signup' && (
+                <Button variant="default" asChild>
+                  <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
+                </Button>
+              )}
             </div>
           )}
           
@@ -178,14 +193,18 @@ export default function Header() {
                 <div className="p-4 border-b">
                   <Logo />
                 </div>
-                <nav className="flex flex-col space-y-1 p-4">
-                  {!isLoadingAuth && <NavItems isMobile={true} />}
-                </nav>
-                <div className="mt-auto p-4 border-t space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
-                  </div>
+                {!isAuthPage && (
+                    <nav className="flex flex-col space-y-1 p-4">
+                    {!isLoadingAuth && <NavItems isMobile={true} />}
+                    </nav>
+                )}
+                <div className={cn("mt-auto p-4 border-t space-y-4", isAuthPage && "mt-0")}>
+                  {!isAuthPage && (
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />
+                    </div>
+                  )}
                   {isLoadingAuth ? (
                      <Skeleton className="h-10 w-full rounded-md" />
                   ) : currentUser ? (
@@ -199,16 +218,20 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                       <SheetClose asChild>
-                        <Button variant="outline" size="sm" className="w-full" asChild>
-                          <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
-                        </Button>
-                       </SheetClose>
-                       <SheetClose asChild>
-                        <Button variant="default" size="sm" className="w-full" asChild>
-                          <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
-                        </Button>
-                       </SheetClose>
+                       {pathname !== '/login' && (
+                        <SheetClose asChild>
+                            <Button variant="outline" size="sm" className="w-full" asChild>
+                            <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
+                            </Button>
+                        </SheetClose>
+                       )}
+                       {pathname !== '/signup' && (
+                        <SheetClose asChild>
+                            <Button variant="default" size="sm" className="w-full" asChild>
+                            <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
+                            </Button>
+                        </SheetClose>
+                       )}
                     </>
                   )}
                 </div>
@@ -220,3 +243,4 @@ export default function Header() {
     </header>
   );
 }
+
