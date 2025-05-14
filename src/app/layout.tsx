@@ -20,8 +20,8 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'StepWise | Personalized Learning Platform',
-  description: 'StepWise - Adaptive learning with smart notes, progress tracking, and AI-powered insights.',
+  title: 'Learn-StepWise | Personalized Learning Platform',
+  description: 'Learn-StepWise - Adaptive learning with smart notes, progress tracking, and AI-powered insights.',
   icons: {
     // Add a placeholder or remove if no actual icon file is generated
     // icon: "/favicon.ico", 
@@ -43,7 +43,7 @@ export default function RootLayout({
           </main>
           <Toaster />
           <footer className="bg-secondary text-secondary-foreground py-6 text-center">
-            <p className="text-sm">&copy; {new Date().getFullYear()} StepWise. All rights reserved.</p>
+            <p className="text-sm">&copy; {new Date().getFullYear()} Learn-StepWise. All rights reserved.</p>
           </footer>
         </AuthProvider>
       </body>

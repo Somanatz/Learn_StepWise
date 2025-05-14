@@ -1,4 +1,4 @@
-# Firebase Studio
+# Learn-StepWise
 
 This is a NextJS starter in Firebase Studio.
 

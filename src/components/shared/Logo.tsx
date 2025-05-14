@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { GraduationCap } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 
 interface LogoProps {
   className?: string;
@@ -10,9 +10,9 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ className = '', iconSize = 32, textSize = "text-2xl" }) => {
   return (
     <Link href="/" className={`flex items-center gap-2 group ${className}`} style={{ minHeight: '48px' }}>
-      <GraduationCap size={iconSize} className="text-primary group-hover:text-accent transition-colors" />
+      <Lightbulb size={iconSize} className="text-primary group-hover:text-accent transition-colors" />
       <span className={`font-poppins font-bold ${textSize} text-foreground group-hover:text-accent transition-colors`}>
-        StepWise
+        Learn-StepWise
       </span>
     </Link>
   );
