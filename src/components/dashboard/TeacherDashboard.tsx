@@ -1,16 +1,23 @@
 // src/components/dashboard/TeacherDashboard.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText } from "lucide-react";
+import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { api } from '@/lib/api'; // Assuming api util is set up
+import type { Event } from '@/notifications/models'; // Assuming Event interface
+
+interface ApiEvent {
+  id: string | number; title: string; date: string; type: string; description?: string;
+}
 
 const stats = [
-  { title: "Total Students", value: "125", icon: Users, color: "text-primary" },
-  { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent" },
-  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500" },
-  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500" },
+  { title: "Total Students", value: "125", icon: Users, color: "text-primary", link: "/teacher/students" },
+  { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent", link: "/teacher/content" },
+  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500", link: "#" }, // Link to assignments page
+  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics" },
 ];
 
 const recentActivities = [
@@ -21,51 +28,78 @@ const recentActivities = [
 ];
 
 const quickLinks = [
-    { href: "/teacher/students", label: "Manage Students" },
-    { href: "/teacher/report-card", label: "Generate Report Cards" },
-    { href: "/teacher/reports", label: "View Legacy Reports" },
-    { href: "/teacher/content", label: "Create Content" },
-    { href: "/teacher/communication", label: "Send Announcements" },
+    { href: "/teacher/students", label: "Manage Students", icon: Users },
+    { href: "/teacher/report-card", label: "Generate Reports", icon: FileText },
+    { href: "/teacher/content", label: "Manage Content", icon: BookOpenText },
+    { href: "/teacher/communication", label: "Send Announcements", icon: MessageSquare },
 ];
 
 export default function TeacherDashboard() {
+  const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoadingEvents(true);
+      setEventsError(null);
+      try {
+        const apiEvents = await api.get<ApiEvent[]>('/events/?ordering=date');
+        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); // Upcoming 5 events
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+        setEventsError(err instanceof Error ? err.message : "Failed to load events");
+      } finally {
+        setIsLoadingEvents(false);
+      }
+    };
+    fetchEvents();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 bg-card rounded-xl shadow-lg">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Teacher Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, Dr. Emily Carter! Manage your classes and students efficiently.</p>
+          {/* TODO: Get teacher's name from AuthContext or user profile data */}
+          <p className="text-muted-foreground">Welcome back! Manage your classes and students efficiently.</p>
         </div>
-        <Button size="lg">
-          <PlusCircle className="mr-2 h-5 w-5" />
-          Create New Assignment
+        <Button size="lg" asChild>
+          <Link href="/teacher/content/new-assignment"> {/* Assuming a route for new assignment */}
+            <PlusCircle className="mr-2 h-5 w-5" /> Create New Assignment
+          </Link>
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="shadow-md hover:shadow-lg transition-shadow rounded-xl">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground pt-1">
-                {stat.title === "Overall Performance" ? "+5% from last month" : "View Details"}
-              </p>
-            </CardContent>
-          </Card>
+          <Link key={stat.title} href={stat.link} passHref legacyBehavior>
+            <a className="block">
+                <Card className="shadow-md hover:shadow-lg transition-shadow rounded-xl h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                    {stat.title === "Overall Performance" ? "+5% from last month" : "View Details"}
+                    </p>
+                </CardContent>
+                </Card>
+            </a>
+          </Link>
         ))}
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card className="shadow-md rounded-xl">
+      <div className="grid gap-8 md:grid-cols-3">
+        <Card className="md:col-span-2 shadow-md rounded-xl">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Overview of recent student submissions and interactions.</CardDescription>
           </CardHeader>
           <CardContent>
+            {recentActivities.length > 0 ? (
             <ul className="space-y-3">
               {recentActivities.map((activity, index) => (
                 <li key={index} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-md">
@@ -79,24 +113,57 @@ export default function TeacherDashboard() {
                 </li>
               ))}
             </ul>
+            ) : (
+                 <p className="text-sm text-muted-foreground">No recent student activities.</p>
+            )}
              <Button variant="outline" className="mt-6 w-full">View All Activities</Button>
           </CardContent>
         </Card>
 
         <Card className="shadow-md rounded-xl">
           <CardHeader>
+            <CardTitle className="flex items-center"><CalendarDays className="mr-2 text-primary"/>Upcoming Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingEvents && <div className="flex justify-center items-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+            {eventsError && <p className="text-red-500 text-sm"><AlertTriangle className="inline mr-1 h-4 w-4" /> Error: {eventsError}</p>}
+            {!isLoadingEvents && !eventsError && events.length > 0 && (
+              <ul className="space-y-2">
+                {events.map(event => (
+                  <li key={event.id} className="p-2 border-b last:border-b-0">
+                    <h4 className="font-semibold text-sm">{event.title} <span className="text-xs font-normal text-muted-foreground">({event.type})</span></h4>
+                    <p className="text-xs text-muted-foreground">{new Date(event.date).toLocaleDateString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!isLoadingEvents && !eventsError && events.length === 0 && (
+              <p className="text-sm text-muted-foreground">No upcoming events.</p>
+            )}
+            <Button variant="outline" size="sm" className="w-full mt-4" asChild>
+              <Link href="/teacher/calendar">View Full Calendar</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Card className="shadow-lg rounded-xl">
+          <CardHeader>
             <CardTitle>Quick Links</CardTitle>
             <CardDescription>Access your most used tools and sections.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickLinks.map(link => (
-                <Button variant="outline" asChild key={link.href} className="h-16 text-base hover:bg-accent/10 hover:border-primary">
-                  <Link href={link.href}>{link.label}</Link>
+                <Button variant="outline" asChild key={link.href} className="h-auto py-4 flex-col items-center justify-center gap-2 text-base hover:bg-accent/10 hover:border-primary transition-all duration-150 ease-in-out group">
+                  <Link href={link.href}>
+                    <link.icon className="h-8 w-8 mb-1 text-primary group-hover:text-accent transition-colors" />
+                    <span className="text-center">{link.label}</span>
+                  </Link>
                 </Button>
             ))}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
+

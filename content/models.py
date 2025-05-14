@@ -67,8 +67,12 @@ class UserQuizAttempt(models.Model):
 class UserLessonProgress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_progress')
-    progress_data = JSONField(blank=True, null=True) # Use JSONField for structured progress data
+    progress_data = models.JSONField(blank=True, null=True) # Use JSONField for structured progress data
     last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'lesson')
+
 
     def __str__(self):
         return f"{self.user.username}'s progress in {self.lesson.title}"
@@ -76,8 +80,8 @@ class UserLessonProgress(models.Model):
 class ProcessedNote(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='processed_notes')
     lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name='processed_notes', null=True, blank=True) # Optional link to a lesson
-    original_notes = models.TextField()
-    processed_output = models.TextField(blank=True, null=True) # Store the output from the AI model
+    original_notes = models.TextField() # Renamed from original_text
+    processed_output = models.TextField(blank=True, null=True) # Renamed from processed_text, Store the output from the AI model
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
