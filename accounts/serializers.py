@@ -10,3 +10,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = CustomUser.objects.create_user(**validated_data)
         return user
+
+class UserSignupSerializer(CustomUserSerializer):
+    class Meta(CustomUserSerializer.Meta):
+        extra_kwargs = CustomUserSerializer.Meta.extra_kwargs.copy()
+        extra_kwargs['role'] = {'required': False}
