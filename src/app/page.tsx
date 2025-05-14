@@ -7,17 +7,19 @@ import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { LogIn } from 'lucide-react';
+import { useEffect, useState } from 'react'; // Added useState
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+// Button and Link removed as they are no longer used in this unauthenticated view
+// import { Button } from '@/components/ui/button';
+// import Link from 'next/link';
+// LogIn icon removed
+// import { LogIn } from 'lucide-react';
 
 export default function UnifiedDashboardPage() {
   const { currentUser, currentUserRole, isLoadingAuth } = useAuth();
   const router = useRouter();
+  const [isWelcomeVisible, setIsWelcomeVisible] = useState(false); // For animation
 
-  // Redirect to login if not authenticated and auth is not loading
   useEffect(() => {
     if (!isLoadingAuth && !currentUser) {
       // Only redirect if not on login or signup page already to avoid redirect loops
@@ -26,6 +28,14 @@ export default function UnifiedDashboardPage() {
       // For now, let's keep the public view for student as a fallback
     }
   }, [isLoadingAuth, currentUser, router]);
+
+  // Animation trigger for welcome message
+  useEffect(() => {
+    if (!isLoadingAuth && !currentUser) {
+      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); // Short delay for effect
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingAuth, currentUser]);
 
 
   if (isLoadingAuth) {
@@ -43,8 +53,7 @@ export default function UnifiedDashboardPage() {
   }
 
   if (!currentUser) {
-    // Show a generic landing/welcome page or redirect to login
-    // For now, let's show a public welcome and link to login/signup.
+    // Show a generic landing/welcome page
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center p-4 overflow-hidden">
         <video
@@ -59,38 +68,52 @@ export default function UnifiedDashboardPage() {
         </video>
         <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
         
-        <Card className="max-w-lg p-6 sm:p-8 shadow-xl z-20 bg-card/80 backdrop-blur-sm border-border/50">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold mb-3">Welcome to Learn-StepWise!</CardTitle>
-            <CardDescription className="text-md sm:text-lg text-muted-foreground">
+        {/* Welcome Card - Modified for transparency and animation */}
+        <Card className={`
+            max-w-xl p-6 sm:p-8 shadow-xl z-20 
+            bg-transparent border-none 
+            transition-all duration-1000 ease-out
+            ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
+          `}>
+          <CardHeader className="text-center">
+            <CardTitle 
+              className={`
+                font-bold mb-3 text-primary-foreground 
+                text-4xl sm:text-5xl md:text-6xl 
+                tracking-tight
+                [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.5)]
+                transition-all duration-[1200ms] ease-out delay-200
+                ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+              `}
+            >
+              Welcome to Learn-StepWise!
+            </CardTitle>
+            <CardDescription 
+              className={`
+                sm:text-lg text-primary-foreground/80 
+                [text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.5)]
+                transition-all duration-[1200ms] ease-out delay-500
+                ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+              `}
+            >
               Your personalized learning journey starts here. Please log in or sign up to access your dashboard and start learning.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center mt-5">
-            <Button asChild size="lg">
-              <Link href="/login"><LogIn className="mr-2"/>Log In</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/signup">Sign Up</Link>
-            </Button>
-          </CardContent>
+          {/* CardContent with Login/Signup buttons removed as per request */}
         </Card>
       </div>
     );
   }
 
-
   // User is authenticated, show role-based dashboard
   switch (currentUserRole) {
-    case 'Student': // Match the roles from Django ('Student', 'Teacher', 'Parent')
+    case 'Student':
       return <StudentDashboard />;
     case 'Teacher':
       return <TeacherDashboard />;
     case 'Parent':
       return <ParentDashboard />;
     default:
-      // Fallback: could be an error page or redirect to login if role is unrecognized
-      // For now, default to student dashboard or a generic welcome
       return (
         <div>
           <p>Welcome! Your role is currently not recognized or set. Displaying default student view.</p>
