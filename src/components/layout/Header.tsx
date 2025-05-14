@@ -27,8 +27,8 @@ interface NavLink {
   href: string;
   label: string;
   roles?: UserRole[]; 
-  authRequired?: boolean; // True if link requires authentication
-  guestOnly?: boolean; // True if link is only for guests (not logged in)
+  authRequired?: boolean; 
+  guestOnly?: boolean; 
 }
 
 const allNavLinks: NavLink[] = [
@@ -38,9 +38,6 @@ const allNavLinks: NavLink[] = [
   { href: '/recommendations', label: 'Suggestions', roles: ['Student'], authRequired: true },
   { href: '/teacher', label: 'Teacher Portal', roles: ['Teacher'], authRequired: true },
   { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
-  // Guest links - these are handled by the auth block now
-  // { href: '/login', label: 'Login', guestOnly: true },
-  // { href: '/signup', label: 'Sign Up', guestOnly: true },
 ];
 
 export default function Header() {
@@ -48,7 +45,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const { currentUser, currentUserRole, isLoadingAuth, logout } = useAuth(); 
+  const { currentUser, isLoadingAuth, logout } = useAuth(); 
 
   useEffect(() => {
     setMounted(true);
@@ -60,7 +57,7 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login'); // Redirect to login after logout
+    router.push('/login'); 
   };
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -68,11 +65,11 @@ export default function Header() {
   const visibleNavLinks = allNavLinks.filter(link => {
     if (isLoadingAuth) return false; 
     
-    if (currentUser) { // User is logged in
-      if (link.guestOnly) return false; // Hide guest-only links
-      if (!link.roles) return true; // Show if no specific roles are defined for auth'd user
-      return link.roles.includes(currentUser.role as UserRole); // Ensure currentUser.role is treated as UserRole
-    } else { // User is not logged in (guest)
+    if (currentUser) { 
+      if (link.guestOnly) return false; 
+      if (!link.roles) return true; 
+      return link.roles.includes(currentUser.role as UserRole); 
+    } else { 
       return !link.authRequired || link.guestOnly;
     }
   });
@@ -85,16 +82,17 @@ export default function Header() {
             <Skeleton className="h-7 w-7 rounded-md" /> 
             <Skeleton className="h-6 w-28" /> 
           </div>
-          {/* This is the section for nav links placeholder - simplified classes */}
-          {!isAuthPage && (
-            <div className="flex items-center space-x-2"> {/* Removed 'hidden md:flex' */}
-              <Skeleton className="h-8 w-20 rounded-md" />
-              <Skeleton className="h-8 w-20 rounded-md" />
-              <Skeleton className="h-8 w-20 rounded-md" />
-            </div>
-          )}
+          
+          {/* Placeholder for nav links - ALWAYS RENDER THIS STRUCTURE FOR SSR/INITIAL CLIENT */}
           <div className="flex items-center space-x-2">
-            {!isAuthPage && <Skeleton className="h-9 w-24 rounded-md" /> } {/* Placeholder for search */}
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+          
+          {/* Placeholders for search, user icon, menu toggle - ALWAYS RENDER THIS STRUCTURE FOR SSR/INITIAL CLIENT */}
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-9 w-24 rounded-md" /> {/* Placeholder for search */}
             <Skeleton className="h-8 w-8 rounded-full" /> {/* Placeholder for user icon/buttons */}
             <Skeleton className="h-8 w-8 rounded-full md:hidden" /> {/* Placeholder for menu toggle */}
           </div>
@@ -151,9 +149,11 @@ export default function Header() {
           ) : currentUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="User Profile">
-                   <UserCircle className="h-6 w-6 text-accent" />
-                </Button>
+                 <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
+                    <Link href="/profile">
+                        <UserCircle className="h-6 w-6 text-accent" />
+                    </Link>
+                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account ({currentUser.username})</DropdownMenuLabel>
@@ -198,7 +198,7 @@ export default function Header() {
                     {!isLoadingAuth && <NavItems isMobile={true} />}
                     </nav>
                 )}
-                <div className={cn("mt-auto p-4 border-t space-y-4", isAuthPage && "mt-0")}>
+                <div className={cn("mt-auto p-4 border-t space-y-4", isAuthPage && "mt-0 pt-4")}>
                   {!isAuthPage && (
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -243,4 +243,3 @@ export default function Header() {
     </header>
   );
 }
-
