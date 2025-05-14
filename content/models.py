@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, JSONField
 from django.conf import settings
 
 class Class(models.Model):
@@ -20,6 +20,7 @@ class Lesson(models.Model):
     subject = models.ForeignKey(Subject, related_name='lessons', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField() # This can be expanded to handle different content types
+    simplified_content = models.TextField(blank=True, null=True) # Simplified version of the lesson content
     lesson_order = models.PositiveIntegerField(default=0)
     requires_previous_quiz = models.BooleanField(default=False)
 
@@ -66,8 +67,7 @@ class UserQuizAttempt(models.Model):
 class UserLessonProgress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_progress')
-    # You can use a more complex field type like JSONField if needed for detailed progress
-    progress_data = models.TextField(blank=True, null=True) 
+    progress_data = JSONField(blank=True, null=True) # Use JSONField for structured progress data
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -76,10 +76,20 @@ class UserLessonProgress(models.Model):
 class ProcessedNote(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='processed_notes')
     lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name='processed_notes', null=True, blank=True) # Optional link to a lesson
-    original_text = models.TextField()
-    processed_text = models.TextField(blank=True, null=True) # Store the output from the AI model
+    original_notes = models.TextField()
+    processed_output = models.TextField(blank=True, null=True) # Store the output from the AI model
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Note from {self.user.username} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+class Book(models.Model):
+    class_obj = models.ForeignKey(Class, related_name='books', on_delete=models.CASCADE, null=True, blank=True)
+    subject = models.ForeignKey(Subject, related_name='books', on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255)
+    author = models.CharField(max_length=255, blank=True, null=True)
+    file = models.FileField(upload_to='books/') # Files will be uploaded to the 'books' subdirectory of MEDIA_ROOT
+
+    def __str__(self):
+        return self.title

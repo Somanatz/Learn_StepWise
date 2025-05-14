@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ClassViewSet, SubjectViewSet, LessonViewSet, QuizViewSet, QuestionViewSet, ChoiceViewSet
+from .views import ClassViewSet, SubjectViewSet, LessonViewSet, QuizViewSet, QuestionViewSet, ChoiceViewSet, dictionary_lookup
+from .views import BookViewSet
 from .views import UserLessonProgressViewSet
 from .views import ai_note_taking, ProcessedNoteViewSet
 
@@ -13,8 +14,10 @@ router.register(r'questions', QuestionViewSet)
 router.register(r'choices', ChoiceViewSet)
 router.register(r'userprogress', UserLessonProgressViewSet)
 router.register(r'processednotes', ProcessedNoteViewSet)
+router.register(r'books', BookViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     path('ai/notes/', ai_note_taking, name='ai_note_taking'),
+    path('dictionary/', dictionary_lookup, name='dictionary_lookup'),
 ]

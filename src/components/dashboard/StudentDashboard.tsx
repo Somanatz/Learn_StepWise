@@ -1,47 +1,151 @@
 // src/components/dashboard/StudentDashboard.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import ClassSection from '@/components/dashboard/ClassSection';
-import type { ClassLevel } from '@/interfaces';
-import { BookOpen, Calculator, FlaskConical, Globe, ScrollText, Brain, Palette, Music, Users, FileText } from 'lucide-react';
+import type { ClassLevel as ClassLevelInterface, Subject as SubjectInterface } from '@/interfaces';
+import { BookOpen, Calculator, FlaskConical, Globe, ScrollText, Brain, Palette, Music, Users, FileText, LucideIcon, History, Languages, Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { api } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data for subjects and classes
-const MOCK_CLASS_DATA: ClassLevel[] = [
-  {
-    level: 1,
-    title: "Foundational Year",
-    subjects: [
-      { id: "eng1", name: "English Basics", icon: BookOpen, description: "Learn alphabets, phonics, and basic sentence construction.", lessonsCount: 20, href: "/learn/english-basics", bgColor: "bg-emerald-500", textColor: "text-white" },
-      { id: "math1", name: "Fun with Numbers", icon: Calculator, description: "Introduction to numbers, counting, addition, and subtraction.", lessonsCount: 25, href: "/learn/fun-with-numbers", bgColor: "bg-sky-500", textColor: "text-white"},
-      { id: "art1", name: "Creative Canvas", icon: Palette, description: "Explore colors, shapes, and unleash your inner artist.", lessonsCount: 15, href: "/learn/creative-canvas", bgColor: "bg-amber-500", textColor: "text-white" },
-    ],
-  },
-  {
-    level: 5,
-    title: "Middle School Explorers",
-    subjects: [
-      { id: "sci5", name: "Science Wonders", icon: FlaskConical, description: "Discover the wonders of physics, chemistry, and biology around you.", lessonsCount: 30, href: "/learn/science-wonders", bgColor: "bg-indigo-500", textColor: "text-white" },
-      { id: "hist5", name: "Journey Through Time", icon: ScrollText, description: "Explore ancient civilizations and pivotal historical events.", lessonsCount: 22, href: "/learn/journey-through-time", bgColor: "bg-orange-500", textColor: "text-white" },
-      { id: "geo5", name: "Our Planet Earth", icon: Globe, description: "Learn about continents, oceans, climates, and maps.", lessonsCount: 18, href: "/learn/our-planet-earth", bgColor: "bg-teal-500", textColor: "text-white" },
-      { id: "eng5", name: "Advanced English", icon: BookOpen, description: "Grammar, comprehension, and creative writing skills.", lessonsCount: 28, href: "/learn/advanced-english", bgColor: "bg-rose-500", textColor: "text-white" },
-    ],
-  },
-  {
-    level: 10,
-    title: "High School Achievers",
-    subjects: [
-      { id: "phy10", name: "Physics", icon: Brain, description: "Delve into mechanics, electricity, magnetism, and modern physics.", lessonsCount: 40, href: "/learn/physics", bgColor: "bg-purple-600", textColor: "text-white" },
-      { id: "chem10", name: "Chemistry", icon: FlaskConical, description: "Understand chemical reactions, periodic table, and organic chemistry.", lessonsCount: 38, href: "/learn/chemistry", bgColor: "bg-cyan-600", textColor: "text-white" },
-      { id: "bio10", name: "Biology", icon: Users, description: "Study genetics, evolution, ecology, and human physiology.", lessonsCount: 35, href: "/learn/biology", bgColor: "bg-lime-600", textColor: "text-white" },
-      { id: "math10", name: "Advanced Mathematics", icon: Calculator, description: "Calculus, algebra, trigonometry, and statistics.", lessonsCount: 45, href: "/learn/advanced-mathematics", bgColor: "bg-red-600", textColor: "text-white" },
-    ],
-  },
-];
+// Helper to map subject names to icons (extend as needed)
+const subjectIconMap: Record<string, LucideIcon> = {
+  default: BookOpen,
+  math: Calculator,
+  mathematics: Calculator,
+  english: Languages, // Using Languages icon for English
+  science: FlaskConical,
+  history: Landmark, // Using Landmark for History
+  geography: Globe,
+  physics: Brain,
+  chemistry: FlaskConical,
+  biology: Users, // Users icon could represent study of life/people
+  art: Palette,
+  music: Music,
+  // Add more mappings here
+};
+
+const getIconForSubject = (subjectName: string): LucideIcon => {
+  const nameLower = subjectName.toLowerCase();
+  for (const key in subjectIconMap) {
+    if (nameLower.includes(key)) {
+      return subjectIconMap[key];
+    }
+  }
+  return subjectIconMap.default;
+};
+
+// Define the expected structure from the backend API
+interface ApiSubject {
+  id: string | number;
+  name: string;
+  description: string;
+  lessons: { id: string | number; title: string }[]; // Assuming lessons have at least an id and title
+  // Add other fields if your API returns them, like bgColor, textColor
+}
+
+interface ApiClass {
+  id: string | number;
+  name: string; // e.g., "Class 1", "Class 5", "Foundational Year"
+  description?: string;
+  subjects: ApiSubject[];
+}
+
 
 export default function StudentDashboard() {
+  const [classData, setClassData] = useState<ClassLevelInterface[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch classes
+        const apiClasses: ApiClass[] = await api.get<ApiClass[]>('/classes/');
+        
+        const transformedClassData: ClassLevelInterface[] = await Promise.all(
+          apiClasses.map(async (apiClass) => {
+            // Extract level from class name if possible, e.g., "Class 5" -> 5
+            // This is a simple parsing, might need adjustment based on actual class names
+            const levelMatch = apiClass.name.match(/\d+/);
+            const level = levelMatch ? parseInt(levelMatch[0], 10) : 1; // Default to 1 if no number found
+
+            // Fetch subjects for each class
+            // The API structure might be /subjects/?class_obj=<class_id>
+            // Or if subjects are nested in class data, this fetch might not be needed or different.
+            // For now, assuming subjects are directly in apiClass.subjects as per the interface.
+            
+            const subjects: SubjectInterface[] = apiClass.subjects.map((apiSub: ApiSubject) => ({
+              id: String(apiSub.id),
+              name: apiSub.name,
+              icon: getIconForSubject(apiSub.name),
+              description: apiSub.description,
+              lessonsCount: apiSub.lessons?.length || 0, // Count lessons
+              href: `/learn/class/${apiClass.id}/subject/${apiSub.id}`, // Example dynamic href
+              // Assuming default bg/text colors or you can add logic to assign them
+              bgColor: "bg-primary", // Placeholder
+              textColor: "text-primary-foreground", // Placeholder
+            }));
+
+            return {
+              level: level,
+              title: apiClass.name, // Use the class name from API as title
+              subjects: subjects,
+            };
+          })
+        );
+        setClassData(transformedClassData);
+      } catch (err) {
+        console.error("Failed to fetch student dashboard data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-12">
+        <Skeleton className="h-40 w-full rounded-xl" />
+        {[1, 2].map(i => (
+          <section key={i} className="mb-12">
+            <Skeleton className="h-10 w-1/3 mb-6 rounded" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(j => <Skeleton key={j} className="h-64 w-full rounded-xl" />)}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10 text-red-500">
+        <p>Error loading dashboard: {error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">Try Again</Button>
+      </div>
+    );
+  }
+  
+  if (classData.length === 0 && !isLoading) {
+     return (
+      <div className="text-center py-10">
+        <h1 className="text-2xl font-semibold mb-4">No Classes Assigned Yet</h1>
+        <p className="text-muted-foreground">Please check back later or contact your teacher if you believe this is an error.</p>
+      </div>
+    );
+  }
+
+
   return (
     <div className="space-y-12">
       <section className="text-center py-10 bg-gradient-to-r from-primary to-emerald-600 rounded-xl shadow-xl">
@@ -51,8 +155,8 @@ export default function StudentDashboard() {
         </p>
       </section>
 
-      {MOCK_CLASS_DATA.map((classLevel) => (
-        <ClassSection key={classLevel.level} classLevelData={classLevel} />
+      {classData.map((classLevel) => (
+        <ClassSection key={classLevel.level + classLevel.title} classLevelData={classLevel} />
       ))}
       
       <section className="mt-12 p-6 bg-card rounded-xl shadow-lg">
