@@ -4,11 +4,13 @@
   # Which nixpkgs channel to use.
   channel = "stable-24.11"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
-  packages = [
+  packages = with pkgs; [
     pkgs.nodejs
     pkgs.zulu
-    pkgs.python310Full
-    pkgs.python310Packages.djangorestframework
+    (pkgs.python311.withPackages (ps: with ps; [
+      djangorestframework
+      pip
+    ]))
   ];
   # Sets environment variables in the workspace
   env = {};
