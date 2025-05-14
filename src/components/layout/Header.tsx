@@ -58,14 +58,17 @@ export default function Header() {
             <Skeleton className="h-7 w-7 rounded-md" /> 
             <Skeleton className="h-6 w-28" /> 
           </div>
-          <div className="hidden md:flex items-center space-x-2">
+          {/* This is the section for nav links placeholder - simplified classes */}
+          <div className="flex items-center space-x-2"> {/* Removed 'hidden md:flex' */}
             <Skeleton className="h-8 w-20 rounded-md" />
             <Skeleton className="h-8 w-20 rounded-md" />
             <Skeleton className="h-8 w-20 rounded-md" />
           </div>
           <div className="flex items-center space-x-2">
-            <Skeleton className="h-8 w-8 rounded-full hidden sm:block" /> {/* Search icon placeholder */}
-            <Skeleton className="h-8 w-8 rounded-full" /> {/* User/Menu icon placeholder */}
+            {/* Search icon placeholder */}
+            <Skeleton className="h-8 w-8 rounded-full hidden sm:block" /> 
+            {/* User/Menu icon placeholder */}
+            <Skeleton className="h-8 w-8 rounded-full" /> 
           </div>
         </div>
       </header>
@@ -102,7 +105,7 @@ export default function Header() {
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
         
-        <nav className="hidden md:flex items-center space-x-2"> {/* Adjusted space-x-2 from space-x-4 */}
+        <nav className="hidden md:flex items-center space-x-2">
           {!isLoadingRole && <NavItems />}
         </nav>
 
