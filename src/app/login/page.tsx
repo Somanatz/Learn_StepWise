@@ -26,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setCurrentUserRole, setIsLoadingRole } = useAuth();
+  const { login: authLogin } = useAuth(); // Renamed to avoid conflict
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -41,28 +41,22 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await loginUser(data); // Stores token in localStorage
-      
-      // After successful login, fetch user details to get the role
-      setIsLoadingRole(true);
-      const userData = await fetchCurrentUser();
-      if (userData && userData.role) {
-        setCurrentUserRole(userData.role);
+      const loginResponse = await loginUser(data); // Stores token in localStorage via api.ts
+      if (loginResponse && loginResponse.token) {
+        await authLogin(loginResponse.token); // Update AuthContext
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${userData.username}!`,
+          description: `Welcome back!`, // Username will be in context after authLogin
         });
         router.push('/'); // Redirect to dashboard
       } else {
-        // This case should ideally not happen if login was successful and /users/me/ works
-        toast({
-          title: "Login Error",
-          description: "Could not retrieve user details after login.",
+        // This case implies loginUser itself didn't throw but didn't return a token
+         toast({
+          title: "Login Failed",
+          description: "Invalid username or password. Please try again.",
           variant: "destructive",
         });
-        // Potentially logout or clear token here
       }
-      setIsLoadingRole(false);
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -71,13 +65,33 @@ export default function LoginPage() {
       });
     } finally {
       setIsLoading(false);
-      setIsLoadingRole(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
+      {/* Video Background */}
+      {/* 
+        NOTE: Replace '/videos/educational-bg.mp4' with the path to your actual video file.
+        Place your video in the 'public/videos/' directory.
+        Ensure the video is optimized for web playback (e.g., compressed, reasonable resolution).
+      */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+      >
+        <source src="/videos/educational-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Overlay for better contrast */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
+      
+      {/* Login Card */}
+      <Card className="w-full max-w-md shadow-xl z-20 bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
           <LogIn className="mx-auto h-12 w-12 text-primary mb-4" />
           <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>

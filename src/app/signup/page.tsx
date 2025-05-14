@@ -63,18 +63,18 @@ export default function SignupPage() {
       router.push('/login');
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
-      if (error.message) {
+      if (error.response && error.response.data) {
+        // Handle specific field errors from Django REST framework
+        const errorData = error.response.data;
+        if (errorData.username) errorMessage = `Username: ${errorData.username.join(', ')}`;
+        else if (errorData.email) errorMessage = `Email: ${errorData.email.join(', ')}`;
+        else if (errorData.password) errorMessage = `Password: ${errorData.password.join(', ')}`;
+        else if (typeof errorData === 'string') errorMessage = errorData;
+        else if (errorData.detail) errorMessage = errorData.detail;
+        else errorMessage = JSON.stringify(errorData); // Fallback for complex errors
+      } else if (error.message) {
         errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
       }
-      // Try to parse if it's a JSON string error from backend for specific fields
-      try {
-        const parsedError = JSON.parse(errorMessage);
-        if (parsedError.username) errorMessage = `Username: ${parsedError.username.join(', ')}`;
-        else if (parsedError.email) errorMessage = `Email: ${parsedError.email.join(', ')}`;
-        // Add more fields if necessary
-      } catch (e) { /* ignore parsing error */ }
 
       toast({
         title: "Signup Failed",
@@ -87,8 +87,29 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
+      {/* Video Background */}
+      {/* 
+        NOTE: Replace '/videos/educational-bg.mp4' with the path to your actual video file.
+        Place your video in the 'public/videos/' directory.
+        Ensure the video is optimized for web playback (e.g., compressed, reasonable resolution).
+      */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+      >
+        <source src="/videos/educational-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Overlay for better contrast */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
+
+      {/* Signup Card */}
+      <Card className="w-full max-w-md shadow-xl z-20 bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
           <UserPlus className="mx-auto h-12 w-12 text-primary mb-4" />
           <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
