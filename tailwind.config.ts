@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 const { fontFamily } = require("tailwindcss/defaultTheme");
+const plugin = require('tailwindcss/plugin');
 
 export default {
     darkMode: ["class"],
@@ -91,13 +92,42 @@ export default {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+        'slide-in-from-right': {
+          '0%': { opacity: '0', transform: 'translateX(50px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': { opacity: '0.85', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.01)' },
+        }
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+        'slide-in-from-right': 'slide-in-from-right 0.7s ease-out forwards',
+        'pulse-subtle': 'pulse-subtle 4s infinite ease-in-out',
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(function({ addUtilities }) {
+      const newUtilities = {
+        '.animation-delay-200': {
+          'animation-delay': '0.2s',
+        },
+        '.animation-delay-300': {
+          'animation-delay': '0.3s',
+        },
+        '.animation-delay-500': {
+          'animation-delay': '0.5s',
+        },
+         '.animation-delay-700': {
+          'animation-delay': '0.7s',
+        },
+      }
+      addUtilities(newUtilities, ['responsive', 'hover'])
+    })
+  ],
 } satisfies Config;
