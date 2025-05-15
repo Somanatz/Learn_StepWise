@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Logo from '@/components/shared/Logo'; // Ensure this path is correct
+import Image from 'next/image'; // Directly use Image for the logo
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -39,6 +39,22 @@ const allNavLinks: NavLink[] = [
   { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
 ];
 
+// Logo component defined directly for simplicity during debugging, can be moved back
+const Logo: React.FC<{ className?: string }> = ({ className = '' }) => {
+  return (
+    <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '60px' }}>
+      <Image
+        src="/images/StepWise.png"
+        alt="Learn-StepWise Logo"
+        width={218}
+        height={60}
+        priority
+        className="group-hover:opacity-90 transition-opacity duration-200"
+      />
+    </Link>
+  );
+};
+
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,9 +64,7 @@ export default function Header() {
   const { currentUser, isLoadingAuth, logout } = useAuth();
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  // Determine if we are on the homepage AND the user is not authenticated AND auth state is not loading
   const isUnauthenticatedHomepage = pathname === '/' && !currentUser && !isLoadingAuth;
-  // Combine conditions to hide main header elements
   const shouldHideMainHeaderElements = isAuthPage || isUnauthenticatedHomepage;
 
 
@@ -82,7 +96,7 @@ export default function Header() {
   if (!mounted) {
     // Static placeholder for SSR and initial client render to avoid hydration mismatch
     return (
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
           {/* Simplified Logo Placeholder - reflecting an image */}
           <div className="animate-pulse bg-muted rounded" style={{ width: '218px', height: '60px', minHeight: '60px' }}></div>
@@ -127,7 +141,7 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
 
@@ -177,12 +191,12 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center space-x-2">
-              {pathname !== '/login' && (
+              {!isAuthPage && pathname !== '/login' && (
                 <Button variant="ghost" asChild>
                   <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
                 </Button>
               )}
-              {pathname !== '/signup' && (
+               {!isAuthPage && pathname !== '/signup' && (
                 <Button variant="default" asChild>
                   <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                 </Button>
@@ -233,12 +247,12 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      {pathname !== '/login' && (
+                      {!isAuthPage && pathname !== '/login' && (
                         <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
                           <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
                         </Button>
                       )}
-                      {pathname !== '/signup' && (
+                       {!isAuthPage && pathname !== '/signup' && (
                         <Button variant="default" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
                           <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                         </Button>
