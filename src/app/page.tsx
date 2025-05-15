@@ -7,7 +7,7 @@ import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react'; // Added useState
+import { useEffect, useState } from 'react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // Button and Link removed as they are no longer used in this unauthenticated view
 // import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 export default function UnifiedDashboardPage() {
   const { currentUser, currentUserRole, isLoadingAuth } = useAuth();
   const router = useRouter();
-  const [isWelcomeVisible, setIsWelcomeVisible] = useState(false); // For animation
+  const [isWelcomeVisible, setIsWelcomeVisible] = useState(false);
 
   useEffect(() => {
     if (!isLoadingAuth && !currentUser) {
@@ -53,7 +53,7 @@ export default function UnifiedDashboardPage() {
   }
 
   if (!currentUser) {
-    // Show a generic landing/welcome page
+    // Show a public landing page with video background
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center p-4 overflow-hidden">
         <video
@@ -61,45 +61,47 @@ export default function UnifiedDashboardPage() {
           loop
           muted
           playsInline
+          poster="/images/video-poster.jpg" // Add a poster image for when the video is loading
           className="absolute top-0 left-0 w-full h-full object-cover z-0"
         >
           <source src="/videos/educational-bg.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div> {/* Slightly less opaque overlay */}
         
-        {/* Welcome Card - Modified for transparency and animation */}
         <Card className={`
-            max-w-xl p-6 sm:p-8 shadow-xl z-20 
+            // Welcome Card - Modified for transparency and animation
+            max-w-2xl p-6 sm:p-8 shadow-2xl z-20 {/* Increased max-width and shadow */}
             bg-transparent border-none 
             transition-all duration-1000 ease-out
             ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
           `}>
-          <CardHeader className="text-center">
-            <CardTitle 
+          <CardHeader className="text-center space-y-6"> {/* Increased vertical space */}
+            <CardTitle
               className={`
-                font-bold mb-3 text-primary-foreground 
-                text-4xl sm:text-5xl md:text-6xl 
-                tracking-tight
-                [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.5)]
-                transition-all duration-[1200ms] ease-out delay-200
-                ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+                font-extrabold mb-4 text-white {/* Changed to white for better contrast */}
+                text-5xl sm:text-6xl md:text-7xl {/* Larger text */}
+                leading-tight {/* Removed tracking-tight to increase letter spacing to normal */}
+                [text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)] {/* Stronger text shadow */}
+                transition-all duration-[1400ms] ease-out delay-300 {/* Adjusted animation */}
+                ${isWelcomeVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'} {/* Added scale animation */}
               `}
             >
-              Welcome to Learn-StepWise!
+              Welcome to<br />Learn-StepWise!
             </CardTitle>
-            <CardDescription 
+            <CardDescription
               className={`
-                sm:text-lg text-primary-foreground/80 
-                [text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.5)]
-                transition-all duration-[1200ms] ease-out delay-500
-                ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+                sm:text-xl text-gray-200 {/* Slightly larger and lighter text */}
+                font-medium {/* Medium font weight */}
+                [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)] {/* Adjusted text shadow */}
+                transition-all duration-[1400ms] ease-out delay-600 {/* Adjusted animation */}
+                ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}
               `}
             >
-              Your personalized learning journey starts here. Please log in or sign up to access your dashboard and start learning.
+              Your personalized learning journey starts here. Access your dashboard by logging in or signing up.
             </CardDescription>
+            {/* Removed Login/Signup buttons from the card */}
           </CardHeader>
-          {/* CardContent with Login/Signup buttons removed as per request */}
         </Card>
       </div>
     );
