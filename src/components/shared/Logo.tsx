@@ -1,20 +1,21 @@
 import Link from 'next/link';
-import { Lightbulb } from 'lucide-react';
+import Image from 'next/image';
 
 interface LogoProps {
   className?: string;
-  iconSize?: number;
-  textSize?: string;
 }
 
-const Logo: React.FC<LogoProps> = ({ className = '', iconSize = 28, textSize = "text-xl" }) => {
+const Logo: React.FC<LogoProps> = ({ className = '' }) => {
   return (
-    <Link href="/" className={`flex items-center gap-2 group ${className}`} style={{ minHeight: '48px' }}>
-      <Lightbulb size={iconSize} className="text-primary group-hover:text-accent transition-colors duration-200" />
-      <div className={`${textSize} font-poppins text-foreground group-hover:text-accent transition-colors duration-200`}>
-        <span className="font-medium">Learn-</span>
-        <span className="font-bold">StepWise</span>
-      </div>
+    <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '48px' }}>
+      <Image
+        src="/images/logo.png" // Assuming you save your logo as logo.png in public/images/
+        alt="Learn-StepWise Logo"
+        width={174} // Calculated based on 48px height and original aspect ratio
+        height={48}
+        priority // Optional: if logo is critical for LCP
+        className="group-hover:opacity-90 transition-opacity duration-200"
+      />
     </Link>
   );
 };

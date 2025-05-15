@@ -2,10 +2,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, Lightbulb } from 'lucide-react';
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Logo from '@/components/shared/Logo';
+import Logo from '@/components/shared/Logo'; // Ensure this path is correct
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -48,7 +48,7 @@ export default function Header() {
   const { currentUser, isLoadingAuth, logout } = useAuth();
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  const isUnauthenticatedHomepage = pathname === '/' && !currentUser;
+  const isUnauthenticatedHomepage = pathname === '/' && !currentUser && !isLoadingAuth; // Check !isLoadingAuth
   const shouldHideMainHeaderElements = isAuthPage || isUnauthenticatedHomepage;
 
 
@@ -75,17 +75,14 @@ export default function Header() {
       return !link.authRequired || link.guestOnly;
     }
   });
-
+  
   if (!mounted) {
-    // Render a very minimal, static placeholder for SSR and initial client render
+    // Static placeholder for SSR and initial client render to avoid hydration mismatch
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          {/* Simplified Logo Placeholder */}
-          <div className="flex items-center gap-2" style={{ minHeight: '48px' }}>
-            <div className="h-7 w-7 rounded-md bg-muted animate-pulse"></div>
-            <div className="h-6 w-28 bg-muted animate-pulse rounded-md"></div>
-          </div>
+          {/* Simplified Logo Placeholder - reflecting an image */}
+          <div className="animate-pulse bg-muted rounded" style={{ width: '174px', height: '48px', minHeight: '48px' }}></div>
           
           <div className="flex-grow"></div> {/* Occupy space for nav links */}
 
@@ -99,6 +96,7 @@ export default function Header() {
       </header>
     );
   }
+
 
   // Actual component rendering after client-side mount
   const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => (
@@ -156,7 +154,7 @@ export default function Header() {
           ) : currentUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
+                 <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
                   <Link href="/profile">
                     <UserCircle className="h-6 w-6 text-accent" />
                   </Link>
@@ -212,7 +210,7 @@ export default function Header() {
                     )}
                   </nav>
                 )}
-                <div className={cn("mt-auto p-4 border-t space-y-4", shouldHideMainHeaderElements && "mt-0 pt-4")}>
+                <div className={cn("mt-auto p-4 border-t space-y-4", (isLoadingAuth || shouldHideMainHeaderElements) && "pt-4")}>
                   {!shouldHideMainHeaderElements && (
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
