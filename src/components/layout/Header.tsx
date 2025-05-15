@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-// import Logo from '@/components/shared/Logo'; // Logo component will be rendered when mounted
+import Logo from '@/components/shared/Logo';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -39,19 +39,6 @@ const allNavLinks: NavLink[] = [
   { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
 ];
 
-// Re-define Logo component here for simplicity during debugging, or keep it separate if preferred
-const Logo: React.FC<{ className?: string; iconSize?: number; textSize?: string; }> = ({ className = '', iconSize = 28, textSize = "text-xl" }) => {
-  return (
-    <Link href="/" className={`flex items-center gap-2 group ${className}`} style={{ minHeight: '48px' }}>
-      <Lightbulb size={iconSize} className="text-primary group-hover:text-accent transition-colors duration-200" />
-      <div className={`${textSize} font-poppins text-foreground group-hover:text-accent transition-colors duration-200`}>
-        <span className="font-medium">Learn-</span>
-        <span className="font-bold">StepWise</span>
-      </div>
-    </Link>
-  );
-};
-
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -59,7 +46,11 @@ export default function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { currentUser, isLoadingAuth, logout } = useAuth();
+  
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isUnauthenticatedHomepage = pathname === '/' && !currentUser;
+  const shouldHideMainHeaderElements = isAuthPage || isUnauthenticatedHomepage;
+
 
   useEffect(() => {
     setMounted(true);
@@ -139,10 +130,10 @@ export default function Header() {
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         <Logo />
 
-        {!isAuthPage && (
+        {!shouldHideMainHeaderElements && (
           <nav className="hidden md:flex items-center space-x-2">
             {!isLoadingAuth && <NavItems />}
-            {isLoadingAuth && ( // Show skeletons for nav items while auth is loading
+            {isLoadingAuth && ( 
               <>
                 <Skeleton className="h-8 w-20 rounded-md" />
                 <Skeleton className="h-8 w-20 rounded-md" />
@@ -153,7 +144,7 @@ export default function Header() {
         )}
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {!isAuthPage && (
+          {!shouldHideMainHeaderElements && (
             <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Search..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
@@ -166,10 +157,6 @@ export default function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="User Profile" asChild>
-                  {/* This Link wrapper for DropdownMenuTrigger might be problematic.
-                      It's often better to use router.push in DropdownMenuItem directly.
-                      For now, keeping as it was.
-                   */}
                   <Link href="/profile">
                     <UserCircle className="h-6 w-6 text-accent" />
                   </Link>
@@ -213,10 +200,10 @@ export default function Header() {
                 <div className="p-4 border-b">
                   <Logo />
                 </div>
-                {!isAuthPage && (
+                {!shouldHideMainHeaderElements && (
                   <nav className="flex flex-col space-y-1 p-4">
                     {!isLoadingAuth && <NavItems isMobile={true} />}
-                     {isLoadingAuth && ( // Show skeletons for nav items in mobile menu
+                     {isLoadingAuth && ( 
                         <>
                             <Skeleton className="h-10 w-full rounded-md mb-1" />
                             <Skeleton className="h-10 w-full rounded-md mb-1" />
@@ -225,8 +212,8 @@ export default function Header() {
                     )}
                   </nav>
                 )}
-                <div className={cn("mt-auto p-4 border-t space-y-4", isAuthPage && "mt-0 pt-4")}>
-                  {!isAuthPage && (
+                <div className={cn("mt-auto p-4 border-t space-y-4", shouldHideMainHeaderElements && "mt-0 pt-4")}>
+                  {!shouldHideMainHeaderElements && (
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input type="search" placeholder="Search..." className="pl-10 h-9 w-full" />

@@ -89,11 +89,6 @@ export default function SignupPage() {
   return (
     <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
       {/* Video Background */}
-      {/* 
-        NOTE: Replace '/videos/educational-bg.mp4' with the path to your actual video file.
-        Place your video in the 'public/videos/' directory.
-        Ensure the video is optimized for web playback (e.g., compressed, reasonable resolution).
-      */}
       <video
         autoPlay
         loop
@@ -109,7 +104,7 @@ export default function SignupPage() {
       <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
 
       {/* Signup Card */}
-      <Card className="w-full max-w-md shadow-xl z-20 bg-card/80 backdrop-blur-sm border-border/50">
+      <Card className="w-full max-w-sm shadow-xl z-20 bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
           <UserPlus className="mx-auto h-12 w-12 text-primary mb-4" />
           <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
