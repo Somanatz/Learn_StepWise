@@ -48,7 +48,9 @@ export default function Header() {
   const { currentUser, isLoadingAuth, logout } = useAuth();
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  const isUnauthenticatedHomepage = pathname === '/' && !currentUser && !isLoadingAuth; // Check !isLoadingAuth
+  // Determine if we are on the homepage AND the user is not authenticated AND auth state is not loading
+  const isUnauthenticatedHomepage = pathname === '/' && !currentUser && !isLoadingAuth;
+  // Combine conditions to hide main header elements
   const shouldHideMainHeaderElements = isAuthPage || isUnauthenticatedHomepage;
 
 
@@ -69,9 +71,10 @@ export default function Header() {
     if (isLoadingAuth) return false;
     if (currentUser) {
       if (link.guestOnly) return false;
-      if (!link.roles) return true;
+      if (!link.roles) return true; // If no specific roles are defined, show to all authenticated users
       return link.roles.includes(currentUser.role as UserRole);
     } else {
+      // User is not authenticated
       return !link.authRequired || link.guestOnly;
     }
   });
@@ -82,13 +85,13 @@ export default function Header() {
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
           {/* Simplified Logo Placeholder - reflecting an image */}
-          <div className="animate-pulse bg-muted rounded" style={{ width: '174px', height: '48px', minHeight: '48px' }}></div>
+          <div className="animate-pulse bg-muted rounded" style={{ width: '218px', height: '60px', minHeight: '60px' }}></div>
           
           <div className="flex-grow"></div> {/* Occupy space for nav links */}
 
           {/* Simplified Right Icons Placeholder */}
           <div className="flex items-center space-x-2">
-            <div className="h-9 w-24 rounded-md bg-muted animate-pulse hidden sm:block"></div> {/* Search placeholder */}
+            <div className="h-9 w-24 rounded-md bg-muted animate-pulse"></div> {/* Search placeholder */}
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon placeholder */}
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> {/* Menu toggle placeholder */}
           </div>
