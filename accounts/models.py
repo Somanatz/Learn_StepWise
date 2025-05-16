@@ -16,9 +16,14 @@ class School(models.Model):
     principal_full_name = models.CharField(max_length=255, blank=True, null=True)
     principal_contact_number = models.CharField(max_length=20, blank=True, null=True)
     principal_email = models.EmailField(blank=True, null=True)
-    # admin_user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='administered_school', limit_choices_to={'role': 'Admin', 'is_school_admin': True})
-    # A school can have multiple admins, or one primary admin contact
-    # For now, an Admin user with is_school_admin=True can be associated post-creation or by convention.
+    admin_user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='administered_school',
+        help_text="The primary admin user for this school, created during registration."
+    )
 
     def __str__(self):
         return self.name
@@ -32,7 +37,7 @@ class CustomUser(AbstractUser):
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='Student')
     is_school_admin = models.BooleanField(default=False, help_text="Designates if this admin user manages a specific school.")
-    # school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_and_students')
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_and_students')
 
     # Fields moved to profile models for better organization
     # preferred_language = models.CharField(max_length=10, default='en', blank=True, null=True) # Moved to StudentProfile
