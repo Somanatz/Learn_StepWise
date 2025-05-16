@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -22,18 +21,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Logo from '@/components/shared/Logo'; // Moved back
+import Image from 'next/image';
+
+// Moved Logo definition back here to avoid circular dependencies if Logo imports from Header context etc.
+// For a larger app, Logo would be simpler or context usage carefully managed.
+const Logo = ({ className = '' }: { className?: string }) => {
+  return (
+    <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '60px' }}>
+      <Image
+        src="/images/StepWise.png"
+        alt="Learn-StepWise Logo"
+        width={218}
+        height={60}
+        priority
+        className="group-hover:opacity-90 transition-opacity duration-200"
+      />
+    </Link>
+  );
+};
+
 
 const allNavLinks: NavLink[] = [
-  // Main dashboard links are now role-specific, e.g., /student, /teacher, /parent
-  // { href: '/', label: 'Dashboard', authRequired: true }, // This will be handled by role redirection from '/'
   { href: '/student/rewards', label: 'Rewards', roles: ['Student'], authRequired: true },
   { href: '/forum', label: 'Forum', authRequired: true },
   { href: '/student/recommendations', label: 'Suggestions', roles: ['Student'], authRequired: true },
-  // Teacher and Parent portal links can remain if you want direct access even if their main dashboard is at /teacher or /parent
-  // { href: '/teacher', label: 'Teacher Portal', roles: ['Teacher'], authRequired: true },
-  // { href: '/parent', label: 'Parent Portal', roles: ['Parent'], authRequired: true },
-  { href: '/register-school', label: 'Register School', guestOnly: true } // For unauthenticated users
 ];
 
 interface NavLink {
@@ -41,7 +52,7 @@ interface NavLink {
   label: string;
   roles?: UserRole[];
   authRequired?: boolean;
-  guestOnly?: boolean;
+  guestOnly?: boolean; // Not actively used with current logic but kept for potential future use
 }
 
 export default function Header() {
@@ -51,7 +62,9 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const { currentUser, isLoadingAuth, logout } = useAuth();
   
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/register-school' || 
+  const isAuthPage = pathname === '/login' || 
+                     pathname === '/signup' || 
+                     pathname === '/register-school' || 
                      pathname.startsWith('/student/complete-profile') ||
                      pathname.startsWith('/parent/complete-profile') ||
                      pathname.startsWith('/teacher/complete-profile');
@@ -76,23 +89,25 @@ export default function Header() {
     if (isLoadingAuth) return false;
     if (currentUser) {
       if (link.guestOnly) return false;
-      if (link.authRequired === false) return true; // Show if auth not required
+      if (link.authRequired === false) return true;
       if (!link.roles && link.authRequired) return true;
       return link.roles && link.roles.includes(currentUser.role as UserRole);
-    } else { // User is not authenticated
+    } else { 
       return !link.authRequired || link.guestOnly;
     }
   });
   
   if (!mounted) {
+    // Simplified placeholder structure for SSR and initial client render to avoid hydration issues
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="animate-pulse bg-muted rounded"></div> {/* Logo placeholder */}
-          <div className="flex-grow"></div> {/* Occupy space for nav links */}
+          {/* Logo Placeholder */}
+          <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="animate-pulse bg-muted rounded"></div>
+          <div className="flex-grow"></div> {/* Spacer */}
+          {/* Right side icons placeholder */}
           <div className="flex items-center space-x-2">
-            <div className="h-9 w-24 rounded-md bg-muted animate-pulse"></div> {/* Search placeholder */}
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon/buttons placeholder */}
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> {/* Menu toggle placeholder */}
           </div>
         </div>
@@ -151,7 +166,7 @@ export default function Header() {
 
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {!shouldHideMainHeaderElements && !isUnauthenticatedHomepage && (
+          {!shouldHideMainHeaderElements && (
             <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Search platform..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
@@ -179,17 +194,22 @@ export default function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : ( // Not loading, and no current user
+          ) : ( 
             <div className="hidden md:flex items-center space-x-2">
-              {pathname !== '/login' && !isAuthPage && (
+              {pathname !== '/login' && (
                 <Button variant="ghost" asChild>
                   <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
                 </Button>
               )}
-               {pathname !== '/signup' && !isAuthPage && (
+              {pathname !== '/signup' && (
                 <Button variant="default" asChild>
                   <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                 </Button>
+              )}
+              {pathname !== '/register-school' && (
+                 <Button variant="outline" asChild>
+                    <Link href="/register-school"><School className="mr-2 h-4 w-4" />Register School</Link>
+                 </Button>
               )}
             </div>
           )}
@@ -220,7 +240,7 @@ export default function Header() {
                         <Input type="search" placeholder="Find a School..." className="pl-10 h-9 w-full" />
                     </div>
                   )}
-                  {!shouldHideMainHeaderElements && !isUnauthenticatedHomepage && (
+                  {!shouldHideMainHeaderElements && (
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input type="search" placeholder="Search platform..." className="pl-10 h-9 w-full" />
@@ -239,16 +259,21 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      {pathname !== '/login' && !isAuthPage && (
+                      {pathname !== '/login' && (
                         <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
                           <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
                         </Button>
                       )}
-                       {pathname !== '/signup' && !isAuthPage && (
+                      {pathname !== '/signup' && (
                         <Button variant="default" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
                           <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                         </Button>
                       )}
+                      {pathname !== '/register-school' && (
+                         <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                            <Link href="/register-school"><School className="mr-2 h-4 w-4" />Register School</Link>
+                         </Button>
+                       )}
                     </>
                   )}
                 </div>
