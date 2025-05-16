@@ -1,12 +1,16 @@
+
 from django.db import models, JSONField
 from django.conf import settings
+# Import School model from accounts app
+from accounts.models import School # Ensure accounts is in INSTALLED_APPS and School is defined
 
 class Class(models.Model):
+    school = models.ForeignKey(School, related_name='classes', on_delete=models.CASCADE, null=True, blank=True) # Link Class to a School
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.school.name if self.school else 'No School'})"
 
 class Subject(models.Model):
     class_obj = models.ForeignKey(Class, related_name='subjects', on_delete=models.CASCADE)
@@ -19,8 +23,8 @@ class Subject(models.Model):
 class Lesson(models.Model):
     subject = models.ForeignKey(Subject, related_name='lessons', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    content = models.TextField() # This can be expanded to handle different content types
-    simplified_content = models.TextField(blank=True, null=True) # Simplified version of the lesson content
+    content = models.TextField()
+    simplified_content = models.TextField(blank=True, null=True)
     lesson_order = models.PositiveIntegerField(default=0)
     requires_previous_quiz = models.BooleanField(default=False)
 
@@ -41,7 +45,6 @@ class Quiz(models.Model):
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     text = models.TextField()
-    # You can add a 'question_type' field here if you plan to have different types of questions (e.g., True/False, Fill in the Blank)
 
     def __str__(self):
         return self.text[:50] + '...'
@@ -57,9 +60,9 @@ class Choice(models.Model):
 class UserQuizAttempt(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_attempts')
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='user_attempts')
-    score = models.FloatField(default=0.0) # Store the score as a float
+    score = models.FloatField(default=0.0)
     completed_at = models.DateTimeField(auto_now_add=True)
-    passed = models.BooleanField(default=False) # To indicate if the user passed the quiz
+    passed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username}'s attempt on {self.quiz.title}"
@@ -67,21 +70,20 @@ class UserQuizAttempt(models.Model):
 class UserLessonProgress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_progress')
-    progress_data = models.JSONField(blank=True, null=True) # Use JSONField for structured progress data
+    progress_data = models.JSONField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user', 'lesson')
-
 
     def __str__(self):
         return f"{self.user.username}'s progress in {self.lesson.title}"
 
 class ProcessedNote(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='processed_notes')
-    lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name='processed_notes', null=True, blank=True) # Optional link to a lesson
-    original_notes = models.TextField() # Renamed from original_text
-    processed_output = models.TextField(blank=True, null=True) # Renamed from processed_text, Store the output from the AI model
+    lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name='processed_notes', null=True, blank=True)
+    original_notes = models.TextField() # Renamed
+    processed_output = models.TextField(blank=True, null=True) # Renamed
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -93,7 +95,8 @@ class Book(models.Model):
     subject = models.ForeignKey(Subject, related_name='books', on_delete=models.CASCADE, null=True, blank=True)
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255, blank=True, null=True)
-    file = models.FileField(upload_to='books/') # Files will be uploaded to the 'books' subdirectory of MEDIA_ROOT
+    file = models.FileField(upload_to='books/')
 
     def __str__(self):
         return self.title
+

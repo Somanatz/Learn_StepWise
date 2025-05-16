@@ -1,34 +1,41 @@
+
 import type { LucideIcon } from 'lucide-react';
 
-export interface Subject {
-  id: string;
+export interface School {
+  id: string | number;
   name: string;
-  icon: LucideIcon;
+  school_id_code: string;
+  license_number?: string;
+  official_email: string;
+  phone_number?: string;
+  address?: string;
+  principal_full_name?: string;
+  principal_contact_number?: string;
+  principal_email?: string;
+  // Add other fields from your School model
+}
+
+export interface Subject {
+  id: string | number; // Changed from string to allow number from API
+  name: string;
+  icon: LucideIcon; // This will remain frontend specific for now
   description: string;
   lessonsCount: number;
   bgColor?: string; 
   textColor?: string; 
   href: string;
-  is_locked?: boolean; // Added to reflect lesson locking status at subject level if needed
+  is_locked?: boolean;
+  class_obj_name?: string; // If subject serializer provides class name
 }
 
-export interface ClassLevel {
-  level: number; // e.g., 5 for Class 5
-  title: string; // e.g., "Class 5", "Primary School Year 3"
-  subjects: Subject[];
-}
-
-export interface TestScore {
-  subject: string;
-  score: number;
-  maxScore: number;
-  date: string;
-}
-
-// This is a simplified student model for some contexts
-export interface Student {
+export interface Class {
+  id: string | number; // Changed from number to allow string from API sometimes
   name: string;
-  classLevel: number;
+  description?: string;
+  subjects: Subject[]; // Array of Subject objects/IDs
+  school?: string | number; // School ID
+  school_name?: string;
+  // Any other class-specific fields
 }
 
 // User roles should match backend choices
@@ -40,12 +47,57 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  preferred_language?: string; // Student
-  subject_expertise?: string; // Teacher
-  assigned_class?: string | number; // Teacher (ID of the class)
-  assigned_class_name?: string; // Teacher (Name of the class for display)
-  // any other fields from your CustomUser model
+  is_school_admin?: boolean;
+  // Profile data can be nested or fetched separately
+  student_profile?: StudentProfileData;
+  teacher_profile?: TeacherProfileData;
+  parent_profile?: ParentProfileData;
+  // assigned_class_name and other direct fields are removed as they are now in profiles
 }
+
+export interface StudentProfileData {
+    id?: number;
+    full_name?: string;
+    school?: string | number; // School ID
+    school_name?: string; // For display
+    enrolled_class?: string | number; // Class ID
+    enrolled_class_name?: string; // For display
+    preferred_language?: string;
+    father_name?: string;
+    mother_name?: string;
+    place_of_birth?: string;
+    date_of_birth?: string; // ISO date string
+    blood_group?: string;
+    needs_assistant_teacher?: boolean;
+    admission_number?: string;
+    parent_email_for_linking?: string;
+    parent_mobile_for_linking?: string;
+    hobbies?: string;
+    favorite_sports?: string;
+    interested_in_gardening_farming?: boolean;
+}
+
+export interface TeacherProfileData {
+    id?: number;
+    full_name?: string;
+    school?: string | number; // School ID
+    school_name?: string;
+    assigned_classes?: (string | number)[]; // Array of Class IDs
+    assigned_classes_details?: { id: string | number, name: string }[]; // For display
+    subject_expertise?: (string | number)[]; // Array of Subject IDs
+    subject_expertise_details?: { id: string | number, name: string }[]; // For display
+    interested_in_tuition?: boolean;
+    mobile_number?: string;
+    address?: string;
+}
+
+export interface ParentProfileData {
+    id?: number;
+    full_name?: string;
+    mobile_number?: string;
+    address?: string;
+}
+
 
 // Interface for Book model (from content.Book)
 export interface Book {
@@ -69,4 +121,15 @@ export interface Event {
     end_date?: string; // ISO date string, optional
     type: 'Holiday' | 'Exam' | 'Meeting' | 'Activity' | 'Deadline' | 'General';
     created_by_username?: string;
+    school?: number;
+    school_name?: string;
+    target_class?: number;
+    target_class_name?: string;
+}
+
+// Interface for Lesson for StudentDashboard/SubjectCard, might differ from API Lesson
+export interface LessonSummary {
+  id: string | number;
+  title: string;
+  is_locked?: boolean;
 }

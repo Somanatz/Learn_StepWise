@@ -1,3 +1,4 @@
+
 // src/app/signup/page.tsx
 'use client';
 
@@ -8,14 +9,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signupUser } from '@/lib/api';
 import Link from 'next/link';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { UserRole } from '@/interfaces';
+
 
 const signupSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -49,16 +51,29 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     try {
-      const roleToSend = data.role.charAt(0).toUpperCase() + data.role.slice(1) as 'Student' | 'Teacher' | 'Parent';
+      // Ensure role is correctly cased if backend is case-sensitive
+      const roleToSend = data.role.charAt(0).toUpperCase() + data.role.slice(1) as UserRole;
       const { confirmPassword, ...signupData } = data;
       const payload = { ...signupData, role: roleToSend };
       
-      await signupUser(payload);
+      const newUser = await signupUser(payload); // signupUser should return the created user object or ID
+      
       toast({
         title: "Signup Successful!",
-        description: "Your account has been created. Please log in.",
+        description: "Your account has been created. Please complete your profile.",
       });
-      router.push('/login');
+
+      // Redirect to profile completion page based on role
+      if (newUser.role === 'Student') {
+        router.push('/student/complete-profile');
+      } else if (newUser.role === 'Teacher') {
+        router.push('/teacher/complete-profile');
+      } else if (newUser.role === 'Parent') {
+        router.push('/parent/complete-profile');
+      } else {
+        router.push('/login'); // Fallback if role is not handled for profile completion
+      }
+
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
       if (error.response && error.response.data) {
@@ -68,6 +83,8 @@ export default function SignupPage() {
         else if (errorData.password) errorMessage = `Password: ${errorData.password.join(', ')}`;
         else if (typeof errorData === 'string') errorMessage = errorData;
         else if (errorData.detail) errorMessage = errorData.detail;
+        // Handle nested profile errors if backend returns them during signup
+        else if (errorData.student_profile) errorMessage = `Student Profile: ${JSON.stringify(errorData.student_profile)}`;
         else errorMessage = JSON.stringify(errorData);
       } else if (error.message) {
         errorMessage = error.message;
@@ -84,7 +101,6 @@ export default function SignupPage() {
 
   return (
     <div className="relative flex flex-col md:flex-row items-center justify-center min-h-screen overflow-hidden p-4">
-      {/* Video Background */}
       <video
         autoPlay
         loop
@@ -95,13 +111,8 @@ export default function SignupPage() {
         <source src="/videos/educational-bg.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-
-      {/* Overlay for better contrast */}
       <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
-
-      {/* Content Wrapper */}
       <div className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl xl:max-w-6xl mx-auto items-center md:space-x-10 lg:space-x-16">
-        {/* Left Side: Tool Name & Tagline */}
         <div className="w-full md:w-2/5 flex-shrink-0 mb-12 md:mb-0 text-center md:text-left">
            <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground animate-pulse-subtle [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)]">
             Learn-StepWise
@@ -110,8 +121,6 @@ export default function SignupPage() {
             Join Our Community of Learners and Educators.
           </p>
         </div>
-
-        {/* Right Side: Signup Card */}
         <div className="w-full md:w-3/5 flex justify-center md:justify-start lg:justify-center">
           <Card className="w-full max-w-sm shadow-xl bg-card/80 backdrop-blur-md border-border/50 animate-slide-in-from-right animation-delay-200">
             <CardHeader className="text-center">
@@ -197,6 +206,7 @@ export default function SignupPage() {
                     )}
                   />
                   <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     {isLoading ? 'Creating Account...' : 'Sign Up'}
                   </Button>
                 </form>
@@ -216,3 +226,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

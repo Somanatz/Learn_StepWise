@@ -1,13 +1,14 @@
+
 from rest_framework import serializers
 from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt
 
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ['id', 'text', 'is_correct'] # For quiz creation/editing, is_correct might be writeable by teachers
+        fields = ['id', 'text', 'is_correct']
 
 class QuestionSerializer(serializers.ModelSerializer):
-    choices = ChoiceSerializer(many=True, read_only=False) # Allow creating choices when creating question
+    choices = ChoiceSerializer(many=True, read_only=False)
 
     class Meta:
         model = Question
@@ -21,14 +22,13 @@ class QuestionSerializer(serializers.ModelSerializer):
         return question
 
 class QuizSerializer(serializers.ModelSerializer):
-    questions = QuestionSerializer(many=True, read_only=False) # Allow creating questions when creating quiz
+    questions = QuestionSerializer(many=True, read_only=False)
     lesson_id = serializers.PrimaryKeyRelatedField(source='lesson', queryset=Lesson.objects.all(), write_only=True)
 
     class Meta:
         model = Quiz
         fields = ['id', 'lesson', 'lesson_id', 'title', 'description', 'questions']
         read_only_fields = ['lesson']
-
 
     def create(self, validated_data):
         questions_data = validated_data.pop('questions', [])
@@ -42,7 +42,7 @@ class QuizSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     is_locked = serializers.SerializerMethodField()
-    quiz = QuizSerializer(read_only=True) # Embed quiz details if present
+    quiz = QuizSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()}) # Pass context
     subject_id = serializers.PrimaryKeyRelatedField(source='subject', queryset=Subject.objects.all())
 
     class Meta:
@@ -51,7 +51,7 @@ class LessonSerializer(serializers.ModelSerializer):
             'id', 'subject', 'subject_id', 'title', 'content', 'simplified_content', 
             'lesson_order', 'requires_previous_quiz', 'is_locked', 'quiz'
         ]
-        read_only_fields = ['subject'] # subject is set via subject_id
+        read_only_fields = ['subject']
 
     def get_is_locked(self, obj):
         request = self.context.get('request')
@@ -71,12 +71,10 @@ class LessonSerializer(serializers.ModelSerializer):
                     ).exists()
                     return not passed_attempt_exists
             return False
-        # For unauthenticated users or if no specific logic hit, consider it locked if it requires a quiz
-        # This might need refinement based on desired public visibility of locked lessons
         return obj.requires_previous_quiz 
 
 class SubjectSerializer(serializers.ModelSerializer):
-    lessons = LessonSerializer(many=True, read_only=True) # Pass context in view
+    lessons = LessonSerializer(many=True, read_only=True, context={'request': serializers.CurrentUserDefault()}) # Pass context
     class_obj_id = serializers.PrimaryKeyRelatedField(source='class_obj', queryset=Class.objects.all())
 
     class Meta:
@@ -84,16 +82,18 @@ class SubjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'class_obj', 'class_obj_id', 'name', 'description', 'lessons']
         read_only_fields = ['class_obj']
 
-    # get_lessons method removed as context should be passed from viewset to handle request for nested serializers
 
 class ClassSerializer(serializers.ModelSerializer):
-    subjects = SubjectSerializer(many=True, read_only=True) # Pass context in view
+    subjects = SubjectSerializer(many=True, read_only=True, context={'request': serializers.CurrentUserDefault()}) # Pass context
+    school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
+    school_id = serializers.PrimaryKeyRelatedField(source='school', queryset=School.objects.all(), allow_null=True, required=False)
+
 
     class Meta:
         model = Class
-        fields = ['id', 'name', 'description', 'subjects']
-    
-    # get_subjects method removed for same reason as get_lessons
+        fields = ['id', 'name', 'description', 'subjects', 'school', 'school_id', 'school_name']
+        read_only_fields = ['school']
+
 
 class UserLessonProgressSerializer(serializers.ModelSerializer):
     user_id = serializers.ReadOnlyField(source='user.id')
@@ -102,7 +102,7 @@ class UserLessonProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserLessonProgress
         fields = ['id', 'user_id', 'lesson', 'lesson_id', 'progress_data', 'last_updated']
-        read_only_fields = ['user_id', 'lesson', 'last_updated'] # User is set in view, lesson set by lesson_id
+        read_only_fields = ['user_id', 'lesson', 'last_updated']
 
 class ProcessedNoteSerializer(serializers.ModelSerializer):
     user_id = serializers.ReadOnlyField(source='user.id')
@@ -111,16 +111,14 @@ class ProcessedNoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProcessedNote
         fields = ['id', 'user_id', 'lesson', 'lesson_id', 'original_notes', 'processed_output', 'created_at', 'updated_at']
-        read_only_fields = ['user_id', 'lesson', 'created_at', 'updated_at', 'processed_output'] # User is set in view
+        read_only_fields = ['user_id', 'lesson', 'created_at', 'updated_at', 'processed_output']
 
 class BookSerializer(serializers.ModelSerializer):
     class_name = serializers.CharField(source='class_obj.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
     file_url = serializers.SerializerMethodField()
-    # For writing, allow specifying class and subject by ID
     class_obj_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), source='class_obj', write_only=True, allow_null=True, required=False)
     subject_id = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), source='subject', write_only=True, allow_null=True, required=False)
-
 
     class Meta:
         model = Book
@@ -129,10 +127,8 @@ class BookSerializer(serializers.ModelSerializer):
             'subject', 'subject_name', 'subject_id',
             'class_obj', 'class_name', 'class_obj_id'
         ]
-        read_only_fields = ['subject', 'class_obj'] # Use *_id fields for writing
-        extra_kwargs = {
-            'file': {'write_only': True} 
-        }
+        read_only_fields = ['subject', 'class_obj']
+        extra_kwargs = {'file': {'write_only': True} }
 
     def get_file_url(self, obj):
         request = self.context.get('request')
@@ -149,7 +145,5 @@ class UserQuizAttemptSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserQuizAttempt
         fields = ['id', 'user', 'user_username', 'quiz', 'quiz_title', 'score', 'completed_at', 'passed']
-        read_only_fields = ['user', 'quiz', 'completed_at'] # User and quiz are set internally
-        # Score and passed could be writeable by an admin/teacher if manual override is needed
-        # but typically set by submit_quiz logic.
-```
+        read_only_fields = ['user', 'quiz', 'completed_at']
+
