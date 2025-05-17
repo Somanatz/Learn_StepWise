@@ -3,12 +3,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School } from 'lucide-react';
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide } from 'lucide-react'; // Renamed School to SchoolIconLucide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'; // Added SheetHeader, SheetTitle
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/interfaces';
@@ -23,8 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from 'next/image';
 
-// Moved Logo definition back here to avoid circular dependencies if Logo imports from Header context etc.
-// For a larger app, Logo would be simpler or context usage carefully managed.
 const Logo = ({ className = '' }: { className?: string }) => {
   return (
     <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '60px' }}>
@@ -52,7 +50,7 @@ interface NavLink {
   label: string;
   roles?: UserRole[];
   authRequired?: boolean;
-  guestOnly?: boolean; // Not actively used with current logic but kept for potential future use
+  guestOnly?: boolean;
 }
 
 export default function Header() {
@@ -64,7 +62,7 @@ export default function Header() {
   
   const isAuthPage = pathname === '/login' || 
                      pathname === '/signup' || 
-                     pathname === '/register-school' || 
+                     pathname === '/register-school' ||
                      pathname.startsWith('/student/complete-profile') ||
                      pathname.startsWith('/parent/complete-profile') ||
                      pathname.startsWith('/teacher/complete-profile');
@@ -98,13 +96,15 @@ export default function Header() {
   });
   
   if (!mounted) {
-    // Simplified placeholder structure for SSR and initial client render to avoid hydration issues
+    // Simplified static placeholder for SSR and initial client render
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
           {/* Logo Placeholder */}
           <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="animate-pulse bg-muted rounded"></div>
+          
           <div className="flex-grow"></div> {/* Spacer */}
+
           {/* Right side icons placeholder */}
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon/buttons placeholder */}
@@ -159,7 +159,7 @@ export default function Header() {
         
         {isUnauthenticatedHomepage && (
             <div className="relative hidden sm:block">
-              <School className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <SchoolIconLucide className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Find a School..." className="pl-10 h-9 w-[150px] lg:w-[250px]" />
             </div>
         )}
@@ -208,7 +208,7 @@ export default function Header() {
               )}
               {pathname !== '/register-school' && (
                  <Button variant="outline" asChild>
-                    <Link href="/register-school"><School className="mr-2 h-4 w-4" />Register School</Link>
+                    <Link href="/register-school"><SchoolIconLucide className="mr-2 h-4 w-4" />Register School</Link>
                  </Button>
               )}
             </div>
@@ -222,7 +222,10 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
-                <div className="p-4 border-b"><Logo /></div>
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="sr-only">Main Menu</SheetTitle> {/* Visually hidden title for accessibility */}
+                  <Logo />
+                </SheetHeader>
                 
                 {!shouldHideMainHeaderElements && (
                   <nav className="flex flex-col space-y-1 p-4">
@@ -236,7 +239,7 @@ export default function Header() {
                 <div className={cn("mt-auto p-4 border-t space-y-4", (isLoadingAuth || shouldHideMainHeaderElements) && "pt-4")}>
                   {isUnauthenticatedHomepage && (
                      <div className="relative">
-                        <School className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <SchoolIconLucide className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input type="search" placeholder="Find a School..." className="pl-10 h-9 w-full" />
                     </div>
                   )}
@@ -271,7 +274,7 @@ export default function Header() {
                       )}
                       {pathname !== '/register-school' && (
                          <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
-                            <Link href="/register-school"><School className="mr-2 h-4 w-4" />Register School</Link>
+                            <Link href="/register-school"><SchoolIconLucide className="mr-2 h-4 w-4" />Register School</Link>
                          </Button>
                        )}
                     </>
