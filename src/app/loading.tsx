@@ -1,10 +1,10 @@
 // src/app/loading.tsx
 import Image from 'next/image';
 import { GraduationCap, School, Users, HeartHandshake, Presentation, Sigma } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Loading() {
-  const iconSize = "h-10 w-10 md:h-12 md:w-12"; // Responsive icon size
-  const iconDelayBase = 100; // ms
+  const iconSize = "h-10 w-10 md:h-12 md:w-12";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background fixed inset-0 z-[100] p-4">
@@ -21,32 +21,26 @@ export default function Loading() {
 
       <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
         <Sigma 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 1}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-100")} 
         />
         <GraduationCap 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 2}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-200")}
         />
         <School 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 3}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-300")}
         />
         <Users 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 4}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-400")}
         />
         <HeartHandshake 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 5}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-500")}
         />
         <Presentation 
-          className={`${iconSize} text-primary animate-pulse`} 
-          style={{ animationDelay: `${iconDelayBase * 6}ms` }}
+          className={cn(iconSize, "text-primary animate-pulse animation-delay-700")}
         />
       </div>
 
-      <p className="text-lg md:text-xl text-muted-foreground animate-pulse" style={{ animationDelay: `${iconDelayBase * 7}ms` }}>
+      <p className={cn("text-lg md:text-xl text-muted-foreground animate-pulse animation-delay-700")}>
         Preparing Your StepWise Experience...
       </p>
     </div>
