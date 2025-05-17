@@ -7,15 +7,15 @@ import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation'; // Keep for potential future use, but not actively redirecting
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Link from 'next/link'; // For Login/Signup links on public page
-import { Button } from '@/components/ui/button'; // For Login/Signup buttons
-import { LogIn, UserPlus } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 
 export default function UnifiedDashboardPage() {
   const { currentUser, currentUserRole, isLoadingAuth } = useAuth();
-  const router = useRouter(); // Keep for potential future use
+  const router = useRouter();
   const [isWelcomeVisible, setIsWelcomeVisible] = useState(false);
 
   // Animation trigger for welcome message
@@ -26,6 +26,17 @@ export default function UnifiedDashboardPage() {
     }
   }, [isLoadingAuth, currentUser]);
 
+  // Redirection logic for logged-in users
+  // This useEffect is now called unconditionally at the top
+  useEffect(() => {
+    if (!isLoadingAuth && currentUser) {
+      if (currentUserRole === 'Student') router.push('/student');
+      else if (currentUserRole === 'Teacher') router.push('/teacher');
+      else if (currentUserRole === 'Parent') router.push('/parent');
+      // else if (currentUserRole === 'Admin' etc.)
+      // Default or unrecognized role might stay here or go to a generic dashboard
+    }
+  }, [isLoadingAuth, currentUser, currentUserRole, router]);
 
   if (isLoadingAuth) {
     return ( // Consistent full-page skeleton
@@ -58,19 +69,6 @@ export default function UnifiedDashboardPage() {
     );
   }
   
-  // If user is logged in, redirect to their role-specific main dashboard page
-  // This simplifies the logic here and keeps student/teacher/parent specific routes clean
-  useEffect(() => {
-    if (!isLoadingAuth && currentUser) {
-        if (currentUserRole === 'Student') router.push('/student');
-        else if (currentUserRole === 'Teacher') router.push('/teacher');
-        else if (currentUserRole === 'Parent') router.push('/parent');
-        // else if (currentUserRole === 'Admin' etc.)
-        // Default or unrecognized role might stay here or go to a generic dashboard
-    }
-  }, [isLoadingAuth, currentUser, currentUserRole, router]);
-
-
   // Show public welcome page if not logged in and not loading
   if (!currentUser && !isLoadingAuth) {
     return (
@@ -96,7 +94,7 @@ export default function UnifiedDashboardPage() {
           `}>
             <h1
               className={`
-                font-extrabold mb-6 text-white
+                font-extrabold mb-6 text-primary-foreground
                 text-4xl sm:text-5xl md:text-6xl
                 leading-tight 
                 [text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]
@@ -125,8 +123,10 @@ export default function UnifiedDashboardPage() {
     );
   }
 
-  // Fallback for unrecognized roles or if redirection hasn't happened yet
-  // This part might not be reached if redirection logic is effective
+  // Fallback for recognized roles or if redirection hasn't happened yet
+  // This part should ideally not be reached for long if redirection logic is effective
+  // or if specific role dashboards were to be rendered here directly.
+  // Given the current logic pushes to /student, /teacher, /parent, this is a temporary loading state.
   return (
      <div className="flex justify-center items-center h-screen">
         <p>Loading your dashboard...</p>
