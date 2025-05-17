@@ -12,113 +12,170 @@ export interface School {
   principal_full_name?: string;
   principal_contact_number?: string;
   principal_email?: string;
-  // Add other fields from your School model
 }
 
+export interface LessonSummary { // For brief lesson listings
+  id: string | number;
+  title: string;
+  lesson_order?: number;
+  is_locked?: boolean; // Determined by frontend/backend logic
+  video_url?: string;
+  audio_url?: string;
+  image_url?: string;
+}
+
+export interface Choice {
+  id: string | number;
+  text: string;
+  is_correct: boolean;
+}
+
+export interface Question {
+  id: string | number;
+  text: string;
+  choices: Choice[];
+}
+
+export interface Quiz {
+  id: string | number;
+  title: string;
+  description?: string;
+  pass_mark_percentage?: number;
+  questions: Question[];
+  lesson: string | number; // Lesson ID it's attached to
+}
+
+
+export interface Lesson extends LessonSummary { // For detailed lesson view
+  content: string;
+  simplified_content?: string;
+  subject?: string | number; // Subject ID
+  subject_name?: string;
+  quiz?: Quiz | null; // Quiz can be null or the full Quiz object
+  requires_previous_quiz?: boolean;
+}
+
+
 export interface Subject {
-  id: string | number; // Changed from string to allow number from API
+  id: string | number; 
   name: string;
-  icon: LucideIcon; // This will remain frontend specific for now
+  icon: LucideIcon; 
   description: string;
-  lessonsCount: number;
+  lessonsCount: number; // Derived or from API
+  lessons: LessonSummary[]; // List of lessons in this subject
   bgColor?: string; 
   textColor?: string; 
-  href: string;
-  is_locked?: boolean;
-  class_obj_name?: string; // If subject serializer provides class name
+  href: string; // To subject detail page
+  is_locked?: boolean; // If the whole subject is locked (less common)
+  class_obj?: string | number; // Class ID
+  class_obj_name?: string; 
 }
 
 export interface Class {
-  id: string | number; // Changed from number to allow string from API sometimes
+  id: string | number; 
   name: string;
   description?: string;
-  subjects: Subject[]; // Array of Subject objects/IDs
-  school?: string | number; // School ID
+  subjects: Subject[]; 
+  school?: string | number; 
   school_name?: string;
-  // Any other class-specific fields
 }
 
-// User roles should match backend choices
+
 export type UserRole = 'Student' | 'Teacher' | 'Parent' | 'Admin';
 
-// Interface for user object from backend, especially after login /users/me/
 export interface User {
   id: number;
   username: string;
   email: string;
   role: UserRole;
   is_school_admin?: boolean;
-  // Profile data can be nested or fetched separately
+  school?: string | number | null; // School ID if associated
+  school_name?: string | null;
   student_profile?: StudentProfileData;
   teacher_profile?: TeacherProfileData;
   parent_profile?: ParentProfileData;
-  // assigned_class_name and other direct fields are removed as they are now in profiles
 }
 
 export interface StudentProfileData {
     id?: number;
-    full_name?: string;
-    school?: string | number; // School ID
-    school_name?: string; // For display
-    enrolled_class?: string | number; // Class ID
-    enrolled_class_name?: string; // For display
-    preferred_language?: string;
-    father_name?: string;
-    mother_name?: string;
-    place_of_birth?: string;
-    date_of_birth?: string; // ISO date string
-    blood_group?: string;
+    user?: number; // User ID
+    full_name?: string | null;
+    school?: string | number | null; 
+    school_name?: string | null; 
+    enrolled_class?: string | number | null; 
+    enrolled_class_name?: string | null; 
+    preferred_language?: string | null;
+    father_name?: string | null;
+    mother_name?: string | null;
+    place_of_birth?: string | null;
+    date_of_birth?: string | null; 
+    blood_group?: string | null;
     needs_assistant_teacher?: boolean;
-    admission_number?: string;
-    parent_email_for_linking?: string;
-    parent_mobile_for_linking?: string;
-    hobbies?: string;
-    favorite_sports?: string;
+    admission_number?: string | null;
+    parent_email_for_linking?: string | null;
+    parent_mobile_for_linking?: string | null;
+    hobbies?: string | null;
+    favorite_sports?: string | null;
     interested_in_gardening_farming?: boolean;
+    profile_picture?: string | null; // URL to picture
+    profile_picture_url?: string | null; // Backend might provide a full URL
 }
 
 export interface TeacherProfileData {
     id?: number;
-    full_name?: string;
-    school?: string | number; // School ID
-    school_name?: string;
-    assigned_classes?: (string | number)[]; // Array of Class IDs
-    assigned_classes_details?: { id: string | number, name: string }[]; // For display
-    subject_expertise?: (string | number)[]; // Array of Subject IDs
-    subject_expertise_details?: { id: string | number, name: string }[]; // For display
+    user?: number;
+    full_name?: string | null;
+    school?: string | number | null; 
+    school_name?: string | null;
+    assigned_classes?: (string | number)[]; 
+    assigned_classes_details?: { id: string | number, name: string }[]; 
+    subject_expertise?: (string | number)[]; 
+    subject_expertise_details?: { id: string | number, name: string }[]; 
     interested_in_tuition?: boolean;
-    mobile_number?: string;
-    address?: string;
+    mobile_number?: string | null;
+    address?: string | null;
+    profile_picture?: string | null;
+    profile_picture_url?: string | null;
 }
 
 export interface ParentProfileData {
     id?: number;
-    full_name?: string;
-    mobile_number?: string;
-    address?: string;
+    user?: number;
+    full_name?: string | null;
+    mobile_number?: string | null;
+    address?: string | null;
+    profile_picture?: string | null;
+    profile_picture_url?: string | null;
+}
+
+export interface ParentStudentLinkAPI {
+  id: string | number;
+  parent: number; // Parent User ID
+  student: number; // Student User ID
+  parent_username: string;
+  student_username: string;
+  student_details?: StudentProfileData; // Optional, if backend sends this nested
 }
 
 
-// Interface for Book model (from content.Book)
 export interface Book {
     id: number;
     title: string;
     author?: string;
-    file?: string; // URL to the file
-    file_url?: string; // Full URL if provided by serializer
-    subject?: number; // Subject ID
+    file?: string; 
+    file_url?: string; 
+    subject?: number; 
     subject_name?: string;
-    class_obj?: number; // Class ID
+    class_obj?: number; 
     class_name?: string;
 }
 
-// Interface for Event model (from notifications.Event)
 export interface Event {
     id: number;
     title: string;
     description?: string;
-    date: string; // ISO date string
-    end_date?: string; // ISO date string, optional
+    date: string; 
+    end_date?: string; 
     type: 'Holiday' | 'Exam' | 'Meeting' | 'Activity' | 'Deadline' | 'General';
     created_by_username?: string;
     school?: number;
@@ -127,9 +184,26 @@ export interface Event {
     target_class_name?: string;
 }
 
-// Interface for Lesson for StudentDashboard/SubjectCard, might differ from API Lesson
-export interface LessonSummary {
+
+export interface UserQuizAttempt {
   id: string | number;
-  title: string;
-  is_locked?: boolean;
+  user: number;
+  user_username: string;
+  quiz: number;
+  quiz_title: string;
+  lesson_title?: string;
+  score: number;
+  passed: boolean;
+  completed_at: string; // ISO datetime string
+  answers?: any; // Could be more specific based on answer structure
+}
+
+export interface UserLessonProgress {
+  id: string | number;
+  user: number;
+  lesson: number;
+  lesson_title: string;
+  completed: boolean;
+  progress_data?: any; // JSON data
+  last_updated: string; // ISO datetime string
 }

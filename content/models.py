@@ -1,11 +1,10 @@
 
 from django.db import models, JSONField
 from django.conf import settings
-# Import School model from accounts app
-from accounts.models import School # Ensure accounts is in INSTALLED_APPS and School is defined
+from accounts.models import School 
 
 class Class(models.Model):
-    school = models.ForeignKey(School, related_name='classes', on_delete=models.CASCADE, null=True, blank=True) # Link Class to a School
+    school = models.ForeignKey(School, related_name='classes', on_delete=models.CASCADE, null=True, blank=True) 
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
@@ -23,10 +22,13 @@ class Subject(models.Model):
 class Lesson(models.Model):
     subject = models.ForeignKey(Subject, related_name='lessons', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    content = models.TextField()
+    content = models.TextField() # Rich text content, could be Markdown or HTML
+    video_url = models.URLField(blank=True, null=True)
+    audio_url = models.URLField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True) # Or use ImageField
     simplified_content = models.TextField(blank=True, null=True)
     lesson_order = models.PositiveIntegerField(default=0)
-    requires_previous_quiz = models.BooleanField(default=False)
+    requires_previous_quiz = models.BooleanField(default=False, help_text="If true, student must pass the quiz of the previous lesson in order to access this one.")
 
     class Meta:
         ordering = ['lesson_order']
@@ -38,6 +40,8 @@ class Quiz(models.Model):
     lesson = models.OneToOneField(Lesson, related_name='quiz', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
+    pass_mark_percentage = models.FloatField(default=70.0, help_text="Percentage required to pass this quiz.")
+
 
     def __str__(self):
         return f"Quiz for {self.lesson.title}"
@@ -45,6 +49,8 @@ class Quiz(models.Model):
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     text = models.TextField()
+    # Add question_type if supporting more than MCQ, e.g., 'MCQ', 'TrueFalse', 'ShortAnswer'
+    # question_type = models.CharField(max_length=20, default='MCQ')
 
     def __str__(self):
         return self.text[:50] + '...'
@@ -60,7 +66,8 @@ class Choice(models.Model):
 class UserQuizAttempt(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_attempts')
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='user_attempts')
-    score = models.FloatField(default=0.0)
+    score = models.FloatField(default=0.0, help_text="Score as a percentage (0-100).")
+    answers = models.JSONField(blank=True, null=True, help_text="Stores the user's answers for each question.") # E.g. [{"question_id": 1, "choice_id": 3}, ...]
     completed_at = models.DateTimeField(auto_now_add=True)
     passed = models.BooleanField(default=False)
 
@@ -70,7 +77,8 @@ class UserQuizAttempt(models.Model):
 class UserLessonProgress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_progress')
-    progress_data = models.JSONField(blank=True, null=True)
+    completed = models.BooleanField(default=False)
+    progress_data = models.JSONField(blank=True, null=True, help_text="Stores specific progress within a lesson, e.g., last video timestamp, scroll position.")
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -82,8 +90,8 @@ class UserLessonProgress(models.Model):
 class ProcessedNote(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='processed_notes')
     lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name='processed_notes', null=True, blank=True)
-    original_notes = models.TextField() # Renamed
-    processed_output = models.TextField(blank=True, null=True) # Renamed
+    original_notes = models.TextField() 
+    processed_output = models.TextField(blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -99,4 +107,3 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
-

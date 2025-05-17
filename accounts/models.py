@@ -39,11 +39,6 @@ class CustomUser(AbstractUser):
     is_school_admin = models.BooleanField(default=False, help_text="Designates if this admin user manages a specific school.")
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_and_students')
 
-    # Fields moved to profile models for better organization
-    # preferred_language = models.CharField(max_length=10, default='en', blank=True, null=True) # Moved to StudentProfile
-    # subject_expertise = models.CharField(max_length=255, blank=True, null=True) # Moved to TeacherProfile
-    # assigned_class = models.ForeignKey('content.Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_teacher') # Moved to TeacherProfile
-
     def __str__(self):
         return self.username
 
@@ -60,13 +55,15 @@ class StudentProfile(models.Model):
     blood_group = models.CharField(max_length=10, blank=True, null=True)
     needs_assistant_teacher = models.BooleanField(default=False)
     admission_number = models.CharField(max_length=50, blank=True, null=True) # Should be unique within a school context
-    # Parent details for linking or information
     parent_email_for_linking = models.EmailField(blank=True, null=True) # Used during student profile completion
     parent_mobile_for_linking = models.CharField(max_length=20, blank=True, null=True)
-    # parent_occupation = models.CharField(max_length=100, blank=True, null=True) # Parent's occupation might be better on ParentProfile
     hobbies = models.TextField(blank=True, null=True)
     favorite_sports = models.CharField(max_length=255, blank=True, null=True)
     interested_in_gardening_farming = models.BooleanField(default=False)
+    
+    # Added for profile picture
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+
 
     class Meta:
         # Ensure admission_number is unique per school. Requires custom validation or a more complex setup.
@@ -86,6 +83,7 @@ class TeacherProfile(models.Model):
     interested_in_tuition = models.BooleanField(default=False)
     mobile_number = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s Teacher Profile"
@@ -95,6 +93,7 @@ class ParentProfile(models.Model):
     full_name = models.CharField(max_length=255, blank=True, null=True)
     mobile_number = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     # child_admission_id for linking will be handled via ParentStudentLink model and application logic.
 
     def __str__(self):
@@ -110,4 +109,3 @@ class ParentStudentLink(models.Model):
 
     def __str__(self):
         return f"{self.parent.username} is parent of {self.student.username}"
-

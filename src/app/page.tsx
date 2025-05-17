@@ -2,74 +2,50 @@
 // src/app/page.tsx
 'use client';
 
-import StudentDashboard from '@/components/dashboard/StudentDashboard';
-import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
-import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import { useAuth } from '@/context/AuthContext';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function UnifiedDashboardPage() {
   const { currentUser, currentUserRole, isLoadingAuth } = useAuth();
   const router = useRouter();
   const [isWelcomeVisible, setIsWelcomeVisible] = useState(false);
 
-  // Animation trigger for welcome message
-  useEffect(() => {
-    if (!isLoadingAuth && !currentUser) {
-      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); // Short delay for effect
-      return () => clearTimeout(timer);
-    }
-  }, [isLoadingAuth, currentUser]);
-
-  // Redirection logic for logged-in users
-  // This useEffect is now called unconditionally at the top
+  // This useEffect handles redirection for logged-in users.
+  // It must be called unconditionally at the top of the component.
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
       if (currentUserRole === 'Student') router.push('/student');
       else if (currentUserRole === 'Teacher') router.push('/teacher');
       else if (currentUserRole === 'Parent') router.push('/parent');
-      // else if (currentUserRole === 'Admin' etc.)
-      // Default or unrecognized role might stay here or go to a generic dashboard
+      // else if (currentUserRole === 'Admin') router.push('/admin-dashboard'); // Example for Admin
+      // A default redirect if role is somehow not covered or if user.role is not yet populated
+      // else router.push('/some-default-logged-in-page');
     }
   }, [isLoadingAuth, currentUser, currentUserRole, router]);
 
+
+  // Animation trigger for welcome message, also called unconditionally
+  useEffect(() => {
+    if (!isLoadingAuth && !currentUser) {
+      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); 
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingAuth, currentUser]);
+
+
   if (isLoadingAuth) {
-    return ( // Consistent full-page skeleton
-      <div className="flex flex-col min-h-screen">
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 py-2">
-            <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                    <Skeleton className="h-10 w-36 rounded-md" /> {/* Logo placeholder */}
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Skeleton className="h-9 w-24 rounded-md" /> {/* Search placeholder */}
-                    <Skeleton className="h-8 w-8 rounded-full" /> {/* User icon placeholder */}
-                    <Skeleton className="h-8 w-8 rounded-full md:hidden" /> {/* Menu toggle placeholder */}
-                </div>
-            </div>
-        </header>
-        <main className="flex-grow container mx-auto px-4 py-8 space-y-8">
-            <Skeleton className="h-32 w-full rounded-xl" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-            </div>
-            <Skeleton className="h-64 w-full rounded-xl" />
-        </main>
-         <footer className="bg-secondary py-6 text-center">
-             <Skeleton className="h-4 w-1/3 mx-auto" />
-         </footer>
+    return ( 
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Image src="/images/StepWise.png" alt="Learn-StepWise Logo" width={280} height={77} priority className="mb-8" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading Your Experience...</p>
       </div>
     );
   }
   
-  // Show public welcome page if not logged in and not loading
   if (!currentUser && !isLoadingAuth) {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center p-4 overflow-hidden">
@@ -79,13 +55,13 @@ export default function UnifiedDashboardPage() {
           muted
           playsInline
           poster="https://placehold.co/1920x1080.png?text=StepWise+Loading..."
-          data-ai-hint="loading screen"
+          data-ai-hint="loading screen educational"
           className="absolute top-0 left-0 w-full h-full object-cover z-0"
         >
           <source src="/videos/educational-bg.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-black/50 z-10"></div>
         
         <div className={`
             max-w-3xl p-6 sm:p-8 z-20 text-center
@@ -95,7 +71,7 @@ export default function UnifiedDashboardPage() {
             <h1
               className={`
                 font-extrabold mb-6 text-primary-foreground
-                text-4xl sm:text-5xl md:text-6xl
+                text-4xl sm:text-5xl md:text-6xl 
                 leading-tight 
                 [text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]
                 animate-pulse-subtle 
@@ -117,20 +93,19 @@ export default function UnifiedDashboardPage() {
             >
               Your personalized learning journey starts here. Access your dashboard by logging in or signing up.
             </p>
-            {/* Login/Signup buttons are in the header */}
         </div>
       </div>
     );
   }
 
-  // Fallback for recognized roles or if redirection hasn't happened yet
-  // This part should ideally not be reached for long if redirection logic is effective
-  // or if specific role dashboards were to be rendered here directly.
-  // Given the current logic pushes to /student, /teacher, /parent, this is a temporary loading state.
+  // Fallback for recognized roles or if redirection hasn't happened yet.
+  // This indicates that the user is logged in, but redirection is pending or role is not yet determined.
+  // This state should be brief.
   return (
-     <div className="flex justify-center items-center h-screen">
-        <p>Loading your dashboard...</p>
-        <Loader2 className="h-8 w-8 animate-spin ml-2" />
+     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Image src="/images/StepWise.png" alt="Learn-StepWise Logo" width={280} height={77} priority className="mb-8" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Preparing Your Dashboard...</p>
     </div>
   );
 }
