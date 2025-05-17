@@ -1,3 +1,4 @@
+
 // src/components/dashboard/ParentDashboard.tsx
 'use client';
 
@@ -9,49 +10,68 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Activity, FileText, CalendarDays, MessageCircle, Settings, Users, TrendingUp, ShieldCheck, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { api } from '@/lib/api'; // Assuming api util is set up
-import type { Event } from '@/notifications/models'; // Assuming Event interface
+import { api } from '@/lib/api';
+import type { Event as EventInterface, ParentStudentLinkAPI, StudentProfileData } from '@/interfaces';
+import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Child {
-  id: string;
+
+interface DisplayChild {
+  id: string; // ParentStudentLink ID
+  studentId: string; // Student User ID
   name: string;
   avatarUrl?: string;
   classLevel: number;
-  overallProgress: number;
-  lastActivity: string;
+  overallProgress: number; // This might need to be fetched separately or mocked/aggregated
+  lastActivity: string; // This might need to be fetched separately or mocked
   alerts?: string[];
+  studentProfile?: StudentProfileData; // Store the full profile
 }
-
-// Mock data for children - in a real app, this would come from API
-const mockChildrenData: Child[] = [
-  {
-    id: "child1", name: "Alex Johnson", avatarUrl: "https://placehold.co/100x100.png", classLevel: 5,
-    overallProgress: 75, lastActivity: "Completed Math Quiz (Score: 85%)",
-    alerts: ["Upcoming Science Fair on Oct 25th"],
-  },
-  {
-    id: "child2", name: "Mia Williams", classLevel: 3, overallProgress: 60,
-    lastActivity: "Read Chapter 3 of 'Magic Treehouse'", alerts: [],
-  },
-];
-
-interface ApiEvent {
-  id: string | number; title: string; date: string; type: string; description?: string;
-}
-
 
 export default function ParentDashboard() {
-  const [events, setEvents] = useState<ApiEvent[]>([]);
+  const { currentUser } = useAuth();
+  const [linkedChildren, setLinkedChildren] = useState<DisplayChild[]>([]);
+  const [events, setEvents] = useState<EventInterface[]>([]);
+  const [isLoadingChildren, setIsLoadingChildren] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [childrenError, setChildrenError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchChildren = async () => {
+      if (!currentUser || currentUser.role !== 'Parent') {
+        setIsLoadingChildren(false);
+        return;
+      }
+      setIsLoadingChildren(true);
+      setChildrenError(null);
+      try {
+        const links: ParentStudentLinkAPI[] = await api.get<ParentStudentLinkAPI[]>(`/parent-student-links/?parent=${currentUser.id}`);
+        const displayChildren: DisplayChild[] = links.map(link => ({
+          id: String(link.id),
+          studentId: String(link.student),
+          name: link.student_username || "Unknown Student",
+          avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_username || "U").charAt(0)}`,
+          classLevel: link.student_details?.enrolled_class_name ? parseInt(link.student_details.enrolled_class_name.match(/\d+/)?.[0] || '0') : 0, // Extract class number
+          overallProgress: Math.floor(Math.random() * 50) + 50, // Mocked, needs real data
+          lastActivity: "Mocked: Completed Math Quiz", // Mocked, needs real data
+          studentProfile: link.student_details
+        }));
+        setLinkedChildren(displayChildren);
+      } catch (err) {
+        console.error("Failed to fetch linked children:", err);
+        setChildrenError(err instanceof Error ? err.message : "Failed to load children data.");
+      } finally {
+        setIsLoadingChildren(false);
+      }
+    };
+
     const fetchEvents = async () => {
       setIsLoadingEvents(true);
       setEventsError(null);
       try {
-        const apiEvents = await api.get<ApiEvent[]>('/events/?ordering=date');
-        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); // Upcoming 5 events
+        const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
+        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
         setEventsError(err instanceof Error ? err.message : "Failed to load events");
@@ -59,8 +79,10 @@ export default function ParentDashboard() {
         setIsLoadingEvents(false);
       }
     };
+
+    fetchChildren();
     fetchEvents();
-  }, []);
+  }, [currentUser]);
 
 
   return (
@@ -79,18 +101,24 @@ export default function ParentDashboard() {
             <Link href="/parent/children"><PlusCircle className="mr-2 h-4 w-4"/> Manage Children</Link>
           </Button>
         </div>
-        {mockChildrenData.length > 0 ? (
+        {isLoadingChildren ? (
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-            {mockChildrenData.map(child => (
+                {[1,2].map(i => <Skeleton key={i} className="h-72 w-full rounded-xl" />)}
+            </div>
+        ) : childrenError ? (
+            <Card className="p-6 text-center text-red-500 bg-red-50 border-red-200"><AlertTriangle className="inline mr-2"/>{childrenError}</Card>
+        ) : linkedChildren.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+            {linkedChildren.map(child => (
                 <Card key={child.id} className="shadow-lg hover:shadow-xl transition-shadow rounded-xl">
                 <CardHeader className="flex flex-row items-center space-x-4">
                     <Avatar className="h-16 w-16 border-2 border-primary">
-                    <AvatarImage src={child.avatarUrl} alt={child.name} data-ai-hint="child portrait" />
+                    <AvatarImage src={child.avatarUrl} alt={child.name} data-ai-hint="child portrait"/>
                     <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
                     <CardTitle className="text-xl">{child.name}</CardTitle>
-                    <CardDescription>Class {child.classLevel}</CardDescription>
+                    <CardDescription>Class {child.classLevel || 'N/A'}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -115,10 +143,10 @@ export default function ParentDashboard() {
                 </CardContent>
                 <CardFooter className="gap-2">
                     <Button variant="default" size="sm" asChild>
-                    <Link href={`/parent/child/${child.id}/progress`}><TrendingUp className="mr-2 h-4 w-4" />View Progress</Link>
+                    <Link href={`/parent/child/${child.studentId}/progress`}><TrendingUp className="mr-2 h-4 w-4" />View Progress</Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                    <Link href={`/parent/reports/${child.id}`}><FileText className="mr-2 h-4 w-4" />View Report Card</Link>
+                    <Link href={`/parent/reports/${child.studentId}`}><FileText className="mr-2 h-4 w-4" />View Report Card</Link>
                     </Button>
                 </CardFooter>
                 </Card>
@@ -143,9 +171,15 @@ export default function ParentDashboard() {
             <CardTitle className="flex items-center"><CalendarDays className="mr-2 text-primary"/>Upcoming Events</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingEvents && <div className="flex justify-center items-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-            {eventsError && <p className="text-red-500 text-sm"><AlertTriangle className="inline mr-1 h-4 w-4" /> Error: {eventsError}</p>}
-            {!isLoadingEvents && !eventsError && events.length > 0 && (
+            {isLoadingEvents ? (
+               <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : eventsError ? (
+                 <p className="text-red-500 text-sm"><AlertTriangle className="inline mr-1 h-4 w-4" /> Error: {eventsError}</p>
+            ) : events.length > 0 ? (
               <ul className="space-y-2">
                 {events.map(event => (
                   <li key={event.id} className="p-2 border-b last:border-b-0">
@@ -154,8 +188,7 @@ export default function ParentDashboard() {
                   </li>
                 ))}
               </ul>
-            )}
-            {!isLoadingEvents && !eventsError && events.length === 0 && (
+            ) : (
               <p className="text-sm text-muted-foreground">No upcoming events.</p>
             )}
              <Button variant="outline" size="sm" className="w-full mt-4" asChild>

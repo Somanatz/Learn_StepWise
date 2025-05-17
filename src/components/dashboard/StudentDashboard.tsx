@@ -4,14 +4,15 @@
 
 import { useEffect, useState } from 'react';
 import ClassSection from '@/components/dashboard/ClassSection';
-import type { ClassLevel as ClassLevelInterface, Subject as SubjectInterface, Book as BookInterface, Event as EventInterface } from '@/interfaces';
+import type { Class as ClassInterfaceFull, Subject as SubjectInterfaceFull, Book as BookInterface, Event as EventInterface } from '@/interfaces'; // Renamed for clarity
 import { BookOpen, Calculator, FlaskConical, Globe, Library, CalendarDays, Loader2, AlertTriangle, FileText, Music, Palette, Brain, Users, Award, Lightbulb, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthContext'; // To potentially get student's enrolled class/school
+import { useAuth } from '@/context/AuthContext';
 
 // Helper to map subject names to icons
 const subjectIconMap: Record<string, LucideIcon> = {
@@ -27,71 +28,123 @@ const getIconForSubject = (subjectName: string): LucideIcon => {
   return subjectIconMap.default;
 };
 
-interface ApiLesson { id: string | number; title: string; is_locked?: boolean; }
+// Interface for the transformed ClassLevel data structure used by ClassSection
+interface ClassLevelDisplay {
+  level: number;
+  title: string;
+  subjects: SubjectDisplay[];
+}
+interface SubjectDisplay {
+    id: string;
+    name: string;
+    icon: LucideIcon;
+    description: string;
+    lessonsCount: number;
+    href: string;
+    is_locked?: boolean;
+    bgColor?: string;
+    textColor?: string;
+}
+
+
+// API response interfaces
+interface ApiLesson { id: string | number; title: string; is_locked?: boolean; lesson_order?: number; }
 interface ApiSubject {
   id: string | number; name: string; description: string;
-  lessons: ApiLesson[]; class_obj_name?: string;
+  lessons: ApiLesson[]; class_obj_name?: string; class_obj: string | number;
 }
 interface ApiClass {
   id: string | number; name: string; description?: string;
-  subjects: ApiSubject[]; school_name?: string;
+  subjects: ApiSubject[]; school_name?: string; school: string | number;
 }
+
 
 export default function StudentDashboard() {
   const { currentUser } = useAuth();
-  const [classData, setClassData] = useState<ClassLevelInterface[]>([]);
+  const [classData, setClassData] = useState<ClassLevelDisplay[]>([]);
   const [books, setBooks] = useState<BookInterface[]>([]);
   const [events, setEvents] = useState<EventInterface[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingBooks, setIsLoadingBooks] = useState(true);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
+      setIsLoadingBooks(true);
+      setIsLoadingEvents(true);
       setError(null);
+      
+      let classesUrl = '/classes/';
+      // Example: If student is enrolled, fetch only their class or classes from their school
+      // This logic needs to be refined based on how currentUser.student_profile is structured
+      // and if enrolled_class or school ID is directly available and singular.
+      if (currentUser?.student_profile?.enrolled_class) {
+         // If a student is enrolled in ONE specific class, fetch that.
+         // This might require the API to support fetching a single class with its subjects and lessons.
+         // classesUrl = `/classes/${currentUser.student_profile.enrolled_class}/`; // Assuming API supports this
+         // For now, let's assume if enrolled_class exists, it's an ID and we filter client-side or fetch specific class's school classes
+         // Or if your API supports /classes/?id=X, use that.
+         // A more robust approach would be to have an endpoint like /students/me/dashboard-data/
+      } else if (currentUser?.student_profile?.school) {
+        classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
+      }
+
+
       try {
-        // Fetch classes. If student is enrolled in a specific class, filter by that.
-        // This assumes currentUser.student_profile.enrolled_class (ID) and currentUser.student_profile.school (ID) are available
-        let classesUrl = '/classes/';
-        // if (currentUser?.student_profile?.enrolled_class) {
-        //   classesUrl = `/classes/${currentUser.student_profile.enrolled_class}/`; // Fetch specific class
-        // } else if (currentUser?.student_profile?.school) {
-        //   classesUrl = `/classes/?school=${currentUser.student_profile.school}`; // Fetch classes for student's school
-        // }
-        // For now, fetching all classes and student navigates.
-        
         const [apiClasses, apiBooks, apiEvents] = await Promise.all([
-          api.get<ApiClass[]>(classesUrl),
-          api.get<BookInterface[]>('/books/'),
-          api.get<EventInterface[]>('/events/?ordering=date')
+          api.get<ApiClass[]>(classesUrl).finally(() => setIsLoading(false)),
+          api.get<BookInterface[]>('/books/').finally(() => setIsLoadingBooks(false)),
+          api.get<EventInterface[]>('/events/?ordering=date').finally(() => setIsLoadingEvents(false))
         ]);
         
-        const transformedClassData: ClassLevelInterface[] = apiClasses.map(apiClass => {
+        const transformedClassData: ClassLevelDisplay[] = apiClasses
+        .filter(apiClass => {
+            // If student is enrolled in a specific class, only show that class
+            if (currentUser?.student_profile?.enrolled_class) {
+                return String(apiClass.id) === String(currentUser.student_profile.enrolled_class);
+            }
+            // Otherwise, if enrolled in a school, show all classes from that school (already filtered by API if school_id was in URL)
+            // Or if no specific enrollment, show all fetched (might be too broad depending on classesUrl)
+            return true; 
+        })
+        .map(apiClass => {
           const levelMatch = apiClass.name.match(/\d+/);
-          const level = levelMatch ? parseInt(levelMatch[0], 10) : 1; // Default to 1 if no number in name
-          const subjects: SubjectInterface[] = apiClass.subjects.map((apiSub: ApiSubject) => ({
+          const level = levelMatch ? parseInt(levelMatch[0], 10) : 0; // Default to 0 if no number
+          const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => ({
             id: String(apiSub.id), name: apiSub.name, icon: getIconForSubject(apiSub.name),
-            description: apiSub.description, lessonsCount: apiSub.lessons?.length || 0,
-            href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`, // Updated href
-            is_locked: apiSub.lessons?.some(l => l.is_locked),
+            description: apiSub.description, 
+            lessonsCount: apiSub.lessons?.length || 0,
+            href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`,
+            is_locked: apiSub.lessons?.some(l => l.is_locked), // Example: subject locked if any lesson is
             bgColor: "bg-primary", textColor: "text-primary-foreground",
           }));
-          return { level: level, title: `${apiClass.name} ${apiClass.school_name ? '('+apiClass.school_name+')' : ''}`, subjects: subjects };
+          return { 
+            level: level, 
+            title: `${apiClass.name} ${apiClass.school_name ? '('+apiClass.school_name+')' : ''}`, 
+            subjects: subjects 
+          };
         });
         setClassData(transformedClassData);
-        setBooks(apiBooks.slice(0, 3)); // Display first 3 books
-        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3)); // Display first 3 upcoming events
+        setBooks(apiBooks.slice(0, 3)); 
+        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
       } catch (err) {
         console.error("Failed to fetch student dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
-      } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Ensure loading is false on error
+        setIsLoadingBooks(false);
+        setIsLoadingEvents(false);
       }
     };
-    if (currentUser) fetchDashboardData(); else setIsLoading(false); // Don't fetch if no user
+    if (currentUser) fetchDashboardData(); else {
+      setIsLoading(false);
+      setIsLoadingBooks(false);
+      setIsLoadingEvents(false);
+    }
   }, [currentUser]);
 
-  if (isLoading) {
+  if (isLoading && !error) { // Main content loading
     return (
       <div className="space-y-12 p-4">
         <Skeleton className="h-40 w-full rounded-xl" />
@@ -103,7 +156,10 @@ export default function StudentDashboard() {
             </div>
           </section>
         ))}
-        <Skeleton className="h-48 w-full rounded-xl" /> <Skeleton className="h-48 w-full rounded-xl" />
+        <div className="grid md:grid-cols-2 gap-8">
+          <Skeleton className="h-48 w-full rounded-xl" /> 
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -150,7 +206,13 @@ export default function StudentDashboard() {
             <CardDescription>Explore additional books and materials.</CardDescription>
           </CardHeader>
           <CardContent>
-            {books.length > 0 ? (
+            {isLoadingBooks ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : books.length > 0 ? (
               <ul className="space-y-3">
                 {books.map(book => (
                   <li key={book.id} className="p-3 border rounded-md hover:bg-muted/50 transition-colors">
@@ -171,7 +233,15 @@ export default function StudentDashboard() {
             <CardDescription>Stay informed about important dates.</CardDescription>
           </CardHeader>
           <CardContent>
-            {events.length > 0 ? (
+            {isLoadingEvents ? (
+               <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : eventsError ? (
+                 <p className="text-red-500 text-sm"><AlertTriangle className="inline mr-1 h-4 w-4" /> Error: {eventsError}</p>
+            ) : events.length > 0 ? (
               <ul className="space-y-3">
                 {events.map(event => (
                   <li key={event.id} className="p-3 border rounded-md hover:bg-muted/50 transition-colors">
@@ -198,3 +268,4 @@ export default function StudentDashboard() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 // src/components/recommendations/LearningSuggestions.tsx
 'use client';
 
@@ -7,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Lightbulb, BookOpen, Video, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data for demonstration
+// Mock data for demonstration - In a real app, this would be fetched or derived
 const mockStudentId = "student-123";
 const mockPerformanceData = "Struggling with fractions in Math, but excelling in historical dates for History. Average in English grammar.";
 const mockAvailableLessons = "Math: Fractions Part 1, Fractions Part 2, Decimals. History: Ancient Rome, World War II. English: Advanced Verbs, Noun Clauses.";
@@ -19,19 +21,20 @@ export default function LearningSuggestions() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PersonalizedLearningSuggestionsOutput | null>(null);
-  const [studentId, setStudentId] = useState(mockStudentId); // Could be dynamic in a real app
+  const [studentId, setStudentId] = useState(mockStudentId); // Could be dynamic
 
   const fetchSuggestions = async () => {
     setIsLoading(true);
     setError(null);
-    setSuggestions(null);
+    // Keep existing suggestions while new ones are loading, or clear them:
+    // setSuggestions(null); 
 
     const input: PersonalizedLearningSuggestionsInput = {
       studentId,
-      performanceData: mockPerformanceData,
-      availableLessons: mockAvailableLessons,
-      availableVideos: mockAvailableVideos,
-      availableQuizzes: mockAvailableQuizzes,
+      performanceData: mockPerformanceData, // Replace with actual dynamic data
+      availableLessons: mockAvailableLessons, // Replace with actual dynamic data
+      availableVideos: mockAvailableVideos, // Replace with actual dynamic data
+      availableQuizzes: mockAvailableQuizzes, // Replace with actual dynamic data
     };
 
     try {
@@ -45,7 +48,6 @@ export default function LearningSuggestions() {
     }
   };
 
-  // Fetch suggestions on component mount
   useEffect(() => {
     fetchSuggestions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,9 +76,11 @@ export default function LearningSuggestions() {
         </div>
 
         {isLoading && !suggestions && (
-          <div className="flex flex-col items-center justify-center p-10 text-muted-foreground">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg">Generating your personalized suggestions...</p>
+          <div className="space-y-4 p-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
           </div>
         )}
 
@@ -87,7 +91,7 @@ export default function LearningSuggestions() {
           </Alert>
         )}
 
-        {suggestions && !isLoading && (
+        {suggestions && ( // Display suggestions even if isLoading is true for a refresh
           <div className="space-y-6">
             <Alert className="bg-secondary border-primary/50">
               <Lightbulb className="h-5 w-5 text-primary" />
