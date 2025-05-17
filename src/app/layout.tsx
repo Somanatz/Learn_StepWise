@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import { AuthProvider } from '@/context/AuthContext';
+import ContactSalesForm from '@/components/shared/ContactSalesForm'; // Import the new component
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -42,8 +43,19 @@ export default function RootLayout({
             {children}
           </main>
           <Toaster />
-          <footer className="bg-secondary text-secondary-foreground py-6 text-center">
-            <p className="text-sm">&copy; {new Date().getFullYear()} Learn-StepWise. All rights reserved.</p>
+          <footer className="bg-secondary text-secondary-foreground py-10">
+            <div className="container mx-auto px-4">
+              <div className="grid md:grid-cols-2 gap-8 items-start">
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 text-secondary-foreground">Learn-StepWise</h3>
+                  <p className="text-sm text-secondary-foreground/80 mb-4">
+                    Empowering students, supporting teachers, and engaging parents with our innovative learning platform.
+                  </p>
+                  <p className="text-sm text-secondary-foreground/80">&copy; {new Date().getFullYear()} Learn-StepWise. All rights reserved.</p>
+                </div>
+                <ContactSalesForm />
+              </div>
+            </div>
           </footer>
         </AuthProvider>
       </body>

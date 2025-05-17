@@ -100,6 +100,10 @@ export default {
         'pulse-subtle': {
           '0%, 100%': { opacity: '0.85', transform: 'scale(1)' },
           '50%': { opacity: '1', transform: 'scale(1.01)' },
+        },
+        'text-pulse': { /* New animation for text */
+          '0%, 100%': { opacity: '0.8' },
+          '50%': { opacity: '1' },
         }
   		},
   		animation: {
@@ -107,6 +111,7 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out',
         'slide-in-from-right': 'slide-in-from-right 0.7s ease-out forwards',
         'pulse-subtle': 'pulse-subtle 4s infinite ease-in-out',
+        'text-pulse': 'text-pulse 3s infinite ease-in-out', /* New animation utility */
   		}
   	}
   },
