@@ -88,10 +88,10 @@ export default function LoginPage() {
       <div className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl xl:max-w-6xl mx-auto items-center md:space-x-10 lg:space-x-16">
         {/* Left Side: Tool Name & Tagline */}
         <div className="w-full md:w-2/5 flex-shrink-0 mb-12 md:mb-0 text-center md:text-left">
-          <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground animate-pulse-subtle [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)]">
+          <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)] animation-delay-100">
             Learn-StepWise
           </h1>
-          <p className="text-xl lg:text-2xl text-primary-foreground/80 mt-4 animate-pulse-subtle animation-delay-300 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.5)]">
+          <p className="text-xl lg:text-2xl text-primary-foreground/80 mt-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.5)] animation-delay-300">
             Unlock Your Potential, One Step at a Time.
           </p>
         </div>

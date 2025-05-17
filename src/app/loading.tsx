@@ -15,32 +15,31 @@ export default function Loading() {
           fill 
           style={{ objectFit: "contain" }} 
           priority 
-          className="animate-pulse" 
         />
       </div>
 
       <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
         <Sigma 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-100")} 
+          className={cn(iconSize, "text-primary")} 
         />
         <GraduationCap 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-200")}
+          className={cn(iconSize, "text-primary")}
         />
         <School 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-300")}
+          className={cn(iconSize, "text-primary")}
         />
         <Users 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-400")}
+          className={cn(iconSize, "text-primary")}
         />
         <HeartHandshake 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-500")}
+          className={cn(iconSize, "text-primary")}
         />
         <Presentation 
-          className={cn(iconSize, "text-primary animate-pulse animation-delay-700")}
+          className={cn(iconSize, "text-primary")}
         />
       </div>
 
-      <p className={cn("text-lg md:text-xl text-muted-foreground animate-pulse animation-delay-700")}>
+      <p className={cn("text-lg md:text-xl text-muted-foreground")}>
         Preparing Your StepWise Experience...
       </p>
     </div>

@@ -1,15 +1,15 @@
-
 // src/app/page.tsx
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare, FileText, CalendarDays, ClipboardEdit, Users2, GraduationCap, Megaphone, Building, Users } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare, FileText, CalendarDays, ClipboardEdit, Users2, GraduationCap, Megaphone, Building, Users, ShieldCheck, MapPin, Mailbox } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Import cn utility
+import { cn } from '@/lib/utils';
+import ContactSalesForm from '@/components/shared/ContactSalesForm'; // Import the ContactSalesForm
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -33,7 +33,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-sm text-muted-foreground animate-text-pulse">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );
@@ -77,10 +77,10 @@ export default function UnifiedDashboardPage() {
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
-      if (currentUserRole === 'Student') router.push('/student');
-      else if (currentUserRole === 'Teacher') router.push('/teacher');
-      else if (currentUserRole === 'Parent') router.push('/parent');
-      // else if (currentUserRole === 'Admin') router.push('/admin-dashboard'); 
+        if (currentUserRole === 'Student') router.push('/student');
+        else if (currentUserRole === 'Teacher') router.push('/teacher');
+        else if (currentUserRole === 'Parent') router.push('/parent');
+        // else if (currentUserRole === 'Admin') router.push('/admin-dashboard'); 
     }
   }, [isLoadingAuth, currentUser, currentUserRole, router]);
 
@@ -99,7 +99,7 @@ export default function UnifiedDashboardPage() {
     return (
       <div className="w-full">
         {/* Hero Video Background and Main Welcome Message Block */}
-        <div className="relative flex flex-col items-center justify-center text-center p-4 overflow-hidden min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)]"> {/* Adjust height as needed */}
+        <div className="relative flex flex-col items-center justify-center text-center p-4 overflow-hidden min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)]">
           <video
             autoPlay
             loop
@@ -123,7 +123,7 @@ export default function UnifiedDashboardPage() {
             <h1
               className={cn(
                 "font-extrabold mb-6 text-primary-foreground",
-                "text-4xl sm:text-5xl md:text-6xl", // Adjusted for potential single line
+                "text-4xl sm:text-5xl md:text-6xl",
                 "leading-tight", 
                 "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]",
                 "animate-pulse-subtle", 
@@ -135,7 +135,7 @@ export default function UnifiedDashboardPage() {
             </h1>
             <p
               className={cn(
-                "text-base sm:text-xl text-gray-200", // mb-0 already removed
+                "text-base sm:text-xl text-gray-200",
                 "font-medium",
                 "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
                 "animate-pulse-subtle animation-delay-300", 
@@ -148,9 +148,8 @@ export default function UnifiedDashboardPage() {
           </div>
         </div>
 
-        {/* Features Section - This will be below the video hero block */}
+        {/* Features Section */}
         <div className="space-y-16 py-12 container mx-auto px-4">
-          {/* Student Features */}
           <section>
             <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Students</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
@@ -165,7 +164,6 @@ export default function UnifiedDashboardPage() {
             </div>
           </section>
 
-          {/* Parent Features */}
           <section>
             <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Parents</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
@@ -180,9 +178,8 @@ export default function UnifiedDashboardPage() {
             </div>
           </section>
 
-          {/* Teacher & School Features */}
           <section>
-            <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Teachers & Schools</h2>
+            <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Schools &amp; Teachers</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               {teacherSchoolFeatures.map((feature, index) => (
                 <FeatureCard 
@@ -192,6 +189,13 @@ export default function UnifiedDashboardPage() {
                   animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                 />
               ))}
+            </div>
+          </section>
+
+          {/* Contact Sales Form Section */}
+          <section className="py-12 bg-muted rounded-xl shadow-lg">
+            <div className="container mx-auto px-4">
+                 <ContactSalesForm />
             </div>
           </section>
         </div>
@@ -207,4 +211,3 @@ export default function UnifiedDashboardPage() {
     </div>
   );
 }
-

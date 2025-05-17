@@ -10,13 +10,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, School, User, Mail, MapPin, Mailbox } from 'lucide-react'; // Added icons
 import { useState } from 'react';
 
 const contactSalesSchema = z.object({
   schoolName: z.string().min(1, 'School name is required'),
   contactPerson: z.string().min(1, 'Contact person name is required'),
   email: z.string().email('Invalid email address'),
+  schoolAddress: z.string().optional(),
+  zipCode: z.string().optional(),
   message: z.string().min(10, 'Message must be at least 10 characters').optional(),
 });
 
@@ -32,6 +34,8 @@ export default function ContactSalesForm() {
       schoolName: '',
       contactPerson: '',
       email: '',
+      schoolAddress: '',
+      zipCode: '',
       message: '',
     },
   });
@@ -50,22 +54,24 @@ export default function ContactSalesForm() {
   };
 
   return (
-    <div>
-      <h3 className="text-xl font-semibold mb-4 text-secondary-foreground">Interested in Learn-StepWise for Your School?</h3>
-      <p className="text-sm text-secondary-foreground/80 mb-4">
+    <div className="p-6 md:p-8 bg-card rounded-xl shadow-xl border border-border">
+      <h3 className="text-2xl font-poppins font-semibold mb-3 text-primary flex items-center">
+        <School className="mr-3 h-7 w-7" /> Interested in Learn-StepWise for Your School?
+      </h3>
+      <p className="text-sm text-muted-foreground mb-6">
         Fill out the form below, and our sales team will get in touch to discuss how we can tailor our platform to your needs.
       </p>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="schoolName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-secondary-foreground/90">School Name</FormLabel>
+                  <FormLabel className="flex items-center"><School className="mr-2 h-4 w-4 text-muted-foreground"/>School Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your School's Name" {...field} className="bg-background/80 placeholder:text-muted-foreground/70" />
+                    <Input placeholder="Your School's Name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -76,9 +82,9 @@ export default function ContactSalesForm() {
               name="contactPerson"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-secondary-foreground/90">Contact Person</FormLabel>
+                  <FormLabel className="flex items-center"><User className="mr-2 h-4 w-4 text-muted-foreground"/>Contact Person</FormLabel>
                   <FormControl>
-                    <Input placeholder="Full Name" {...field} className="bg-background/80 placeholder:text-muted-foreground/70" />
+                    <Input placeholder="Full Name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -90,9 +96,35 @@ export default function ContactSalesForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-secondary-foreground/90">Email Address</FormLabel>
+                <FormLabel className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email Address</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="your.email@example.com" {...field} className="bg-background/80 placeholder:text-muted-foreground/70" />
+                  <Input type="email" placeholder="your.email@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="schoolAddress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground"/>School Address (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="123 Education Lane, City, State" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="zipCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><Mailbox className="mr-2 h-4 w-4 text-muted-foreground"/>Zip Code (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., 90210" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,16 +135,16 @@ export default function ContactSalesForm() {
             name="message"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-secondary-foreground/90">Message (Optional)</FormLabel>
+                <FormLabel>Message (Optional)</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Tell us a bit about your school or any specific questions..." {...field} className="bg-background/80 placeholder:text-muted-foreground/70" />
+                  <Textarea placeholder="Tell us a bit about your school or any specific questions..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto">
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto text-base py-3 px-6">
+            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
             Send Inquiry
           </Button>
         </form>
