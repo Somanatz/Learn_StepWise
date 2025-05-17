@@ -101,17 +101,22 @@ export default {
           '0%, 100%': { opacity: '0.85', transform: 'scale(1)' },
           '50%': { opacity: '1', transform: 'scale(1.01)' },
         },
-        'text-pulse': { /* New animation for text */
+        'text-pulse': { 
           '0%, 100%': { opacity: '0.8' },
           '50%': { opacity: '1' },
-        }
+        },
+        'fade-in-up': { // New animation
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
         'slide-in-from-right': 'slide-in-from-right 0.7s ease-out forwards',
         'pulse-subtle': 'pulse-subtle 4s infinite ease-in-out',
-        'text-pulse': 'text-pulse 3s infinite ease-in-out', /* New animation utility */
+        'text-pulse': 'text-pulse 3s infinite ease-in-out',
+        'fade-in-up': 'fade-in-up 0.6s ease-out forwards', // New animation utility
   		}
   	}
   },
@@ -119,18 +124,12 @@ export default {
     require("tailwindcss-animate"),
     plugin(function({ addUtilities }) {
       const newUtilities = {
-        '.animation-delay-200': {
-          'animation-delay': '0.2s',
-        },
-        '.animation-delay-300': {
-          'animation-delay': '0.3s',
-        },
-        '.animation-delay-500': {
-          'animation-delay': '0.5s',
-        },
-         '.animation-delay-700': {
-          'animation-delay': '0.7s',
-        },
+        '.animation-delay-100': { 'animation-delay': '0.1s' },
+        '.animation-delay-200': { 'animation-delay': '0.2s' },
+        '.animation-delay-300': { 'animation-delay': '0.3s' },
+        '.animation-delay-400': { 'animation-delay': '0.4s' }, // Added for more stagger options
+        '.animation-delay-500': { 'animation-delay': '0.5s' },
+        '.animation-delay-700': { 'animation-delay': '0.7s' },
       }
       addUtilities(newUtilities, ['responsive', 'hover'])
     })

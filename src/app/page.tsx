@@ -9,17 +9,25 @@ import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3,
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils'; // Import cn utility
 
 interface FeatureCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
   iconColor?: string;
+  animationDelay?: string; // For staggered animation
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description, iconColor = "text-primary" }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ 
+  icon: Icon, title, description, iconColor = "text-primary", animationDelay
+}) => {
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl flex flex-col bg-card/80 backdrop-blur-sm border-border/50 h-full">
+    <Card className={cn(
+      "shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl flex flex-col bg-card/80 backdrop-blur-sm border-border/50 h-full",
+      "opacity-0 animate-fade-in-up", // Apply base animation
+      animationDelay // Apply specific delay class
+    )}>
       <CardHeader className="flex-row items-center gap-4 pb-3">
         <Icon size={32} className={iconColor} />
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
@@ -31,7 +39,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, descriptio
   );
 };
 
-const studentFeatures: FeatureCardProps[] = [
+const studentFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
   { icon: BookOpen, title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning." },
   { icon: Lightbulb, title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently." },
   { icon: HelpCircle, title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement." },
@@ -39,14 +47,14 @@ const studentFeatures: FeatureCardProps[] = [
   { icon: Award, title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun." },
 ];
 
-const parentFeatures: FeatureCardProps[] = [
+const parentFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
   { icon: BarChart3, title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights." },
   { icon: MessageSquare, title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively." },
   { icon: FileText, title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible." },
   { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar." },
 ];
 
-const teacherSchoolFeatures: FeatureCardProps[] = [
+const teacherSchoolFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
   { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students." },
   { icon: Users, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently." },
   { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback." },
@@ -61,6 +69,13 @@ export default function UnifiedDashboardPage() {
   const [isWelcomeVisible, setIsWelcomeVisible] = useState(false);
 
   useEffect(() => {
+    if (!isLoadingAuth && !currentUser) {
+      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); 
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingAuth, currentUser]);
+
+  useEffect(() => {
     if (!isLoadingAuth && currentUser) {
       if (currentUserRole === 'Student') router.push('/student');
       else if (currentUserRole === 'Teacher') router.push('/teacher');
@@ -68,13 +83,6 @@ export default function UnifiedDashboardPage() {
       // else if (currentUserRole === 'Admin') router.push('/admin-dashboard'); 
     }
   }, [isLoadingAuth, currentUser, currentUserRole, router]);
-
-  useEffect(() => {
-    if (!isLoadingAuth && !currentUser) {
-      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); 
-      return () => clearTimeout(timer);
-    }
-  }, [isLoadingAuth, currentUser]);
 
   if (isLoadingAuth) {
     return ( 
@@ -87,81 +95,105 @@ export default function UnifiedDashboardPage() {
   }
   
   if (!currentUser && !isLoadingAuth) {
+    const animationDelayClasses = ['animation-delay-100', 'animation-delay-200', 'animation-delay-300', 'animation-delay-400', 'animation-delay-500', 'animation-delay-700'];
     return (
-      <div className="relative flex flex-col items-center justify-center text-center p-4 overflow-hidden min-h-[calc(100vh-160px)] /* Adjust 160px based on header/footer height */">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster="https://placehold.co/1920x1080.png?text=StepWise+Educational+Background"
-          data-ai-hint="education technology"
-          className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        >
-          <source src="/videos/educational-bg.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
-        
-        <div className="relative z-20 w-full">
-          <div className={`
-            max-w-3xl mx-auto p-6 sm:p-8 text-center
-            transition-all duration-1000 ease-out
-            ${isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
-          `}>
+      <div className="w-full">
+        {/* Hero Video Background and Main Welcome Message Block */}
+        <div className="relative flex flex-col items-center justify-center text-center p-4 overflow-hidden min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)]"> {/* Adjust height as needed */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster="https://placehold.co/1920x1080.png?text=StepWise+Educational+Background"
+            data-ai-hint="education technology"
+            className="absolute top-0 left-0 w-full h-full object-cover z-0"
+          >
+            <source src="/videos/educational-bg.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
+          
+          {/* Welcome Text Overlay */}
+          <div className={cn(
+            "relative z-20 max-w-3xl mx-auto p-6 sm:p-8",
+            "transition-all duration-1000 ease-out",
+            isWelcomeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          )}>
             <h1
-              className={`
-                font-extrabold mb-6 text-primary-foreground
-                text-4xl sm:text-5xl md:text-6xl 
-                leading-tight 
-                [text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]
-                animate-pulse-subtle 
-                transition-opacity duration-[1400ms] ease-out delay-300
-                ${isWelcomeVisible ? 'opacity-100' : 'opacity-0'}
-              `}
+              className={cn(
+                "font-extrabold mb-6 text-primary-foreground",
+                "text-4xl sm:text-5xl md:text-6xl", // Adjusted for potential single line
+                "leading-tight", 
+                "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]",
+                "animate-pulse-subtle", 
+                "transition-opacity duration-[1400ms] ease-out delay-300",
+                isWelcomeVisible ? 'opacity-100' : 'opacity-0'
+              )}
             >
               Welcome to<br />Learn-StepWise!
             </h1>
             <p
-              className={`
-                text-base sm:text-xl text-gray-200 mb-12
-                font-medium
-                [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]
-                animate-pulse-subtle animation-delay-300 
-                transition-opacity duration-[1400ms] ease-out delay-600
-                ${isWelcomeVisible ? 'opacity-100' : 'opacity-0'}
-              `}
+              className={cn(
+                "text-base sm:text-xl text-gray-200", // mb-0 already removed
+                "font-medium",
+                "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
+                "animate-pulse-subtle animation-delay-300", 
+                "transition-opacity duration-[1400ms] ease-out delay-600",
+                isWelcomeVisible ? 'opacity-100' : 'opacity-0'
+              )}
             >
               Your personalized learning journey starts here. Explore features tailored for every role in education.
             </p>
           </div>
+        </div>
 
-          {/* Features Section */}
-          <div className="space-y-16 py-12">
-            {/* Student Features */}
-            <section className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-10 text-primary-foreground [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.5)]">For Students</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {studentFeatures.map(feature => <FeatureCard key={feature.title} {...feature} iconColor="text-emerald-400" />)}
-              </div>
-            </section>
+        {/* Features Section - This will be below the video hero block */}
+        <div className="space-y-16 py-12 container mx-auto px-4">
+          {/* Student Features */}
+          <section>
+            <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Students</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {studentFeatures.map((feature, index) => (
+                <FeatureCard 
+                  key={feature.title} 
+                  {...feature} 
+                  iconColor="text-emerald-400"
+                  animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
+                />
+              ))}
+            </div>
+          </section>
 
-            {/* Parent Features */}
-            <section className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-10 text-primary-foreground [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.5)]">For Parents</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {parentFeatures.map(feature => <FeatureCard key={feature.title} {...feature} iconColor="text-sky-400" />)}
-              </div>
-            </section>
+          {/* Parent Features */}
+          <section>
+            <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Parents</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {parentFeatures.map((feature, index) => (
+                <FeatureCard 
+                  key={feature.title} 
+                  {...feature} 
+                  iconColor="text-sky-400" 
+                  animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
+                />
+              ))}
+            </div>
+          </section>
 
-            {/* Teacher & School Features */}
-            <section className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-10 text-primary-foreground [text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.5)]">For Teachers & Schools</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {teacherSchoolFeatures.map(feature => <FeatureCard key={feature.title} {...feature} iconColor="text-amber-400" />)}
-              </div>
-            </section>
-          </div>
+          {/* Teacher & School Features */}
+          <section>
+            <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Teachers & Schools</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {teacherSchoolFeatures.map((feature, index) => (
+                <FeatureCard 
+                  key={feature.title} 
+                  {...feature} 
+                  iconColor="text-amber-400" 
+                  animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
+                />
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     );
@@ -175,3 +207,4 @@ export default function UnifiedDashboardPage() {
     </div>
   );
 }
+
