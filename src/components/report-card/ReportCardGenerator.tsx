@@ -77,7 +77,7 @@ export default function ReportCardGenerator() {
       <CardHeader>
         <CardTitle className="text-3xl font-poppins flex items-center">
           <FileText className="mr-3 text-primary" size={30} />
-          Final Report Card Generator
+          GenAI-Campus Report Card Generator
         </CardTitle>
         <CardDescription>Enter student details and test scores to generate an AI-powered report card.</CardDescription>
       </CardHeader>

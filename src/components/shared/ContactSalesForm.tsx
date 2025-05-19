@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, School, User, Mail, MapPin, Mailbox } from 'lucide-react'; // Added icons
+import { Loader2, Send, School, User, Mail, MapPin, Mailbox } from 'lucide-react';
 import { useState } from 'react';
 
 const contactSalesSchema = z.object({
@@ -56,7 +56,7 @@ export default function ContactSalesForm() {
   return (
     <div className="p-6 md:p-8 bg-card rounded-xl shadow-xl border border-border">
       <h3 className="text-2xl font-poppins font-semibold mb-3 text-primary flex items-center">
-        <School className="mr-3 h-7 w-7" /> Interested in Learn-StepWise for Your School?
+        <School className="mr-3 h-7 w-7" /> Interested in GenAI-Campus for Your School?
       </h3>
       <p className="text-sm text-muted-foreground mb-6">
         Fill out the form below, and our sales team will get in touch to discuss how we can tailor our platform to your needs.

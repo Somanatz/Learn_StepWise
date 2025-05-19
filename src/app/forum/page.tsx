@@ -22,7 +22,7 @@ interface ForumThread {
 const mockThreads: ForumThread[] = [
   { id: "t1", title: "Struggling with Advanced Algebra - Need Help!", author: "StudentAlex", replies: 12, views: 150, lastPost: "TeacherEmily - 2h ago", category: "Subject Help", tags: ["math", "algebra"] },
   { id: "t2", title: "Tips for Preparing for the Science Fair", author: "ScienceGeek99", replies: 5, views: 89, lastPost: "ParentSarah - 1d ago", category: "General Discussion", tags: ["science", "projects"] },
-  { id: "t3", title: "Announcement: Upcoming Parent-Teacher Meetings", author: "AdminStepWise", replies: 0, views: 250, lastPost: "AdminStepWise - 3d ago", category: "Announcements", tags: ["school", "meetings"] },
+  { id: "t3", title: "Announcement: Upcoming Parent-Teacher Meetings", author: "AdminGenAI", replies: 0, views: 250, lastPost: "AdminGenAI - 3d ago", category: "Announcements", tags: ["school", "meetings"] },
   { id: "t4", title: "Favorite Historical Period and Why?", author: "HistoryLover", replies: 25, views: 302, lastPost: "StudentMaria - 5m ago", category: "General Discussion", tags: ["history", "discussion"] },
   { id: "t5", title: "Clarification on English Essay Submission", author: "BookwormBen", replies: 2, views: 45, lastPost: "TeacherDavid - 1h ago", category: "Subject Help", tags: ["english", "essay"] },
 ];
@@ -32,9 +32,9 @@ export default function ForumPage() {
     <div className="space-y-8">
       <header className="py-10 bg-gradient-to-r from-accent to-blue-600 text-center rounded-xl shadow-xl">
         <MessageSquare className="mx-auto h-16 w-16 text-primary-foreground mb-4" />
-        <h1 className="text-4xl font-bold text-primary-foreground">StepWise Community Forum</h1>
+        <h1 className="text-4xl font-bold text-primary-foreground">GenAI-Campus Community Forum</h1>
         <p className="text-lg mt-2 text-primary-foreground/90 max-w-2xl mx-auto">
-          Connect, discuss, and learn together. Ask questions, share insights, and help fellow StepWise users.
+          Connect, discuss, and learn together. Ask questions, share insights, and help fellow GenAI-Campus users.
         </p>
       </header>
 

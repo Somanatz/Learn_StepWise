@@ -1,4 +1,3 @@
-
 // src/app/register-school/page.tsx
 'use client';
 
@@ -103,7 +102,7 @@ export default function RegisterSchoolPage() {
         <CardHeader className="text-center">
           <SchoolIcon className="mx-auto h-12 w-12 text-primary mb-4" />
           <CardTitle className="text-3xl font-bold">Register Your School</CardTitle>
-          <CardDescription>Join Learn-StepWise and create an admin account for your institution.</CardDescription>
+          <CardDescription>Join GenAI-Campus and create an admin account for your institution.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
