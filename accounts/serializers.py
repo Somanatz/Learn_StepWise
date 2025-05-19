@@ -63,8 +63,7 @@ class SchoolSerializer(serializers.ModelSerializer):
 class StudentProfileSerializer(serializers.ModelSerializer):
     enrolled_class_name = serializers.CharField(source='enrolled_class.name', read_only=True, allow_null=True)
     school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
-    profile_picture_url = serializers.ImageField(source='profile_picture', read_only=True)
-
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentProfile
@@ -73,16 +72,21 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'school': {'required': False, 'allow_null': True},
             'enrolled_class': {'required': False, 'allow_null': True},
+            'profile_picture': {'write_only': True, 'required': False},
         }
+    
+    def get_profile_picture_url(self, obj):
+        request = self.context.get('request')
+        if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
+            return request.build_absolute_uri(obj.profile_picture.url)
+        return None
 
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
-    # To show names instead of IDs for ManyToMany fields
     assigned_classes_details = serializers.SerializerMethodField()
     subject_expertise_details = serializers.SerializerMethodField()
-    profile_picture_url = serializers.ImageField(source='profile_picture', read_only=True)
-
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = TeacherProfile
@@ -92,6 +96,7 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
             'school': {'required': False, 'allow_null': True},
             'assigned_classes': {'required': False},
             'subject_expertise': {'required': False},
+            'profile_picture': {'write_only': True, 'required': False},
         }
 
     def get_assigned_classes_details(self, obj):
@@ -100,19 +105,33 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
     def get_subject_expertise_details(self, obj):
         return [{'id': sub.id, 'name': sub.name} for sub in obj.subject_expertise.all()]
 
+    def get_profile_picture_url(self, obj):
+        request = self.context.get('request')
+        if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
+            return request.build_absolute_uri(obj.profile_picture.url)
+        return None
+
 
 class ParentProfileSerializer(serializers.ModelSerializer):
-    profile_picture_url = serializers.ImageField(source='profile_picture', read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
     class Meta:
         model = ParentProfile
         fields = '__all__'
         read_only_fields = ['user']
+        extra_kwargs = {
+            'profile_picture': {'write_only': True, 'required': False},
+        }
 
+    def get_profile_picture_url(self, obj):
+        request = self.context.get('request')
+        if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
+            return request.build_absolute_uri(obj.profile_picture.url)
+        return None
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    student_profile = StudentProfileSerializer(read_only=True)
-    teacher_profile = TeacherProfileSerializer(read_only=True)
-    parent_profile = ParentProfileSerializer(read_only=True)
+    student_profile = StudentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
+    teacher_profile = TeacherProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
+    parent_profile = ParentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
     school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
     school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
 
@@ -140,11 +159,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
         if school:
             instance.school = school
         
-        # Handle profile updates if profile data is passed directly
-        # This part is simplified; ideally, profile updates go to a dedicated profile endpoint
-        # or this serializer needs to handle nested writes for profiles.
-        # For now, we assume profile data is updated via /users/{id}/profile/ PATCH
-        
         return super().update(instance, validated_data)
 
 
@@ -170,6 +184,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=validated_data['role']
         )
+        # Create empty profile based on role
         if user.role == 'Student':
             StudentProfile.objects.create(user=user)
         elif user.role == 'Teacher':
@@ -182,7 +197,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
 class ParentStudentLinkSerializer(serializers.ModelSerializer):
     parent_username = serializers.CharField(source='parent.username', read_only=True)
     student_username = serializers.CharField(source='student.username', read_only=True)
-    student_details = StudentProfileSerializer(source='student.student_profile', read_only=True) # Add this
+    student_details = StudentProfileSerializer(source='student.student_profile', read_only=True, context={'request': serializers.CurrentUserDefault()})
 
     class Meta:
         model = ParentStudentLink
@@ -203,40 +218,45 @@ class ParentStudentLinkSerializer(serializers.ModelSerializer):
 
 # Serializers for Profile Completion (reusing existing ones, ensure they allow partial updates)
 class StudentProfileCompletionSerializer(serializers.ModelSerializer):
+    school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
+    enrolled_class_id = serializers.PrimaryKeyRelatedField(queryset=ContentClass.objects.all(), source='enrolled_class', write_only=True, allow_null=True, required=False)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = StudentProfile
-        fields = '__all__'
-        read_only_fields = ['user']
-        extra_kwargs = {
-            'school': {'required': False, 'allow_null': True},
-            'enrolled_class': {'required': False, 'allow_null': True},
-            'profile_picture': {'required': False, 'allow_null': True}, # Allow profile picture update
-        }
-
+        # Include all new fields from StudentProfile model
+        fields = [
+            'full_name', 'school', 'school_id', 'enrolled_class', 'enrolled_class_id', 'preferred_language', 'father_name', 
+            'mother_name', 'place_of_birth', 'date_of_birth', 'blood_group', 
+            'needs_assistant_teacher', 'admission_number', 'parent_email_for_linking', 
+            'parent_mobile_for_linking', 'parent_occupation', 'hobbies', 'favorite_sports', 
+            'interested_in_gardening_farming', 'nickname', 'profile_picture'
+        ]
+        read_only_fields = ['user', 'school', 'enrolled_class'] # FKs are handled by _id fields for writing
 
 class TeacherProfileCompletionSerializer(serializers.ModelSerializer):
-    assigned_classes = serializers.PrimaryKeyRelatedField(
-        queryset=ContentClass.objects.all(), many=True, required=False
+    school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
+    assigned_classes_ids = serializers.PrimaryKeyRelatedField(
+        queryset=ContentClass.objects.all(), source='assigned_classes', many=True, required=False, write_only=True
     )
-    subject_expertise = serializers.PrimaryKeyRelatedField(
-        queryset=ContentSubject.objects.all(), many=True, required=False
+    subject_expertise_ids = serializers.PrimaryKeyRelatedField(
+        queryset=ContentSubject.objects.all(), source='subject_expertise', many=True, required=False, write_only=True
     )
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = TeacherProfile
-        fields = '__all__'
-        read_only_fields = ['user']
-        extra_kwargs = {
-            'school': {'required': False, 'allow_null': True},
-            'profile_picture': {'required': False, 'allow_null': True},
-        }
-
+        fields = [
+            'full_name', 'school', 'school_id', 'assigned_classes', 'assigned_classes_ids', 
+            'subject_expertise', 'subject_expertise_ids', 'interested_in_tuition', 
+            'mobile_number', 'address', 'profile_picture'
+        ]
+        read_only_fields = ['user', 'school', 'assigned_classes', 'subject_expertise']
 
 class ParentProfileCompletionSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = ParentProfile
-        fields = '__all__'
+        fields = ['full_name', 'mobile_number', 'address', 'profile_picture']
         read_only_fields = ['user']
-        extra_kwargs = {
-            'profile_picture': {'required': False, 'allow_null': True},
-        }
 

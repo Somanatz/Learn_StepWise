@@ -12,13 +12,18 @@ export interface School {
   principal_full_name?: string;
   principal_contact_number?: string;
   principal_email?: string;
+  // Fields for school admin dashboard (potentially aggregated)
+  student_count?: number;
+  staff_count?: number;
+  // senior_teachers?: { name: string, subject: string, years_experience: number }[];
+  // performance_history?: { year: number, score: number }[];
 }
 
 export interface LessonSummary { // For brief lesson listings
   id: string | number;
   title: string;
   lesson_order?: number;
-  is_locked?: boolean; // Determined by frontend/backend logic
+  is_locked?: boolean; 
   video_url?: string;
   audio_url?: string;
   image_url?: string;
@@ -42,16 +47,16 @@ export interface Quiz {
   description?: string;
   pass_mark_percentage?: number;
   questions: Question[];
-  lesson: string | number; // Lesson ID it's attached to
+  lesson: string | number; 
 }
 
 
-export interface Lesson extends LessonSummary { // For detailed lesson view
+export interface Lesson extends LessonSummary { 
   content: string;
   simplified_content?: string;
-  subject?: string | number; // Subject ID
+  subject?: string | number; 
   subject_name?: string;
-  quiz?: Quiz | null; // Quiz can be null or the full Quiz object
+  quiz?: Quiz | null; 
   requires_previous_quiz?: boolean;
 }
 
@@ -61,13 +66,13 @@ export interface Subject {
   name: string;
   icon: LucideIcon; 
   description: string;
-  lessonsCount: number; // Derived or from API
-  lessons: LessonSummary[]; // List of lessons in this subject
+  lessonsCount: number; 
+  lessons: LessonSummary[]; 
   bgColor?: string; 
   textColor?: string; 
-  href: string; // To subject detail page
-  is_locked?: boolean; // If the whole subject is locked (less common)
-  class_obj?: string | number; // Class ID
+  href: string; 
+  is_locked?: boolean; 
+  class_obj?: string | number; 
   class_obj_name?: string; 
 }
 
@@ -89,21 +94,23 @@ export interface User {
   email: string;
   role: UserRole;
   is_school_admin?: boolean;
-  school?: string | number | null; // School ID if associated
+  school?: string | number | null; 
   school_name?: string | null;
-  student_profile?: StudentProfileData;
-  teacher_profile?: TeacherProfileData;
-  parent_profile?: ParentProfileData;
+  administered_school?: { id: number; name: string; school_id_code: string; } | null; // For school admins
+  student_profile?: StudentProfileData | null;
+  teacher_profile?: TeacherProfileData | null;
+  parent_profile?: ParentProfileData | null;
 }
 
 export interface StudentProfileData {
     id?: number;
-    user?: number; // User ID
+    user?: number; 
     full_name?: string | null;
     school?: string | number | null; 
     school_name?: string | null; 
     enrolled_class?: string | number | null; 
     enrolled_class_name?: string | null; 
+    nickname?: string | null;
     preferred_language?: string | null;
     father_name?: string | null;
     mother_name?: string | null;
@@ -114,11 +121,12 @@ export interface StudentProfileData {
     admission_number?: string | null;
     parent_email_for_linking?: string | null;
     parent_mobile_for_linking?: string | null;
+    parent_occupation?: string | null;
     hobbies?: string | null;
     favorite_sports?: string | null;
     interested_in_gardening_farming?: boolean;
-    profile_picture?: string | null; // URL to picture
-    profile_picture_url?: string | null; // Backend might provide a full URL
+    profile_picture?: string | null; 
+    profile_picture_url?: string | null; 
 }
 
 export interface TeacherProfileData {
@@ -150,11 +158,11 @@ export interface ParentProfileData {
 
 export interface ParentStudentLinkAPI {
   id: string | number;
-  parent: number; // Parent User ID
-  student: number; // Student User ID
+  parent: number; 
+  student: number; 
   parent_username: string;
   student_username: string;
-  student_details?: StudentProfileData; // Optional, if backend sends this nested
+  student_details?: StudentProfileData; 
 }
 
 
@@ -178,10 +186,10 @@ export interface Event {
     end_date?: string; 
     type: 'Holiday' | 'Exam' | 'Meeting' | 'Activity' | 'Deadline' | 'General';
     created_by_username?: string;
-    school?: number;
-    school_name?: string;
-    target_class?: number;
-    target_class_name?: string;
+    school?: number | null; // School ID
+    school_name?: string | null;
+    target_class?: number | null; // Class ID
+    target_class_name?: string | null;
 }
 
 
@@ -194,8 +202,8 @@ export interface UserQuizAttempt {
   lesson_title?: string;
   score: number;
   passed: boolean;
-  completed_at: string; // ISO datetime string
-  answers?: any; // Could be more specific based on answer structure
+  completed_at: string; 
+  answers?: any; 
 }
 
 export interface UserLessonProgress {
@@ -204,6 +212,6 @@ export interface UserLessonProgress {
   lesson: number;
   lesson_title: string;
   completed: boolean;
-  progress_data?: any; // JSON data
-  last_updated: string; // ISO datetime string
+  progress_data?: any; 
+  last_updated: string; 
 }

@@ -2,6 +2,7 @@
 from django.db import models
 from django.conf import settings
 from accounts.models import School # Import School
+from content.models import Class as ContentClass # Import Class from content
 
 class Event(models.Model):
     EVENT_TYPES = [
@@ -22,7 +23,7 @@ class Event(models.Model):
     
     # Target audience for the event
     school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True, related_name='school_events', help_text="If specific to a school")
-    target_class = models.ForeignKey('content.Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='class_events', help_text="If specific to a class")
+    target_class = models.ForeignKey(ContentClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='class_events', help_text="If specific to a class within the selected school")
     # target_role = models.CharField(max_length=10, choices=CustomUser.ROLE_CHOICES, blank=True, null=True) # Could be too broad, consider target_class or school
 
 
@@ -31,4 +32,9 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.type}) on {self.date}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.target_class and self.school and self.target_class.school != self.school:
+            raise ValidationError({'target_class': 'Target class must belong to the selected school.'})
 
