@@ -10,8 +10,8 @@ const Logo: React.FC<LogoProps> = ({ className = '' }) => {
   return (
     <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '60px' }}>
       <Image
-        src="/images/StepWise.png" // Updated path
-        alt="Learn-StepWise Logo"
+        src="/images/Genai.png" // Updated path to new logo
+        alt="GenAI-Campus Logo" // Updated alt text
         width={218}
         height={60}
         priority

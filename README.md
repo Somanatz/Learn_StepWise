@@ -1,4 +1,4 @@
-# Learn-StepWise
+# GenAI-Campus
 
 This is a NextJS starter in Firebase Studio.
 

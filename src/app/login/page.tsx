@@ -48,7 +48,7 @@ export default function LoginPage() {
           title: "Login Successful",
           description: `Welcome back!`,
         });
-        router.push('/');
+        // Redirection is handled by AuthContext and page.tsx
       } else {
          toast({
           title: "Login Failed",
@@ -89,7 +89,7 @@ export default function LoginPage() {
         {/* Left Side: Tool Name & Tagline */}
         <div className="w-full md:w-2/5 flex-shrink-0 mb-12 md:mb-0 text-center md:text-left">
           <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)] animation-delay-100">
-            Learn-StepWise
+            GenAI-Campus
           </h1>
           <p className="text-xl lg:text-2xl text-primary-foreground/80 mt-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.5)] animation-delay-300">
             Unlock Your Potential, One Step at a Time.
@@ -102,7 +102,7 @@ export default function LoginPage() {
             <CardHeader className="text-center">
               <LogIn className="mx-auto h-10 w-10 text-primary mb-3" />
               <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>
-              <CardDescription>Log in to your Learn-StepWise account.</CardDescription>
+              <CardDescription>Log in to your GenAI-Campus account.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>

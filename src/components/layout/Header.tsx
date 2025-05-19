@@ -1,14 +1,13 @@
-
 // src/components/layout/Header.tsx
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide } from 'lucide-react'; // Renamed School to SchoolIconLucide
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide } from 'lucide-react'; 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'; // Added SheetHeader, SheetTitle
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/interfaces';
@@ -22,21 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from 'next/image';
-
-const Logo = ({ className = '' }: { className?: string }) => {
-  return (
-    <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: '60px' }}>
-      <Image
-        src="/images/StepWise.png"
-        alt="Learn-StepWise Logo"
-        width={218}
-        height={60}
-        priority
-        className="group-hover:opacity-90 transition-opacity duration-200"
-      />
-    </Link>
-  );
-};
+import Logo from '@/components/shared/Logo';
 
 
 const allNavLinks: NavLink[] = [
@@ -96,19 +81,14 @@ export default function Header() {
   });
   
   if (!mounted) {
-    // Simplified static placeholder for SSR and initial client render
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          {/* Logo Placeholder */}
           <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="animate-pulse bg-muted rounded"></div>
-          
-          <div className="flex-grow"></div> {/* Spacer */}
-
-          {/* Right side icons placeholder */}
+           <div className="flex-grow"></div>
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User icon/buttons placeholder */}
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> {/* Menu toggle placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> 
           </div>
         </div>
       </header>
@@ -222,8 +202,8 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
-                <SheetHeader className="p-4 border-b">
-                  <SheetTitle className="sr-only">Main Menu</SheetTitle> {/* Visually hidden title for accessibility */}
+                 <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="sr-only">Main Menu</SheetTitle> 
                   <Logo />
                 </SheetHeader>
                 
@@ -288,4 +268,3 @@ export default function Header() {
     </header>
   );
 }
-

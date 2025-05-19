@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import { AuthProvider } from '@/context/AuthContext';
+import ContactSalesForm from '@/components/shared/ContactSalesForm';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -20,8 +21,8 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Learn-StepWise | Personalized Learning Platform',
-  description: 'Learn-StepWise - Adaptive learning with smart notes, progress tracking, and AI-powered insights.',
+  title: 'GenAI-Campus | Personalized Learning Platform', // Updated title
+  description: 'GenAI-Campus - Adaptive learning with smart notes, progress tracking, and AI-powered insights.', // Updated description
   icons: {
     // Add a placeholder or remove if no actual icon file is generated
     // icon: "/favicon.ico", 
@@ -44,11 +45,11 @@ export default function RootLayout({
           <Toaster />
           <footer className="bg-secondary text-secondary-foreground py-10 border-t">
             <div className="container mx-auto px-4 text-center">
-              <h3 className="text-xl font-semibold mb-2 text-secondary-foreground">Learn-StepWise</h3>
+              <h3 className="text-xl font-semibold mb-2 text-secondary-foreground">GenAI-Campus</h3>
               <p className="text-sm text-secondary-foreground/80 mb-4 max-w-md mx-auto">
                 Empowering students, supporting teachers, and engaging parents with our innovative learning platform.
               </p>
-              <p className="text-sm text-secondary-foreground/80">&copy; {new Date().getFullYear()} Learn-StepWise. All rights reserved.</p>
+              <p className="text-sm text-secondary-foreground/80">&copy; {new Date().getFullYear()} GenAI-Campus. All rights reserved.</p>
             </div>
           </footer>
         </AuthProvider>

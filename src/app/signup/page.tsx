@@ -50,19 +50,17 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     try {
-      // Ensure role is correctly cased if backend is case-sensitive
       const roleToSend = data.role.charAt(0).toUpperCase() + data.role.slice(1) as UserRole;
       const { confirmPassword, ...signupData } = data;
       const payload = { ...signupData, role: roleToSend };
       
-      const newUser = await signupUser(payload); // signupUser should return the created user object or ID
+      const newUser = await signupUser(payload); 
       
       toast({
         title: "Signup Successful!",
         description: "Your account has been created. Please complete your profile.",
       });
 
-      // Redirect to profile completion page based on role
       if (newUser.role === 'Student') {
         router.push('/student/complete-profile');
       } else if (newUser.role === 'Teacher') {
@@ -70,7 +68,7 @@ export default function SignupPage() {
       } else if (newUser.role === 'Parent') {
         router.push('/parent/complete-profile');
       } else {
-        router.push('/login'); // Fallback if role is not handled for profile completion
+        router.push('/login'); 
       }
 
     } catch (error: any) {
@@ -82,7 +80,6 @@ export default function SignupPage() {
         else if (errorData.password) errorMessage = `Password: ${errorData.password.join(', ')}`;
         else if (typeof errorData === 'string') errorMessage = errorData;
         else if (errorData.detail) errorMessage = errorData.detail;
-        // Handle nested profile errors if backend returns them during signup
         else if (errorData.student_profile) errorMessage = `Student Profile: ${JSON.stringify(errorData.student_profile)}`;
         else errorMessage = JSON.stringify(errorData);
       } else if (error.message) {
@@ -114,7 +111,7 @@ export default function SignupPage() {
       <div className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl xl:max-w-6xl mx-auto items-center md:space-x-10 lg:space-x-16">
         <div className="w-full md:w-2/5 flex-shrink-0 mb-12 md:mb-0 text-center md:text-left">
            <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)] animation-delay-100">
-            Learn-StepWise
+            GenAI-Campus
           </h1>
           <p className="text-xl lg:text-2xl text-primary-foreground/80 mt-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.5)] animation-delay-300">
             Join Our Community of Learners and Educators.
@@ -125,7 +122,7 @@ export default function SignupPage() {
             <CardHeader className="text-center">
               <UserPlus className="mx-auto h-10 w-10 text-primary mb-3" />
               <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
-              <CardDescription>Join Learn-StepWise today!</CardDescription>
+              <CardDescription>Join GenAI-Campus today!</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
