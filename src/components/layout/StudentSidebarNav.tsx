@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Award, MessageSquare, Lightbulb, BookOpen, UserCircle, Settings, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Award, MessageSquare, Lightbulb, BookOpen, UserCircle, Settings, CalendarDays, FileText, Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SidebarMenu,
@@ -14,14 +14,15 @@ import {
 
 const navItems = [
   { href: '/student', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/student/subjects', label: 'My Subjects', icon: BookOpen }, // Placeholder, needs actual subject listing page
-  { href: '/student/progress', label: 'My Progress', icon: UserCircle }, // Placeholder
+  { href: '/student/subjects', label: 'My Subjects', icon: BookOpen },
+  { href: '/student/progress', label: 'My Progress', icon: UserCircle },
   { href: '/student/rewards', label: 'Rewards', icon: Award },
   { href: '/student/recommendations', label: 'Suggestions', icon: Lightbulb },
-  { href: '/student/view-my-report', label: 'My Reports', icon: UserCircle }, // Placeholder
-  { href: '/student/calendar', label: 'Calendar', icon: CalendarDays }, // Placeholder
-  { href: '/forum', label: 'Forum', icon: MessageSquare }, // Forum is shared
-  { href: '/student/settings', label: 'Settings', icon: Settings }, // Placeholder
+  { href: '/student/view-my-report', label: 'My Reports', icon: FileText },
+  { href: '/student/library', label: 'Library', icon: Library },
+  { href: '/student/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/forum', label: 'Forum', icon: MessageSquare },
+  { href: '/student/settings', label: 'Settings', icon: Settings },
 ];
 
 export function StudentSidebarNav() {
