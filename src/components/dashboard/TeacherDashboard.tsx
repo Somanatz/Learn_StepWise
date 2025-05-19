@@ -35,18 +35,27 @@ const quickLinks = [
 export default function TeacherDashboard() {
   const [events, setEvents] = useState<EventInterface[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
+  const [eventsError, setEventsError] = useState<string | null>(null); 
 
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoadingEvents(true);
-      setEventsError(null); // Reset eventsError
+      setEventsError(null); 
       try {
-        const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
-        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
+        const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
+        let actualApiEvents: EventInterface[];
+        if (Array.isArray(eventResponse)) {
+          actualApiEvents = eventResponse;
+        } else if (eventResponse && Array.isArray(eventResponse.results)) {
+          actualApiEvents = eventResponse.results;
+        } else {
+          console.error("Unexpected event data format:", eventResponse);
+          actualApiEvents = [];
+        }
+        setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
-        setEventsError(err instanceof Error ? err.message : "Failed to load events"); // Set eventsError on failure
+        setEventsError(err instanceof Error ? err.message : "Failed to load events"); 
       } finally {
         setIsLoadingEvents(false);
       }

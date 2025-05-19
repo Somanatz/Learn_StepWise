@@ -1,3 +1,4 @@
+
 // src/app/parent/children/page.tsx
 'use client';
 
@@ -18,13 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { ParentStudentLinkAPI } from '@/interfaces';
 
-interface ChildFromAPI {
-  id: string;
-  student: { id: string; username: string; avatarUrl?: string; classLevel?: number; }; // Assuming student is nested
-  // Add other fields returned by ParentStudentLink serializer
-  student_username: string; // From serializer
-}
 
 interface DisplayChild {
   id: string; // This is the ParentStudentLink ID
@@ -32,13 +28,15 @@ interface DisplayChild {
   name: string;
   avatarUrl?: string;
   classLevel: number;
-  overallProgress: number; // This might need to be fetched separately or mocked
-  lastActivity?: string; // This might need to be fetched separately or mocked
+  overallProgress: number; 
+  lastActivity?: string; 
 }
 
 const linkChildSchema = z.object({
-  student_username_or_email: z.string().min(1, "Student username or email is required"),
+  student_admission_number: z.string().min(1, "Student admission number is required"),
+  student_school_id_code: z.string().min(1, "School ID code is required"),
 });
+
 type LinkChildFormValues = z.infer<typeof linkChildSchema>;
 
 export default function MyChildrenPage() {
@@ -52,7 +50,7 @@ export default function MyChildrenPage() {
 
   const form = useForm<LinkChildFormValues>({
     resolver: zodResolver(linkChildSchema),
-    defaultValues: { student_username_or_email: "" },
+    defaultValues: { student_admission_number: "", student_school_id_code: "" },
   });
 
   const fetchLinkedChildren = async () => {
@@ -60,20 +58,26 @@ export default function MyChildrenPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // API returns ParentStudentLink objects. We need student details.
-      // The ParentStudentLinkSerializer should provide student_username.
-      // For more details like avatar or progress, separate calls or a more detailed endpoint would be needed.
-      const links: any[] = await api.get<any[]>(`/parent-student-links/?parent=${currentUser.id}`);
+      const linkResponse = await api.get<ParentStudentLinkAPI[] | { results: ParentStudentLinkAPI[] }>(`/parent-student-links/?parent=${currentUser.id}`);
       
-      // Mocking progress and activity for now as it's not directly in ParentStudentLink
-      const displayChildren: DisplayChild[] = links.map(link => ({
-        id: link.id, // ParentStudentLink ID
-        studentId: link.student, // Student's actual ID
+      let actualLinks: ParentStudentLinkAPI[];
+      if (Array.isArray(linkResponse)) {
+        actualLinks = linkResponse;
+      } else if (linkResponse && Array.isArray(linkResponse.results)) {
+        actualLinks = linkResponse.results;
+      } else {
+        console.error("Unexpected parent-student link data format:", linkResponse);
+        actualLinks = [];
+      }
+      
+      const displayChildren: DisplayChild[] = actualLinks.map(link => ({
+        id: String(link.id), 
+        studentId: String(link.student), 
         name: link.student_username || "Unknown Student",
-        avatarUrl: `https://placehold.co/100x100.png?text=${(link.student_username || "U").charAt(0)}`, // Placeholder avatar
-        classLevel: 0, // Mocked - needs to come from student's profile
-        overallProgress: Math.floor(Math.random() * 50) + 50, // Mocked
-        lastActivity: "Mocked Activity", // Mocked
+        avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_username || "U").charAt(0)}`, 
+        classLevel: link.student_details?.enrolled_class_name ? parseInt(link.student_details.enrolled_class_name.match(/\d+/)?.[0] || '0') : 0,
+        overallProgress: Math.floor(Math.random() * 50) + 50, 
+        lastActivity: "Mocked Activity", 
       }));
       setLinkedChildren(displayChildren);
     } catch (err) {
@@ -93,46 +97,26 @@ export default function MyChildrenPage() {
     if (!currentUser) return;
     setIsLinking(true);
     try {
-      // Backend needs student ID. We only have username/email.
-      // This requires backend to resolve username/email to student ID.
-      // For now, assuming backend /parent-student-links/ can accept student_username or student_email
-      // and resolve it. Or, the frontend would first query /users/ to find student_id.
-      // Let's assume a simplified scenario where backend handles student lookup by username.
-      
-      // Simplified: Fetch user by username/email to get ID (this should ideally be one backend call)
-      let studentToLink = null;
-      try {
-        const usersByName = await api.get<any[]>(`/users/?username=${data.student_username_or_email}`);
-        if (usersByName.length > 0 && usersByName[0].role === 'Student') {
-            studentToLink = usersByName[0];
-        } else {
-            const usersByEmail = await api.get<any[]>(`/users/?email=${data.student_username_or_email}`);
-            if (usersByEmail.length > 0 && usersByEmail[0].role === 'Student') {
-                studentToLink = usersByEmail[0];
-            }
-        }
-      } catch (findErr) {
-        toast({ title: "Error Finding Student", description: "Could not verify student details.", variant: "destructive" });
-        setIsLinking(false);
-        return;
-      }
-
-      if (!studentToLink) {
-        toast({ title: "Student Not Found", description: "No student found with that username or email, or user is not a student.", variant: "destructive" });
-        setIsLinking(false);
-        return;
-      }
-
-      await api.post('/parent-student-links/', {
-        parent: currentUser.id,
-        student: studentToLink.id,
+      // Backend now directly links if verification passes.
+      const linkedStudentData = await api.post('/parent-student-links/link-child-by-admission/', {
+        admission_number: data.student_admission_number,
+        school_id_code: data.student_school_id_code,
       });
-      toast({ title: "Child Linked Successfully!", description: `${studentToLink.username} is now linked.` });
-      fetchLinkedChildren(); // Refresh list
+
+      toast({ title: "Child Linked Successfully!", description: `${linkedStudentData.student_full_name || linkedStudentData.student_username} is now linked.` });
+      fetchLinkedChildren(); 
       setIsLinkChildDialogOpen(false);
       form.reset();
     } catch (err: any) {
-      toast({ title: "Linking Failed", description: err.message || "Could not link child.", variant: "destructive" });
+      let errMsg = "Linking Failed. Ensure the admission number and school ID are correct, and your email matches the student's parent contact email.";
+      if (err.response?.data?.error) {
+        errMsg = err.response.data.error;
+      } else if (err.response?.data?.detail) {
+        errMsg = err.response.data.detail;
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      toast({ title: "Linking Failed", description: errMsg, variant: "destructive" });
     } finally {
       setIsLinking(false);
     }
@@ -143,7 +127,7 @@ export default function MyChildrenPage() {
     try {
         await api.delete(`/parent-student-links/${linkId}/`);
         toast({ title: "Child Unlinked", description: `${studentName} has been unlinked.` });
-        fetchLinkedChildren(); // Refresh list
+        fetchLinkedChildren(); 
     } catch (err:any) {
         toast({ title: "Unlinking Failed", description: err.message || "Could not unlink child.", variant: "destructive" });
     }
@@ -182,18 +166,31 @@ export default function MyChildrenPage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Link a New Child</DialogTitle>
-                    <DialogDescription>Enter the username or email of the student you wish to link.</DialogDescription>
+                    <DialogDescription>Enter your child's Admission Number and their School ID Code. Your email ({currentUser?.email}) must match the parent email on the student's record for successful linking.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onLinkChildSubmit)} className="space-y-4 py-4">
                         <FormField
                             control={form.control}
-                            name="student_username_or_email"
+                            name="student_admission_number"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Student's Username or Email</FormLabel>
+                                <FormLabel>Student's Admission Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., student_alex or alex@example.com" {...field} />
+                                    <Input placeholder="e.g., ADM12345" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="student_school_id_code"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Student's School ID Code</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., SCH001" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

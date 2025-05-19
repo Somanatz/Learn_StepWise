@@ -35,7 +35,7 @@ export default function ParentDashboard() {
   const [isLoadingChildren, setIsLoadingChildren] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [childrenError, setChildrenError] = useState<string | null>(null);
-  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
+  const [eventsError, setEventsError] = useState<string | null>(null); 
 
   useEffect(() => {
     const fetchChildren = async () => {
@@ -46,8 +46,18 @@ export default function ParentDashboard() {
       setIsLoadingChildren(true);
       setChildrenError(null);
       try {
-        const links: ParentStudentLinkAPI[] = await api.get<ParentStudentLinkAPI[]>(`/parent-student-links/?parent=${currentUser.id}`);
-        const displayChildren: DisplayChild[] = links.map(link => ({
+        const linkResponse = await api.get<ParentStudentLinkAPI[] | { results: ParentStudentLinkAPI[] }>(`/parent-student-links/?parent=${currentUser.id}`);
+        let actualLinks: ParentStudentLinkAPI[];
+        if (Array.isArray(linkResponse)) {
+          actualLinks = linkResponse;
+        } else if (linkResponse && Array.isArray(linkResponse.results)) {
+          actualLinks = linkResponse.results;
+        } else {
+          console.error("Unexpected parent-student link data format:", linkResponse);
+          actualLinks = [];
+        }
+
+        const displayChildren: DisplayChild[] = actualLinks.map(link => ({
           id: String(link.id),
           studentId: String(link.student),
           name: link.student_username || "Unknown Student",
@@ -68,13 +78,22 @@ export default function ParentDashboard() {
 
     const fetchEvents = async () => {
       setIsLoadingEvents(true);
-      setEventsError(null); // Reset eventsError
+      setEventsError(null); 
       try {
-        const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
-        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
+        const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
+        let actualApiEvents: EventInterface[];
+        if (Array.isArray(eventResponse)) {
+          actualApiEvents = eventResponse;
+        } else if (eventResponse && Array.isArray(eventResponse.results)) {
+          actualApiEvents = eventResponse.results;
+        } else {
+          console.error("Unexpected event data format:", eventResponse);
+          actualApiEvents = [];
+        }
+        setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
-        setEventsError(err instanceof Error ? err.message : "Failed to load events"); // Set eventsError on failure
+        setEventsError(err instanceof Error ? err.message : "Failed to load events"); 
       } finally {
         setIsLoadingEvents(false);
       }
@@ -82,6 +101,7 @@ export default function ParentDashboard() {
 
     fetchChildren();
     fetchEvents();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
 

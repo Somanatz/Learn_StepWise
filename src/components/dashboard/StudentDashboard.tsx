@@ -68,7 +68,7 @@ export default function StudentDashboard() {
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [booksError, setBooksError] = useState<string | null>(null);
 
 
@@ -78,15 +78,11 @@ export default function StudentDashboard() {
       setIsLoadingBooks(true);
       setIsLoadingEvents(true);
       setError(null);
-      setEventsError(null); // Reset eventsError
+      setEventsError(null);
       setBooksError(null);
       
       let classesUrl = '/classes/';
       if (currentUser?.student_profile?.enrolled_class) {
-        // Assuming enrolled_class is the ID of the specific class
-        // Adjust if your API for a single class is different, e.g. /classes/{id}/
-        // For now, let's assume we still fetch all classes from their school (if school is known)
-        // or filter client-side if enrolled_class ID is available.
         if (currentUser.student_profile.school) {
           classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
         }
@@ -97,8 +93,19 @@ export default function StudentDashboard() {
 
       try {
         // Fetch classes
-        const apiClasses = await api.get<ApiClass[]>(classesUrl);
-        const transformedClassData: ClassLevelDisplay[] = apiClasses
+        const classResponse = await api.get<ApiClass[] | { results: ApiClass[] }>(classesUrl);
+        
+        let actualApiClasses: ApiClass[];
+        if (Array.isArray(classResponse)) {
+          actualApiClasses = classResponse;
+        } else if (classResponse && Array.isArray(classResponse.results)) {
+          actualApiClasses = classResponse.results;
+        } else {
+          console.error("Unexpected class data format:", classResponse);
+          actualApiClasses = []; 
+        }
+
+        const transformedClassData: ClassLevelDisplay[] = actualApiClasses
         .filter(apiClass => {
             if (currentUser?.student_profile?.enrolled_class) {
                 return String(apiClass.id) === String(currentUser.student_profile.enrolled_class);
@@ -127,8 +134,17 @@ export default function StudentDashboard() {
 
         // Fetch books
         try {
-            const apiBooks = await api.get<BookInterface[]>('/books/');
-            setBooks(apiBooks.slice(0, 3)); 
+            const bookResponse = await api.get<BookInterface[] | { results: BookInterface[] }>('/books/');
+            let actualApiBooks: BookInterface[];
+            if (Array.isArray(bookResponse)) {
+              actualApiBooks = bookResponse;
+            } else if (bookResponse && Array.isArray(bookResponse.results)) {
+              actualApiBooks = bookResponse.results;
+            } else {
+              console.error("Unexpected book data format:", bookResponse);
+              actualApiBooks = [];
+            }
+            setBooks(actualApiBooks.slice(0, 3)); 
         } catch (bookErr) {
             console.error("Failed to fetch books:", bookErr);
             setBooksError(bookErr instanceof Error ? bookErr.message : "Failed to load books");
@@ -138,8 +154,17 @@ export default function StudentDashboard() {
 
         // Fetch events
         try {
-            const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
-            setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
+            const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
+            let actualApiEvents: EventInterface[];
+            if (Array.isArray(eventResponse)) {
+              actualApiEvents = eventResponse;
+            } else if (eventResponse && Array.isArray(eventResponse.results)) {
+              actualApiEvents = eventResponse.results;
+            } else {
+              console.error("Unexpected event data format:", eventResponse);
+              actualApiEvents = [];
+            }
+            setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
         } catch (eventErr) {
             console.error("Failed to fetch events:", eventErr);
             setEventsError(eventErr instanceof Error ? eventErr.message : "Failed to load events");
@@ -147,11 +172,11 @@ export default function StudentDashboard() {
             setIsLoadingEvents(false);
         }
 
-      } catch (err) { // General catch for initial class fetching or other top-level errors
+      } catch (err) { 
         console.error("Failed to fetch student dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
         setIsLoading(false); 
-        setIsLoadingBooks(false); // Ensure all loading states are false on error
+        setIsLoadingBooks(false); 
         setIsLoadingEvents(false);
       }
     };
@@ -160,9 +185,10 @@ export default function StudentDashboard() {
       setIsLoadingBooks(false);
       setIsLoadingEvents(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  if (isLoading && !error && !currentUser) { // Show initial loading only if no user and not errored
+  if (isLoading && !error && !currentUser) { 
     return (
       <div className="space-y-12 p-4">
         <Skeleton className="h-40 w-full rounded-xl" />
@@ -182,7 +208,7 @@ export default function StudentDashboard() {
     );
   }
 
-  if (error) { // General error for the whole dashboard
+  if (error) { 
     return (
       <div className="text-center py-10 text-red-500 bg-red-50 p-6 rounded-lg shadow-md">
         <AlertTriangle className="mx-auto h-12 w-12 text-red-400 mb-4" />
@@ -204,7 +230,7 @@ export default function StudentDashboard() {
         </p>
       </section>
 
-      {isLoading && classData.length === 0 && ( // Loading classes specifically
+      {isLoading && classData.length === 0 && ( 
          <div className="space-y-12 p-4">
             <Skeleton className="h-10 w-1/3 mb-6 rounded" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -263,7 +289,7 @@ export default function StudentDashboard() {
           </CardHeader>
           <CardContent>
             {isLoadingEvents ? (
-               <div className="space-y-2">
+              <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
