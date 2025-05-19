@@ -12,13 +12,12 @@ import type { Event as EventInterface } from '@/interfaces';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const stats = [
-  { title: "Total Students", value: "125", icon: Users, color: "text-primary", link: "/teacher/students" }, // Value should be dynamic
-  { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent", link: "/teacher/content" }, // Value should be dynamic
-  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500", link: "#" }, // Value should be dynamic
-  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics" }, // Value should be dynamic
+  { title: "Total Students", value: "125", icon: Users, color: "text-primary", link: "/teacher/students" }, 
+  { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent", link: "/teacher/content" }, 
+  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500", link: "#" }, 
+  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics" }, 
 ];
 
-// Mock recent activities, should be replaced with API data
 const recentActivitiesMock = [
   { student: "Alex Johnson", action: "submitted Math Quiz 3.", time: "10m ago" },
   { student: "Maria Garcia", action: "asked a question in Science forum.", time: "45m ago" },
@@ -36,26 +35,23 @@ const quickLinks = [
 export default function TeacherDashboard() {
   const [events, setEvents] = useState<EventInterface[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [eventsError, setEventsError] = useState<string | null>(null);
-  // Add states for other dynamic data like student count, course count etc.
+  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
 
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoadingEvents(true);
-      setEventsError(null);
+      setEventsError(null); // Reset eventsError
       try {
-        // Assuming API returns EventInterface compatible objects
         const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
         setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
-        setEventsError(err instanceof Error ? err.message : "Failed to load events");
+        setEventsError(err instanceof Error ? err.message : "Failed to load events"); // Set eventsError on failure
       } finally {
         setIsLoadingEvents(false);
       }
     };
     fetchEvents();
-    // TODO: Fetch other dynamic stats like student count, active courses, pending reviews
   }, []);
 
   return (
@@ -66,14 +62,14 @@ export default function TeacherDashboard() {
           <p className="text-muted-foreground">Welcome back! Manage your classes and students efficiently.</p>
         </div>
         <Button size="lg" asChild>
-          <Link href="/teacher/content/lessons/create"> {/* Link to lesson creation or general content creation */}
+          <Link href="/teacher/content/lessons/create"> 
             <PlusCircle className="mr-2 h-5 w-5" /> Create New Content
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => ( // These stats are currently mock, should be dynamic
+        {stats.map((stat) => ( 
           <Link key={stat.title} href={stat.link} passHref legacyBehavior>
             <a className="block">
                 <Card className="shadow-md hover:shadow-lg transition-shadow rounded-xl h-full">
@@ -100,7 +96,7 @@ export default function TeacherDashboard() {
             <CardDescription>Overview of recent student submissions and interactions. (Mock Data)</CardDescription>
           </CardHeader>
           <CardContent>
-            {recentActivitiesMock.length > 0 ? ( // Using mock data for now
+            {recentActivitiesMock.length > 0 ? ( 
             <ul className="space-y-3">
               {recentActivitiesMock.map((activity, index) => (
                 <li key={index} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-md">
@@ -172,4 +168,3 @@ export default function TeacherDashboard() {
     </div>
   );
 }
-

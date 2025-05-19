@@ -22,10 +22,10 @@ interface DisplayChild {
   name: string;
   avatarUrl?: string;
   classLevel: number;
-  overallProgress: number; // This might need to be fetched separately or mocked/aggregated
-  lastActivity: string; // This might need to be fetched separately or mocked
+  overallProgress: number; 
+  lastActivity: string; 
   alerts?: string[];
-  studentProfile?: StudentProfileData; // Store the full profile
+  studentProfile?: StudentProfileData; 
 }
 
 export default function ParentDashboard() {
@@ -35,7 +35,7 @@ export default function ParentDashboard() {
   const [isLoadingChildren, setIsLoadingChildren] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [childrenError, setChildrenError] = useState<string | null>(null);
-  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
 
   useEffect(() => {
     const fetchChildren = async () => {
@@ -52,9 +52,9 @@ export default function ParentDashboard() {
           studentId: String(link.student),
           name: link.student_username || "Unknown Student",
           avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_username || "U").charAt(0)}`,
-          classLevel: link.student_details?.enrolled_class_name ? parseInt(link.student_details.enrolled_class_name.match(/\d+/)?.[0] || '0') : 0, // Extract class number
-          overallProgress: Math.floor(Math.random() * 50) + 50, // Mocked, needs real data
-          lastActivity: "Mocked: Completed Math Quiz", // Mocked, needs real data
+          classLevel: link.student_details?.enrolled_class_name ? parseInt(link.student_details.enrolled_class_name.match(/\d+/)?.[0] || '0') : 0,
+          overallProgress: Math.floor(Math.random() * 50) + 50, 
+          lastActivity: "Mocked: Completed Math Quiz", 
           studentProfile: link.student_details
         }));
         setLinkedChildren(displayChildren);
@@ -68,13 +68,13 @@ export default function ParentDashboard() {
 
     const fetchEvents = async () => {
       setIsLoadingEvents(true);
-      setEventsError(null);
+      setEventsError(null); // Reset eventsError
       try {
         const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
         setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
-        setEventsError(err instanceof Error ? err.message : "Failed to load events");
+        setEventsError(err instanceof Error ? err.message : "Failed to load events"); // Set eventsError on failure
       } finally {
         setIsLoadingEvents(false);
       }
@@ -221,4 +221,3 @@ export default function ParentDashboard() {
     </div>
   );
 }
-

@@ -68,6 +68,9 @@ export default function StudentDashboard() {
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null); // Declare eventsError state
+  const [booksError, setBooksError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -75,49 +78,42 @@ export default function StudentDashboard() {
       setIsLoadingBooks(true);
       setIsLoadingEvents(true);
       setError(null);
+      setEventsError(null); // Reset eventsError
+      setBooksError(null);
       
       let classesUrl = '/classes/';
-      // Example: If student is enrolled, fetch only their class or classes from their school
-      // This logic needs to be refined based on how currentUser.student_profile is structured
-      // and if enrolled_class or school ID is directly available and singular.
       if (currentUser?.student_profile?.enrolled_class) {
-         // If a student is enrolled in ONE specific class, fetch that.
-         // This might require the API to support fetching a single class with its subjects and lessons.
-         // classesUrl = `/classes/${currentUser.student_profile.enrolled_class}/`; // Assuming API supports this
-         // For now, let's assume if enrolled_class exists, it's an ID and we filter client-side or fetch specific class's school classes
-         // Or if your API supports /classes/?id=X, use that.
-         // A more robust approach would be to have an endpoint like /students/me/dashboard-data/
+        // Assuming enrolled_class is the ID of the specific class
+        // Adjust if your API for a single class is different, e.g. /classes/{id}/
+        // For now, let's assume we still fetch all classes from their school (if school is known)
+        // or filter client-side if enrolled_class ID is available.
+        if (currentUser.student_profile.school) {
+          classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
+        }
       } else if (currentUser?.student_profile?.school) {
         classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
       }
 
 
       try {
-        const [apiClasses, apiBooks, apiEvents] = await Promise.all([
-          api.get<ApiClass[]>(classesUrl).finally(() => setIsLoading(false)),
-          api.get<BookInterface[]>('/books/').finally(() => setIsLoadingBooks(false)),
-          api.get<EventInterface[]>('/events/?ordering=date').finally(() => setIsLoadingEvents(false))
-        ]);
-        
+        // Fetch classes
+        const apiClasses = await api.get<ApiClass[]>(classesUrl);
         const transformedClassData: ClassLevelDisplay[] = apiClasses
         .filter(apiClass => {
-            // If student is enrolled in a specific class, only show that class
             if (currentUser?.student_profile?.enrolled_class) {
                 return String(apiClass.id) === String(currentUser.student_profile.enrolled_class);
             }
-            // Otherwise, if enrolled in a school, show all classes from that school (already filtered by API if school_id was in URL)
-            // Or if no specific enrollment, show all fetched (might be too broad depending on classesUrl)
             return true; 
         })
         .map(apiClass => {
           const levelMatch = apiClass.name.match(/\d+/);
-          const level = levelMatch ? parseInt(levelMatch[0], 10) : 0; // Default to 0 if no number
+          const level = levelMatch ? parseInt(levelMatch[0], 10) : 0; 
           const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => ({
             id: String(apiSub.id), name: apiSub.name, icon: getIconForSubject(apiSub.name),
             description: apiSub.description, 
             lessonsCount: apiSub.lessons?.length || 0,
             href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`,
-            is_locked: apiSub.lessons?.some(l => l.is_locked), // Example: subject locked if any lesson is
+            is_locked: apiSub.lessons?.some(l => l.is_locked), 
             bgColor: "bg-primary", textColor: "text-primary-foreground",
           }));
           return { 
@@ -127,13 +123,35 @@ export default function StudentDashboard() {
           };
         });
         setClassData(transformedClassData);
-        setBooks(apiBooks.slice(0, 3)); 
-        setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
-      } catch (err) {
+        setIsLoading(false);
+
+        // Fetch books
+        try {
+            const apiBooks = await api.get<BookInterface[]>('/books/');
+            setBooks(apiBooks.slice(0, 3)); 
+        } catch (bookErr) {
+            console.error("Failed to fetch books:", bookErr);
+            setBooksError(bookErr instanceof Error ? bookErr.message : "Failed to load books");
+        } finally {
+            setIsLoadingBooks(false);
+        }
+
+        // Fetch events
+        try {
+            const apiEvents = await api.get<EventInterface[]>('/events/?ordering=date');
+            setEvents(apiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
+        } catch (eventErr) {
+            console.error("Failed to fetch events:", eventErr);
+            setEventsError(eventErr instanceof Error ? eventErr.message : "Failed to load events");
+        } finally {
+            setIsLoadingEvents(false);
+        }
+
+      } catch (err) { // General catch for initial class fetching or other top-level errors
         console.error("Failed to fetch student dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
-        setIsLoading(false); // Ensure loading is false on error
-        setIsLoadingBooks(false);
+        setIsLoading(false); 
+        setIsLoadingBooks(false); // Ensure all loading states are false on error
         setIsLoadingEvents(false);
       }
     };
@@ -144,7 +162,7 @@ export default function StudentDashboard() {
     }
   }, [currentUser]);
 
-  if (isLoading && !error) { // Main content loading
+  if (isLoading && !error && !currentUser) { // Show initial loading only if no user and not errored
     return (
       <div className="space-y-12 p-4">
         <Skeleton className="h-40 w-full rounded-xl" />
@@ -164,7 +182,7 @@ export default function StudentDashboard() {
     );
   }
 
-  if (error) {
+  if (error) { // General error for the whole dashboard
     return (
       <div className="text-center py-10 text-red-500 bg-red-50 p-6 rounded-lg shadow-md">
         <AlertTriangle className="mx-auto h-12 w-12 text-red-400 mb-4" />
@@ -186,7 +204,16 @@ export default function StudentDashboard() {
         </p>
       </section>
 
-      {classData.length === 0 && !isLoading && (
+      {isLoading && classData.length === 0 && ( // Loading classes specifically
+         <div className="space-y-12 p-4">
+            <Skeleton className="h-10 w-1/3 mb-6 rounded" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(j => <Skeleton key={j} className="h-64 w-full rounded-xl" />)}
+            </div>
+         </div>
+      )}
+
+      {!isLoading && classData.length === 0 && (
          <Card className="text-center py-10 shadow-md rounded-lg">
             <CardHeader><CardTitle>No Classes Found</CardTitle></CardHeader>
             <CardContent><p className="text-muted-foreground">You are not enrolled in any classes yet, or no classes are available. Please complete your profile or contact your school.</p>
@@ -212,6 +239,8 @@ export default function StudentDashboard() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
+            ) : booksError ? (
+                 <p className="text-red-500 text-sm"><AlertTriangle className="inline mr-1 h-4 w-4" /> Error: {booksError}</p>
             ) : books.length > 0 ? (
               <ul className="space-y-3">
                 {books.map(book => (
@@ -268,4 +297,3 @@ export default function StudentDashboard() {
     </div>
   );
 }
-
