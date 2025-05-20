@@ -4,6 +4,7 @@ from .models import CustomUser, ParentStudentLink, School, StudentProfile, Teach
 from content.models import Class as ContentClass, Subject as ContentSubject # Avoid naming collision
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 
 class SchoolSerializer(serializers.ModelSerializer):
     admin_username = serializers.CharField(write_only=True, required=True)
@@ -78,7 +79,9 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
         if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
-            return request.build_absolute_uri(obj.profile_picture.url)
+            if request is not None:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url # Fallback if no request
         return None
 
 
@@ -108,7 +111,9 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
         if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
-            return request.build_absolute_uri(obj.profile_picture.url)
+            if request is not None:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url # Fallback if no request
         return None
 
 
@@ -125,7 +130,9 @@ class ParentProfileSerializer(serializers.ModelSerializer):
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
         if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
-            return request.build_absolute_uri(obj.profile_picture.url)
+            if request is not None:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url # Fallback if no request
         return None
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -151,10 +158,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        # Handle profile data within this update or in a separate profile update endpoint
+        # For password change:
         password = validated_data.pop('password', None)
         if password:
             instance.set_password(password)
         
+        # For school update on user (if applicable)
         school = validated_data.pop('school', None) 
         if school:
             instance.school = school
@@ -177,6 +187,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Invalid role. Choose from {', '.join(valid_roles)}.")
         return value
     
+    @transaction.atomic
     def create(self, validated_data):
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
@@ -184,13 +195,13 @@ class UserSignupSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=validated_data['role']
         )
-        # Create empty profile based on role
+        # Create empty profile based on role with profile_completed=False
         if user.role == 'Student':
-            StudentProfile.objects.create(user=user)
+            StudentProfile.objects.create(user=user, profile_completed=False)
         elif user.role == 'Teacher':
-            TeacherProfile.objects.create(user=user)
+            TeacherProfile.objects.create(user=user, profile_completed=False)
         elif user.role == 'Parent':
-            ParentProfile.objects.create(user=user)
+            ParentProfile.objects.create(user=user, profile_completed=False)
         return user
 
 
@@ -216,7 +227,7 @@ class ParentStudentLinkSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"student": "Selected user is not a Student."})
         return data
 
-# Serializers for Profile Completion (reusing existing ones, ensure they allow partial updates)
+# Serializers for Profile Completion
 class StudentProfileCompletionSerializer(serializers.ModelSerializer):
     school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
     enrolled_class_id = serializers.PrimaryKeyRelatedField(queryset=ContentClass.objects.all(), source='enrolled_class', write_only=True, allow_null=True, required=False)
@@ -224,15 +235,14 @@ class StudentProfileCompletionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentProfile
-        # Include all new fields from StudentProfile model
         fields = [
             'full_name', 'school', 'school_id', 'enrolled_class', 'enrolled_class_id', 'preferred_language', 'father_name', 
             'mother_name', 'place_of_birth', 'date_of_birth', 'blood_group', 
             'needs_assistant_teacher', 'admission_number', 'parent_email_for_linking', 
             'parent_mobile_for_linking', 'parent_occupation', 'hobbies', 'favorite_sports', 
-            'interested_in_gardening_farming', 'nickname', 'profile_picture'
+            'interested_in_gardening_farming', 'nickname', 'profile_picture', 'profile_completed'
         ]
-        read_only_fields = ['user', 'school', 'enrolled_class'] # FKs are handled by _id fields for writing
+        read_only_fields = ['user', 'school', 'enrolled_class'] 
 
 class TeacherProfileCompletionSerializer(serializers.ModelSerializer):
     school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
@@ -249,7 +259,7 @@ class TeacherProfileCompletionSerializer(serializers.ModelSerializer):
         fields = [
             'full_name', 'school', 'school_id', 'assigned_classes', 'assigned_classes_ids', 
             'subject_expertise', 'subject_expertise_ids', 'interested_in_tuition', 
-            'mobile_number', 'address', 'profile_picture'
+            'mobile_number', 'address', 'profile_picture', 'profile_completed'
         ]
         read_only_fields = ['user', 'school', 'assigned_classes', 'subject_expertise']
 
@@ -257,6 +267,5 @@ class ParentProfileCompletionSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = ParentProfile
-        fields = ['full_name', 'mobile_number', 'address', 'profile_picture']
+        fields = ['full_name', 'mobile_number', 'address', 'profile_picture', 'profile_completed']
         read_only_fields = ['user']
-

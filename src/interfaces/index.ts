@@ -12,14 +12,12 @@ export interface School {
   principal_full_name?: string;
   principal_contact_number?: string;
   principal_email?: string;
-  // Fields for school admin dashboard (potentially aggregated)
+  admin_user?: number; // ID of the admin user
   student_count?: number;
   staff_count?: number;
-  // senior_teachers?: { name: string, subject: string, years_experience: number }[];
-  // performance_history?: { year: number, score: number }[];
 }
 
-export interface LessonSummary { // For brief lesson listings
+export interface LessonSummary { 
   id: string | number;
   title: string;
   lesson_order?: number;
@@ -64,13 +62,13 @@ export interface Lesson extends LessonSummary {
 export interface Subject {
   id: string | number; 
   name: string;
-  icon: LucideIcon; 
+  icon?: LucideIcon; // Make icon optional as it's frontend-only
   description: string;
-  lessonsCount: number; 
-  lessons: LessonSummary[]; 
+  lessonsCount?: number; // Made optional as it might not always come from API
+  lessons?: LessonSummary[]; // Made optional
   bgColor?: string; 
   textColor?: string; 
-  href: string; 
+  href?: string; // Frontend only, optional
   is_locked?: boolean; 
   class_obj?: string | number; 
   class_obj_name?: string; 
@@ -80,7 +78,7 @@ export interface Class {
   id: string | number; 
   name: string;
   description?: string;
-  subjects: Subject[]; 
+  subjects?: Subject[]; // Made optional
   school?: string | number; 
   school_name?: string;
 }
@@ -88,23 +86,11 @@ export interface Class {
 
 export type UserRole = 'Student' | 'Teacher' | 'Parent' | 'Admin';
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: UserRole;
-  is_school_admin?: boolean;
-  school?: string | number | null; 
-  school_name?: string | null;
-  administered_school?: { id: number; name: string; school_id_code: string; } | null; // For school admins
-  student_profile?: StudentProfileData | null;
-  teacher_profile?: TeacherProfileData | null;
-  parent_profile?: ParentProfileData | null;
-}
-
+// Profile Data Interfaces
 export interface StudentProfileData {
     id?: number;
     user?: number; 
+    profile_completed?: boolean;
     full_name?: string | null;
     school?: string | number | null; 
     school_name?: string | null; 
@@ -125,13 +111,14 @@ export interface StudentProfileData {
     hobbies?: string | null;
     favorite_sports?: string | null;
     interested_in_gardening_farming?: boolean;
-    profile_picture?: string | null; 
-    profile_picture_url?: string | null; 
+    profile_picture?: string | null; // Path or file object for upload
+    profile_picture_url?: string | null; // URL for display
 }
 
 export interface TeacherProfileData {
     id?: number;
     user?: number;
+    profile_completed?: boolean;
     full_name?: string | null;
     school?: string | number | null; 
     school_name?: string | null;
@@ -149,12 +136,30 @@ export interface TeacherProfileData {
 export interface ParentProfileData {
     id?: number;
     user?: number;
+    profile_completed?: boolean;
     full_name?: string | null;
     mobile_number?: string | null;
     address?: string | null;
     profile_picture?: string | null;
     profile_picture_url?: string | null;
 }
+
+// User interface
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: UserRole;
+  is_school_admin?: boolean;
+  school?: string | number | null; // ID of the school
+  school_name?: string | null;
+  administered_school?: { id: number; name: string; school_id_code: string; } | null;
+  student_profile?: StudentProfileData | null;
+  teacher_profile?: TeacherProfileData | null;
+  parent_profile?: ParentProfileData | null;
+  profile_completed?: boolean; // Helper flag for frontend
+}
+
 
 export interface ParentStudentLinkAPI {
   id: string | number;

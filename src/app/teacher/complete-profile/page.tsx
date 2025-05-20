@@ -37,12 +37,13 @@ type TeacherProfileFormValues = z.infer<typeof teacherProfileSchema>;
 export default function CompleteTeacherProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isLoadingAuth, setCurrentUser } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
   const [classes, setClasses] = useState<ClassInterface[]>([]); 
   const [subjects, setSubjects] = useState<SubjectInterface[]>([]);
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>(undefined);
   const [previewProfilePicture, setPreviewProfilePicture] = useState<string | null>(null);
   const [selectedProfilePictureFile, setSelectedProfilePictureFile] = useState<File | null>(null);
 
@@ -57,30 +58,50 @@ export default function CompleteTeacherProfilePage() {
   });
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-        try {
-            const [schoolData, subjectData] = await Promise.all([
-                 api.get<SchoolInterface[]>('/schools/'),
-                 api.get<SubjectInterface[]>('/subjects/') // Fetch all subjects
-            ]);
-            setSchools(schoolData);
-            setSubjects(subjectData); // Store all subjects
-        } catch (error) {
-            toast({ title: "Error", description: "Could not load initial data.", variant: "destructive" });
+    if (!isLoadingAuth && !currentUser) {
+      setIsRedirecting(true);
+      router.push('/login');
+    } else if (currentUser && currentUser.role !== 'Teacher') {
+      setIsRedirecting(true);
+      router.push('/');
+    }
+  }, [isLoadingAuth, currentUser, router]);
+
+  useEffect(() => {
+    if (currentUser) {
+        api.get<SchoolInterface[]>('/schools/').then(setSchools).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
+        api.get<{results: SubjectInterface[]} | SubjectInterface[]>('/subjects/').then(res => {
+            const subjectData = Array.isArray(res) ? res : res.results;
+            setSubjects(subjectData);
+        }).catch(err => toast({ title: "Error", description: "Could not load subjects.", variant: "destructive" }));
+        
+        const tp = currentUser.teacher_profile;
+        if (tp) {
+            form.reset({
+                full_name: tp.full_name || '',
+                school_id: tp.school ? String(tp.school) : undefined,
+                assigned_classes_ids: tp.assigned_classes?.map(String) || [],
+                subject_expertise_ids: tp.subject_expertise?.map(String) || [],
+                interested_in_tuition: tp.interested_in_tuition || false,
+                mobile_number: tp.mobile_number || '',
+                address: tp.address || '',
+            });
+            if (tp.school) setSelectedSchoolId(String(tp.school));
+            if (tp.profile_picture_url) setPreviewProfilePicture(tp.profile_picture_url);
         }
-    };
-    fetchInitialData();
-  }, [toast]);
+    }
+  }, [currentUser, form, toast]);
 
   useEffect(() => {
     const fetchClassesForSchool = async (schoolId: string) => {
         if (!schoolId) {
             setClasses([]);
-            form.resetField("assigned_classes_ids");
+            form.setValue("assigned_classes_ids", []);
             return;
         }
         try {
-            const classData = await api.get<ClassInterface[]>(`/classes/?school=${schoolId}`);
+            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolId}`);
+            const classData = Array.isArray(classResponse) ? classResponse : classResponse.results;
             setClasses(classData);
         } catch (error) {
             toast({ title: "Error", description: "Could not load classes for selected school.", variant: "destructive" });
@@ -89,14 +110,11 @@ export default function CompleteTeacherProfilePage() {
     };
     if (selectedSchoolId) {
         fetchClassesForSchool(selectedSchoolId);
+    } else {
+        setClasses([]);
+        form.setValue("assigned_classes_ids", []);
     }
   }, [selectedSchoolId, toast, form]);
-
-  useEffect(() => {
-    if (currentUser?.teacher_profile?.profile_picture_url) {
-      setPreviewProfilePicture(currentUser.teacher_profile.profile_picture_url);
-    }
-  }, [currentUser]);
 
 
   const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -116,16 +134,20 @@ export default function CompleteTeacherProfilePage() {
         const K = key as keyof TeacherProfileFormValues;
         if (K === 'profile_picture') return; 
         
+        const value = data[K];
         if (K === 'assigned_classes_ids' || K === 'subject_expertise_ids') {
-            (data[K] as string[] | undefined)?.forEach(id => formData.append(K, id));
-        } else if (data[K] !== undefined && data[K] !== null) {
-            if (typeof data[K] === 'boolean') {
-                formData.append(key, String(data[K]));
-            } else if (data[K] !== '') {
-                 formData.append(key, data[K] as string);
+            (value as string[] | undefined)?.forEach(id => formData.append(K, id));
+        } else if (value !== undefined && value !== null) {
+            if (typeof value === 'boolean') {
+                formData.append(key, String(value));
+            } else if (typeof value === 'string' && value.trim() !== '') {
+                 formData.append(key, value);
+            } else if (typeof value === 'number') {
+                formData.append(key, String(value));
             }
         }
     });
+    formData.append('profile_completed', 'true');
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
@@ -133,7 +155,8 @@ export default function CompleteTeacherProfilePage() {
 
     try {
       const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, teacher_profile: updatedUser.teacher_profile || prev.teacher_profile } : null);
+      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, teacher_profile: updatedUser.teacher_profile || prev.teacher_profile, profile_completed: true } : null);
+      setNeedsProfileCompletion(false);
       toast({ title: "Profile Completed!", description: "Your teacher profile has been updated." });
       router.push('/teacher');
     } catch (error: any) {
@@ -150,10 +173,11 @@ export default function CompleteTeacherProfilePage() {
     }
   };
   
-  if (isLoadingAuth) return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin" /></div>;
-  if (!currentUser) { router.push('/login'); return null; }
+  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
 
-  const defaultAvatarText = (currentUser.username || 'T').charAt(0).toUpperCase();
+  const defaultAvatarText = (currentUser?.username || 'T').charAt(0).toUpperCase();
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-8">
@@ -167,7 +191,7 @@ export default function CompleteTeacherProfilePage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex flex-col items-center space-y-3 mb-6">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser.username} data-ai-hint="profile teacher"/>
+                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username} data-ai-hint="profile teacher"/>
                   <AvatarFallback>{defaultAvatarText}</AvatarFallback>
                 </Avatar>
                 <FormField control={form.control} name="profile_picture" render={({ field }) => (
@@ -182,13 +206,13 @@ export default function CompleteTeacherProfilePage() {
               </div>
 
               <FormField control={form.control} name="full_name" render={({ field }) => (
-                <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               
               <FormField control={form.control} name="school_id" render={({ field }) => (
                   <FormItem>
                       <FormLabel><SchoolIcon className="inline mr-1 h-4 w-4"/>Your School</FormLabel>
-                      <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); }} defaultValue={field.value}>
+                      <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('assigned_classes_ids', []); }} value={field.value ?? undefined}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select your school" /></SelectTrigger></FormControl>
                           <SelectContent>{schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
                       </Select><FormMessage />
@@ -248,21 +272,21 @@ export default function CompleteTeacherProfilePage() {
               )} />
 
               <FormField control={form.control} name="mobile_number" render={({ field }) => (
-                <FormItem><FormLabel>Mobile Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Mobile Number (Optional)</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="address" render={({ field }) => (
-                <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="interested_in_tuition" render={({ field }) => (
                 <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
-                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="interested_in_tuition"/></FormControl>
+                    <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} id="interested_in_tuition"/></FormControl>
                     <FormLabel htmlFor="interested_in_tuition" className="font-normal cursor-pointer">Interested in providing private tuition?</FormLabel>
                 </FormItem>
               )} />
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                Save Profile
+                Save Profile & Continue
               </Button>
             </form>
           </Form>

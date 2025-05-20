@@ -45,9 +45,10 @@ interface StudentForConfirmation {
 export default function CompleteParentProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isLoadingAuth, setCurrentUser } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [isLinkingChild, setIsLinkingChild] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [previewProfilePicture, setPreviewProfilePicture] = useState<string | null>(null);
   const [selectedProfilePictureFile, setSelectedProfilePictureFile] = useState<File | null>(null);
   const [studentToConfirm, setStudentToConfirm] = useState<StudentForConfirmation | null>(null);
@@ -56,14 +57,35 @@ export default function CompleteParentProfilePage() {
 
   const form = useForm<ParentProfileFormValues>({
     resolver: zodResolver(parentProfileSchema),
-    defaultValues: { full_name: '' },
+    defaultValues: { 
+      full_name: '',
+      student_admission_number: '',
+      student_school_id_code: '',
+    },
   });
 
    useEffect(() => {
-    if (currentUser?.parent_profile?.profile_picture_url) {
-      setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
+    if (!isLoadingAuth && !currentUser) {
+      setIsRedirecting(true);
+      router.push('/login');
+    } else if (currentUser && currentUser.role !== 'Parent') {
+      setIsRedirecting(true);
+      router.push('/');
     }
-  }, [currentUser]);
+  }, [isLoadingAuth, currentUser, router]);
+
+   useEffect(() => {
+    if (currentUser?.parent_profile) {
+        form.reset({
+            full_name: currentUser.parent_profile.full_name || '',
+            mobile_number: currentUser.parent_profile.mobile_number || '',
+            address: currentUser.parent_profile.address || '',
+        });
+        if (currentUser.parent_profile.profile_picture_url) {
+            setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
+        }
+    }
+  }, [currentUser, form]);
 
   const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -77,17 +99,25 @@ export default function CompleteParentProfilePage() {
     if (!currentUser || currentUser.role !== 'Parent') return;
     setIsSubmittingProfile(true);
     const formData = new FormData();
-    formData.append('full_name', data.full_name);
+    
+    if (data.full_name) formData.append('full_name', data.full_name);
     if (data.mobile_number) formData.append('mobile_number', data.mobile_number);
     if (data.address) formData.append('address', data.address);
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
+    formData.append('profile_completed', 'true');
+
 
     try {
       const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, parent_profile: updatedUser.parent_profile || prev.parent_profile } : null);
+      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, parent_profile: updatedUser.parent_profile || prev.parent_profile, profile_completed: true } : null);
+      setNeedsProfileCompletion(false);
       toast({ title: "Profile Updated!", description: "Your parent profile has been saved." });
+      // If no child linking attempted or successful, redirect to dashboard
+      if (!form.getValues("student_admission_number") && !form.getValues("student_school_id_code")) {
+        router.push('/parent');
+      }
     } catch (error: any) {
        let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -117,9 +147,8 @@ export default function CompleteParentProfilePage() {
             admission_number: student_admission_number,
             school_id_code: student_school_id_code,
         };
-        // Backend verifies and returns student data if parent_email_for_linking matches
         const response = await api.post<StudentForConfirmation>('/parent-student-links/link-child-by-admission/', linkData);
-        setStudentToConfirm(response); // API now directly creates the link if verified
+        setStudentToConfirm(response); 
         toast({ title: "Child Linked Successfully!", description: `${response.student_full_name || response.student_username} is now linked.` });
         form.resetField("student_admission_number");
         form.resetField("student_school_id_code");
@@ -138,10 +167,11 @@ export default function CompleteParentProfilePage() {
     }
   };
   
-  if (isLoadingAuth) return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin" /></div>;
-  if (!currentUser) { router.push('/login'); return null; }
+  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
 
-  const defaultAvatarText = (currentUser.username || 'P').charAt(0).toUpperCase();
+  const defaultAvatarText = (currentUser?.username || 'P').charAt(0).toUpperCase();
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-8">
@@ -155,7 +185,7 @@ export default function CompleteParentProfilePage() {
             <form onSubmit={form.handleSubmit(onSubmitProfile)} className="space-y-6">
              <div className="flex flex-col items-center space-y-3 mb-6">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser.username} data-ai-hint="profile parent"/>
+                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username} data-ai-hint="profile parent"/>
                   <AvatarFallback>{defaultAvatarText}</AvatarFallback>
                 </Avatar>
                 <FormField control={form.control} name="profile_picture" render={({ field }) => (
@@ -170,13 +200,13 @@ export default function CompleteParentProfilePage() {
               </div>
 
               <FormField control={form.control} name="full_name" render={({ field }) => (
-                <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="mobile_number" render={({ field }) => (
-                <FormItem><FormLabel>Mobile Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Mobile Number (Optional)</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="address" render={({ field }) => (
-                <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <Button type="submit" className="w-full" disabled={isSubmittingProfile}>
                 {isSubmittingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
@@ -187,7 +217,7 @@ export default function CompleteParentProfilePage() {
             <div className="mt-8 pt-6 border-t">
                 <h3 className="text-lg font-semibold mb-3">Link Your Child</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                    Enter your child's admission number and their school's ID code. Your email ({currentUser.email}) must match the parent email on the student's record for verification.
+                    Enter your child's admission number and their school's ID code. Your email ({currentUser?.email}) must match the parent email on the student's record for verification.
                 </p>
                  <div className="grid sm:grid-cols-2 gap-4 mb-4">
                     <FormField control={form.control} name="student_admission_number" render={({ field }) => (
@@ -209,10 +239,10 @@ export default function CompleteParentProfilePage() {
                     </Alert>
                 )}
                  {studentToConfirm && (
-                    <Alert className="mt-4 bg-green-50 border-green-200">
-                        <UserCheck className="h-4 w-4 text-green-600" />
-                        <AlertTitle className="text-green-700">Child Linked Successfully!</AlertTitle>
-                        <AlertDescription>
+                    <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700">
+                        <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <AlertTitle className="text-green-700 dark:text-green-300">Child Linked Successfully!</AlertTitle>
+                        <AlertDescription className="text-green-600 dark:text-green-400">
                             <p><strong>Name:</strong> {studentToConfirm.student_full_name || studentToConfirm.student_username}</p>
                             <p><strong>Email:</strong> {studentToConfirm.student_email}</p>
                             <p><strong>Class:</strong> {studentToConfirm.enrolled_class_name}</p>
@@ -222,7 +252,7 @@ export default function CompleteParentProfilePage() {
                 )}
                 <p className="text-xs text-muted-foreground mt-2">You can link more children from your dashboard settings later.</p>
             </div>
-            <Button onClick={() => router.push('/parent')} className="mt-6 w-full" variant="secondary">
+            <Button onClick={() => router.push('/parent')} className="mt-6 w-full" variant="secondary" disabled={isSubmittingProfile || isLinkingChild}>
                 Go to Parent Dashboard
             </Button>
           </Form>

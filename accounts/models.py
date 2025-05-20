@@ -38,13 +38,13 @@ class CustomUser(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='Student')
     is_school_admin = models.BooleanField(default=False, help_text="Designates if this admin user manages a specific school.")
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_and_students')
-    # preferred_language is now in StudentProfile
-
+    
     def __str__(self):
         return self.username
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='student_profile', limit_choices_to={'role': 'Student'})
+    profile_completed = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     enrolled_class = models.ForeignKey('content.Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='enrolled_students')
@@ -77,6 +77,7 @@ class StudentProfile(models.Model):
 
 class TeacherProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='teacher_profile', limit_choices_to={'role': 'Teacher'})
+    profile_completed = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='teachers')
     assigned_classes = models.ManyToManyField('content.Class', blank=True, related_name='teachers_assigned') # A teacher can teach multiple classes
@@ -91,6 +92,7 @@ class TeacherProfile(models.Model):
 
 class ParentProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='parent_profile', limit_choices_to={'role': 'Parent'})
+    profile_completed = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     mobile_number = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -110,4 +112,3 @@ class ParentStudentLink(models.Model):
 
     def __str__(self):
         return f"{self.parent.username} is parent of {self.student.username}"
-
