@@ -13,8 +13,8 @@ export default function TeacherCalendarPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg rounded-xl">
-        <CardHeader>
+      <Card className="shadow-xl rounded-xl">
+        <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div>
               <CardTitle className="flex items-center text-2xl font-bold">
@@ -29,17 +29,22 @@ export default function TeacherCalendarPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col items-center">
+        <CardContent className="flex flex-col items-center p-4 md:p-6">
           <Calendar
             mode="single"
             selected={date}
             onSelect={setDate}
-            className="rounded-md border"
+            className="rounded-md border shadow-sm bg-card" // Added bg-card
           />
           <div className="mt-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-2">Events for {date ? date.toLocaleDateString() : 'selected date'}:</h3>
             {/* TODO: Fetch and display events for the selected date/month, specific to teacher's school/classes */}
             <p className="text-sm text-muted-foreground">Event details will appear here.</p>
+            {/* Example Event Item */}
+            <div className="mt-2 p-3 border rounded-md bg-secondary/50">
+                <h4 className="font-semibold">Staff Meeting</h4>
+                <p className="text-xs text-muted-foreground">3:00 PM - 4:00 PM</p>
+            </div>
           </div>
         </CardContent>
       </Card>
