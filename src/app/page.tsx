@@ -4,13 +4,14 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
 import { Button } from '@/components/ui/button';
+import Logo from '@/components/shared/Logo'; // Import the Logo component
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -40,28 +41,29 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   );
 };
 
-const studentFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
-  { icon: BookOpen, title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning." },
-  { icon: Lightbulb, title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently." },
-  { icon: HelpCircle, title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement." },
-  { icon: TrendingUp, title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators." },
-  { icon: Award, title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun." },
+const studentFeatures: FeatureCardProps[] = [
+  { icon: BookOpen, title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", iconColor:"text-emerald-400", animationDelay:"animation-delay-100" },
+  { icon: Lightbulb, title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", iconColor:"text-emerald-400", animationDelay:"animation-delay-200" },
+  { icon: HelpCircle, title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", iconColor:"text-emerald-400", animationDelay:"animation-delay-300" },
+  { icon: TrendingUp, title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", iconColor:"text-emerald-400", animationDelay:"animation-delay-400" },
+  { icon: Award, title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", iconColor:"text-emerald-400", animationDelay:"animation-delay-500" },
 ];
 
-const parentFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
-  { icon: BarChart3, title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights." },
-  { icon: MessageIcon, title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively." },
-  { icon: FileText, title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible." },
-  { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar." },
+const parentFeatures: FeatureCardProps[] = [
+  { icon: BarChart3, title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", iconColor:"text-sky-400", animationDelay:"animation-delay-100" },
+  { icon: MessageSquare, title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", iconColor:"text-sky-400", animationDelay:"animation-delay-200" },
+  { icon: FileText, title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", iconColor:"text-sky-400", animationDelay:"animation-delay-300" },
+  { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", iconColor:"text-sky-400", animationDelay:"animation-delay-400" },
 ];
 
-const schoolTeacherFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
-  { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students." },
-  { icon: Users2, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently." },
-  { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback." },
-  { icon: Megaphone, title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly." },
-  { icon: Building, title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement." },
+const schoolTeacherFeatures: FeatureCardProps[] = [
+  { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", iconColor:"text-amber-400", animationDelay:"animation-delay-100" },
+  { icon: Users2, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", iconColor:"text-amber-400", animationDelay:"animation-delay-200" },
+  { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", iconColor:"text-amber-400", animationDelay:"animation-delay-300" },
+  { icon: Megaphone, title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", iconColor:"text-amber-400", animationDelay:"animation-delay-400" },
+  { icon: Building, title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", iconColor:"text-amber-400", animationDelay:"animation-delay-500" },
 ];
+
 
 const FixedBackground = () => (
   <div
@@ -100,16 +102,16 @@ const HeroSection = () => {
       <div className="relative w-full max-w-6xl mx-auto h-full">
         {isMounted && (
           <>
-            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-40 md:h-40 top-10 left-5 sm:left-10 md:left-20 opacity-80", textBaseClasses, "animation-delay-200")}>
+            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-36 md:h-36 top-10 left-5 sm:left-1/4 md:left-1/4 opacity-80", textBaseClasses, "animation-delay-200")}>
               <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 bottom-10 right-5 sm:right-10 md:right-20 opacity-70", textBaseClasses, "animation-delay-400")}>
+            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-32 md:h-32 bottom-10 right-5 sm:right-1/4 md:right-1/4 opacity-70", textBaseClasses, "animation-delay-400")}>
               <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden sm:block w-20 h-20 md:w-32 md:h-32 top-1/3 right-10 md:right-1/4 opacity-90", textBaseClasses, "animation-delay-600")}>
+            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 top-1/3 right-10 md:right-1/5 opacity-90", textBaseClasses, "animation-delay-600")}>
               <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden sm:block w-24 h-24 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/4 opacity-60", textBaseClasses, "animation-delay-800")}>
+            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/5 opacity-60", textBaseClasses, "animation-delay-800")}>
               <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
             </div>
           </>
@@ -118,21 +120,24 @@ const HeroSection = () => {
 
       {/* Central Text Content */}
       <div className={cn("absolute inset-0 flex flex-col items-center justify-center z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
+        <div className="mb-8"> {/* Wrapper for the logo */}
+            <Logo /> {/* Application Logo */}
+        </div>
         <h1
           className={cn(
-            "font-extrabold mb-10 text-primary-foreground", // Updated color
-            "text-4xl sm:text-5xl md:text-6xl",
-            "leading-tight", // Normal leading
-            "[text-shadow:_2px_2px_5px_rgb(0_0_0_/_0.5)]" // Slightly adjusted shadow for potentially lighter text
+            "font-extrabold mb-10",
+            "text-4xl sm:text-5xl md:text-6xl text-primary",
+            "leading-tight",
+            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]"
           )}
         >
           Empowering Every <span className="text-primary">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-primary-foreground/80", // Updated color
+            "text-base sm:text-xl text-primary", // Changed to text-primary (skyblue)
             "font-medium",
-            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.5)]", // Slightly adjusted shadow
+            "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
           )}
           style={{ animationDelay: isMounted ? '0.3s' : undefined }}
@@ -145,7 +150,7 @@ const HeroSection = () => {
 };
 
 const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative z-0 bg-background/80 backdrop-blur-sm">
+  <div className="relative z-0 bg-card/80 backdrop-blur-sm"> {/* Changed from bg-background/80 */}
     {children}
   </div>
 );
@@ -160,19 +165,19 @@ export default function UnifiedDashboardPage() {
             if (currentUser.role === 'Student') router.push('/student/complete-profile');
             else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
             else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
-            // Add admin/school-admin profile completion if needed
+            else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
+              router.push(`/school-admin/${currentUser.administered_school.id}`);
+            }
         } else {
-            // Profile is complete, redirect to role-specific dashboard
             if (currentUser.role === 'Student') router.push('/student');
             else if (currentUser.role === 'Teacher') router.push('/teacher');
             else if (currentUser.role === 'Parent') router.push('/parent');
             else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
               router.push(`/school-admin/${currentUser.administered_school.id}`);
             }
-            // Add other roles like platform admin if necessary
         }
     }
-  }, [isLoadingAuth, currentUser, needsProfileCompletion, router]);
+  }, [isLoadingAuth, currentUser, needsProfileCompletion, router, currentUser?.role, currentUser?.is_school_admin, currentUser?.administered_school]);
 
 
   if (isLoadingAuth) {
@@ -212,7 +217,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-emerald-400" // Consider using theme colors like text-accent
+                    iconColor={feature.iconColor}
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
@@ -228,7 +233,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-sky-400" // Consider using theme colors like text-accent
+                    iconColor={feature.iconColor}
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
@@ -244,7 +249,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-amber-400" // Consider using theme colors like text-accent
+                    iconColor={feature.iconColor}
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
@@ -262,7 +267,6 @@ export default function UnifiedDashboardPage() {
     );
   }
 
-  // Fallback for authenticated user not yet redirected (should be brief)
   return (
      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
