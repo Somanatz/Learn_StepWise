@@ -49,7 +49,8 @@ class SchoolSerializer(serializers.ModelSerializer):
                 password=admin_password,
                 role='Admin',
                 is_school_admin=True,
-                is_staff=True 
+                is_staff=True,
+                is_active=True # Explicitly set as active
             )
         except Exception as e: 
             raise serializers.ValidationError({"admin_user_creation": str(e)})
@@ -137,9 +138,9 @@ class ParentProfileSerializer(serializers.ModelSerializer):
 
 class CustomUserSerializer(serializers.ModelSerializer):
     # Pass context to nested serializers if they use SerializerMethodField relying on request
-    student_profile = StudentProfileSerializer(read_only=True)
-    teacher_profile = TeacherProfileSerializer(read_only=True)
-    parent_profile = ParentProfileSerializer(read_only=True)
+    student_profile = StudentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
+    teacher_profile = TeacherProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
+    parent_profile = ParentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
     school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
     school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
     profile_completed = serializers.SerializerMethodField()
@@ -158,13 +159,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
         }
 
     def get_profile_completed(self, obj):
-        if obj.role == 'Student' and hasattr(obj, 'student_profile'):
+        if obj.role == 'Student' and hasattr(obj, 'student_profile') and obj.student_profile:
             return obj.student_profile.profile_completed
-        elif obj.role == 'Teacher' and hasattr(obj, 'teacher_profile'):
+        elif obj.role == 'Teacher' and hasattr(obj, 'teacher_profile') and obj.teacher_profile:
             return obj.teacher_profile.profile_completed
-        elif obj.role == 'Parent' and hasattr(obj, 'parent_profile'):
+        elif obj.role == 'Parent' and hasattr(obj, 'parent_profile') and obj.parent_profile:
             return obj.parent_profile.profile_completed
-        return False # Default or for Admin roles
+        return False # Default or for Admin roles (non-school admin)
 
     def create(self, validated_data):
         user = CustomUser.objects.create_user(**validated_data)
@@ -203,7 +204,8 @@ class UserSignupSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            role=validated_data['role']
+            role=validated_data['role'],
+            is_active=True # Explicitly set as active
         )
         # Create empty profile based on role with profile_completed=False
         if user.role == 'Student':
@@ -218,7 +220,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
 class ParentStudentLinkSerializer(serializers.ModelSerializer):
     parent_username = serializers.CharField(source='parent.username', read_only=True)
     student_username = serializers.CharField(source='student.username', read_only=True)
-    student_details = StudentProfileSerializer(source='student.student_profile', read_only=True)
+    student_details = StudentProfileSerializer(source='student.student_profile', read_only=True, context={'request': serializers.CurrentUserDefault()})
 
     class Meta:
         model = ParentStudentLink
