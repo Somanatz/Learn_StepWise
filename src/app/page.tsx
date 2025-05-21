@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
-import { Button } from '@/components/ui/button'; // Added for potential CTA in hero
+import { Button } from '@/components/ui/button';
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -65,12 +65,22 @@ const teacherSchoolFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
 
 const FixedBackground = () => (
   <div 
-    id="fixed-background" 
-    className="fixed inset-0 z-[-10] bg-cover bg-center bg-no-repeat"
-    style={{ backgroundImage: "url('https://placehold.co/1920x1080.png?text=Educational+Atmosphere')" }}
-    data-ai-hint="educational atmosphere learning abstract"
+    id="fixed-background-container" 
+    className="fixed inset-0 z-[-10] overflow-hidden" // Added overflow-hidden
   >
-    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm"></div> {/* Optional overlay for readability */}
+    <video
+      autoPlay
+      loop
+      muted
+      playsInline // Important for iOS autoplay
+      className="absolute top-0 left-0 w-full h-full object-cover"
+      poster="https://placehold.co/1920x1080.png?text=GenAI+Campus+Loading..." // Optional: poster image
+      data-ai-hint="educational abstract technology" // Added poster data-ai-hint
+    >
+      <source src="/videos/educational-bg.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm"></div> {/* Overlay for readability */}
   </div>
 );
 
@@ -78,25 +88,25 @@ const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
 
-  const imageBaseClasses = "absolute rounded-full overflow-hidden shadow-xl border-4 border-background/30 animate-fade-in-up";
+  const imageBaseClasses = "absolute rounded-full overflow-hidden shadow-xl border-4 border-background/30";
   const textBaseClasses = "opacity-0 animate-fade-in-up";
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
+      {/* Background decorative circles/images */}
       <div className="relative w-full max-w-4xl mx-auto">
-        {/* Background decorative circles/images */}
         {isMounted && (
           <>
-            <div className={cn(imageBaseClasses, "w-40 h-40 md:w-56 md:h-56 top-10 left-5 md:left-10 opacity-80 animation-delay-200")} style={{ animationDelay: '0.2s' }}>
+            <div className={cn(imageBaseClasses, "w-40 h-40 md:w-56 md:h-56 top-10 left-5 md:left-10 opacity-80 animation-delay-200")}>
               <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-32 h-32 md:w-48 md:h-48 bottom-10 right-5 md:right-10 opacity-70 animation-delay-400")} style={{ animationDelay: '0.4s' }}>
+            <div className={cn(imageBaseClasses, "w-32 h-32 md:w-48 md:h-48 bottom-10 right-5 md:right-10 opacity-70 animation-delay-400")}>
               <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 top-1/4 right-1/4 md:top-1/3 md:right-1/3 opacity-90 animation-delay-600")} style={{ animationDelay: '0.6s' }}>
+            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 top-1/4 right-1/4 md:top-1/3 md:right-1/3 opacity-90 animation-delay-600")}>
               <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden md:block w-28 h-28 bottom-1/3 left-1/4 opacity-60 animation-delay-800")} style={{ animationDelay: '0.8s' }}>
+            <div className={cn(imageBaseClasses, "hidden md:block w-28 h-28 bottom-1/3 left-1/4 opacity-60 animation-delay-800")}>
               <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
             </div>
           </>
@@ -107,9 +117,9 @@ const HeroSection = () => {
       <div className={cn("relative z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
         <h1
           className={cn(
-            "font-extrabold mb-6 text-gray-100",
+            "font-extrabold mb-6",
             "text-4xl sm:text-5xl md:text-6xl",
-            "leading-tight",
+            "leading-tight text-gray-100", // Ensures white text in dark mode
             "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]"
           )}
         >
@@ -117,7 +127,7 @@ const HeroSection = () => {
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-gray-200",
+            "text-base sm:text-xl text-gray-200", // Ensures light gray text
             "font-medium",
             "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
             isMounted ? 'animation-delay-300' : ''
@@ -126,12 +136,6 @@ const HeroSection = () => {
         >
           GenAI-Campus provides a playful and engaging platform with personalized learning paths, AI-powered tools, and robust support for students, parents, and educators.
         </p>
-        {/* Optional CTA Button */}
-        {/* 
-        <Button size="lg" className={cn("mt-8 text-lg py-3 px-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: isMounted ? '0.5s' : undefined }}>
-            Explore Features
-        </Button> 
-        */}
       </div>
     </section>
   );
@@ -155,13 +159,12 @@ export default function UnifiedDashboardPage() {
         else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
           router.push(`/school-admin/${currentUser.administered_school.id}`);
         }
-        // else if (currentUserRole === 'Admin') router.push('/admin-dashboard'); // Platform admin dashboard
     }
   }, [isLoadingAuth, currentUser, router]);
 
 
   if (isLoadingAuth) {
-    return ( // Keep global loading UI if needed, or a simpler page-specific one
+    return ( 
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo" width={280} height={77} priority className="mb-8" />
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
