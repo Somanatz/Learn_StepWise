@@ -97,8 +97,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Removed circular decorative images */}
-      
       {/* Central Text Content */}
       <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8", 
@@ -112,7 +110,7 @@ const HeroSection = () => {
           className={cn(
             "font-extrabold mb-10",
             "text-4xl sm:text-5xl md:text-6xl text-primary",
-            "leading-tight",
+            "leading-tight animate-text-pulse", // Added looping animation
             "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]" 
           )}
         >
@@ -120,8 +118,8 @@ const HeroSection = () => {
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-accent", // Changed color to accent
-            "font-medium",
+            "text-base sm:text-xl text-accent",
+            "font-medium animate-text-pulse", // Added looping animation
             "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
           )}
@@ -151,12 +149,10 @@ export default function UnifiedDashboardPage() {
             else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
             else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
             else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
-              // Assuming school admin profiles are completed differently or not via this flag for now
               router.push(`/school-admin/${currentUser.administered_school.id}`);
             } else if (currentUser.role === 'Admin' && !currentUser.is_school_admin) {
-              // Platform admin - decide where they go, maybe a specific admin dashboard
-              // For now, let's assume they don't have a 'complete-profile' step like others.
-              // router.push('/admin-dashboard'); // Example
+              // Platform admin - decide where they go
+              // router.push('/platform-admin-dashboard'); // Example
             }
         } else { // Profile is complete, redirect to role dashboard
             if (currentUserRole === 'Student') router.push('/student');
@@ -165,7 +161,7 @@ export default function UnifiedDashboardPage() {
             else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
               router.push(`/school-admin/${currentUser.administered_school.id}`);
             } else if (currentUserRole === 'Admin' && !currentUser.is_school_admin) {
-               // router.push('/admin-dashboard'); // Example
+               // router.push('/platform-admin-dashboard'); // Example
             }
         }
     }
@@ -260,7 +256,6 @@ export default function UnifiedDashboardPage() {
   }
 
   // Fallback for authenticated users waiting for redirection logic to complete
-  // This prevents rendering anything briefly before redirection.
   if (currentUser && !isLoadingAuth) {
      return (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
