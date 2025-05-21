@@ -2,16 +2,19 @@
 // src/lib/api.ts
 import type { UserRole } from '@/interfaces';
 
-let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+let API_BASE_URL_ENV = process.env.NEXT_PUBLIC_API_URL;
+let API_BASE_URL: string;
 let API_ENDPOINT_BASE: string;
 
-if (!API_BASE_URL) {
+if (!API_BASE_URL_ENV) {
   console.warn(
     "WARNING: NEXT_PUBLIC_API_URL environment variable is not set. " +
     "Defaulting to http://127.0.0.1:8000. " +
-    "Ensure your Django backend is running there, or set the variable."
+    "Ensure your Django backend is running there, or set the variable in a .env.local file."
   );
   API_BASE_URL = 'http://127.0.0.1:8000';
+} else {
+  API_BASE_URL = API_BASE_URL_ENV;
 }
 API_ENDPOINT_BASE = `${API_BASE_URL}/api`;
 
@@ -41,7 +44,7 @@ async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   body?: any,
   isFormData: boolean = false,
-  useApiPrefix: boolean = true, // New flag to control adding /api prefix
+  useApiPrefix: boolean = true, // Default to true
 ): Promise<T> {
   const headers: HeadersInit = {};
   if (!isFormData) {
@@ -79,7 +82,7 @@ async function request<T>(
             errorMessage = errorData.detail;
         } else if (typeof errorData === 'object' && errorData !== null) {
             const fieldErrors = Object.entries(errorData)
-                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
                 .join('; ');
             if (fieldErrors) errorMessage = fieldErrors;
         }
@@ -94,18 +97,11 @@ async function request<T>(
         return undefined as T; 
     }
 
-    // Handle potentially paginated responses for GET requests
-    if (method === 'GET') {
-        const responseData = await response.json();
-        if (responseData && typeof responseData === 'object' && 'results' in responseData && Array.isArray(responseData.results)) {
-            // It's a paginated response, return the results array
-            // You might want to handle pagination metadata (count, next, previous) elsewhere
-            return responseData.results as T; 
-        }
-        return responseData as T; // Not paginated or not the expected structure, return as is
+    const responseData = await response.json();
+    if (method === 'GET' && responseData && typeof responseData === 'object' && 'results' in responseData && Array.isArray(responseData.results)) {
+        return responseData.results as T; 
     }
-
-    return await response.json() as T;
+    return responseData as T;
   } catch (error) {
     console.error(`Network or other error on ${method} ${fullUrl}:`, error);
     throw error; 
@@ -121,7 +117,8 @@ export const api = {
 };
 
 export const loginUser = async (credentials: any) => {
-  const response = await request<{ token: string }>('/token-auth/', 'POST', credentials, false, false); // useApiPrefix = false
+  // Changed the last argument (useApiPrefix) from false to true
+  const response = await request<{ token: string }>('/token-auth/', 'POST', credentials, false, true); 
   if (response.token) {
     localStorage.setItem('authToken', response.token);
   }
@@ -136,7 +133,6 @@ export const fetchCurrentUser = async (): Promise<UserData | null> => {
   const token = localStorage.getItem('authToken');
   if (!token) return null;
   try {
-    // Assuming CustomUserSerializer (which /users/me/ uses) returns a direct object, not paginated
     const userData = await request<UserData>('/users/me/', 'GET', undefined, false, true);
     return userData;
   } catch (error) {
@@ -149,4 +145,3 @@ export const fetchCurrentUser = async (): Promise<UserData | null> => {
 export const logoutUser = () => {
   localStorage.removeItem('authToken');
 };
-
