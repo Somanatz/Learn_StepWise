@@ -2,7 +2,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react';
 import Image from 'next/image';
@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
-import { Button } from '@/components/ui/button';
 import Logo from '@/components/shared/Logo'; 
 
 interface FeatureCardProps {
@@ -97,20 +96,40 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
+      {/* Decorative Images - Positioned to frame content */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {/* Image 1 - Top-Left area */}
+        <div className="absolute top-[5%] left-[5%] w-24 h-24 md:w-32 md:h-32 lg:w-48 lg:h-48 opacity-0 animate-fade-in-up animation-delay-300" data-ai-hint="happy child learning abstract">
+          <Image src="https://placehold.co/200x200/81C784/FFFFFF.png?text=Edu1" alt="Decorative Learning Element 1" layout="fill" objectFit="cover" className="rounded-full shadow-lg border-2 border-primary/30"/>
+        </div>
+        {/* Image 2 - Bottom-Right area */}
+        <div className="absolute bottom-[5%] right-[5%] w-20 h-20 md:w-28 md:h-28 lg:w-40 lg:h-40 opacity-0 animate-fade-in-up animation-delay-400" data-ai-hint="students collaboration digital">
+          <Image src="https://placehold.co/180x180/64B5F6/FFFFFF.png?text=Edu2" alt="Decorative Learning Element 2" layout="fill" objectFit="cover" className="rounded-full shadow-lg border-2 border-accent/30"/>
+        </div>
+        {/* Image 3 - Top-Right area (more subtle) */}
+        <div className="absolute top-[15%] right-[10%] w-16 h-16 md:w-20 md:h-20 lg:w-28 lg:h-28 opacity-0 animate-fade-in-up animation-delay-500 hidden sm:block" data-ai-hint="teacher guiding student">
+          <Image src="https://placehold.co/150x150/FFB74D/FFFFFF.png?text=Edu3" alt="Decorative Learning Element 3" layout="fill" objectFit="cover" className="rounded-full shadow-md border border-primary/20"/>
+        </div>
+         {/* Image 4 - Bottom-Left area (more subtle) */}
+        <div className="absolute bottom-[15%] left-[10%] w-16 h-16 md:w-20 md:h-20 lg:w-28 lg:h-28 opacity-0 animate-fade-in-up animation-delay-700 hidden sm:block" data-ai-hint="books technology learning">
+          <Image src="https://placehold.co/160x160/4DB6AC/FFFFFF.png?text=Edu4" alt="Decorative Learning Element 4" layout="fill" objectFit="cover" className="rounded-full shadow-md border border-accent/20"/>
+        </div>
+      </div>
+
       {/* Central Text Content */}
-      <div className={cn(
-          "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8", 
+       <div className={cn(
+          "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8",
           isMounted ? textBaseClasses : 'opacity-0'
         )} style={{ animationDelay: isMounted ? '0.1s' : undefined }}
       >
         <div className="mb-8"> 
-            <Logo imageWidth={436} imageHeight={120} /> 
+             <Logo imageWidth={436} imageHeight={120} /> 
         </div>
         <h1
           className={cn(
-            "font-extrabold mb-10",
-            "text-4xl sm:text-5xl md:text-6xl text-primary",
-            "leading-tight animate-text-pulse", // Added looping animation
+            "font-extrabold mb-10 animate-text-pulse",
+            "text-4xl sm:text-5xl md:text-6xl text-primary-foreground", // Changed to primary-foreground
+            "leading-tight", 
             "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]" 
           )}
         >
@@ -118,8 +137,8 @@ const HeroSection = () => {
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-accent",
-            "font-medium animate-text-pulse", // Added looping animation
+            "text-base sm:text-xl text-accent", // Kept as accent for "light green"
+            "font-medium animate-text-pulse", 
             "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
           )}
@@ -139,36 +158,50 @@ const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function UnifiedDashboardPage() {
-  const { currentUser, isLoadingAuth, needsProfileCompletion, currentUserRole } = useAuth();
+  const { currentUser, isLoadingAuth, needsProfileCompletion } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [isRedirecting, setIsRedirecting] = useState(true); // Start true to show loader initially
 
   useEffect(() => {
-    if (!isLoadingAuth && currentUser) {
-        if (needsProfileCompletion) {
-            if (currentUser.role === 'Student') router.push('/student/complete-profile');
-            else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
-            else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
-            else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
-              router.push(`/school-admin/${currentUser.administered_school.id}`);
-            } else if (currentUser.role === 'Admin' && !currentUser.is_school_admin) {
-              // Platform admin - decide where they go
-              // router.push('/platform-admin-dashboard'); // Example
-            }
-        } else { // Profile is complete, redirect to role dashboard
-            if (currentUserRole === 'Student') router.push('/student');
-            else if (currentUserRole === 'Teacher') router.push('/teacher');
-            else if (currentUserRole === 'Parent') router.push('/parent');
-            else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
-              router.push(`/school-admin/${currentUser.administered_school.id}`);
-            } else if (currentUserRole === 'Admin' && !currentUser.is_school_admin) {
-               // router.push('/platform-admin-dashboard'); // Example
-            }
-        }
+    if (isLoadingAuth) {
+      setIsRedirecting(true); // Keep showing loader if auth is loading
+      return;
     }
-  }, [isLoadingAuth, currentUser, needsProfileCompletion, currentUserRole, router]);
+
+    if (currentUser) {
+      let targetPath: string | null = null;
+      // profile_completed from User object in AuthContext is now the source of truth
+      const profileIncomplete = currentUser.profile_completed === false;
+
+      if (profileIncomplete) {
+        if (currentUser.role === 'Student') targetPath = '/student/complete-profile';
+        else if (currentUser.role === 'Teacher') targetPath = '/teacher/complete-profile';
+        else if (currentUser.role === 'Parent') targetPath = '/parent/complete-profile';
+        // Admin profile completion is assumed to be handled differently or not forced here
+      } else { // Profile is complete or not applicable for separate completion step
+        if (currentUser.role === 'Student') targetPath = '/student';
+        else if (currentUser.role === 'Teacher') targetPath = '/teacher';
+        else if (currentUser.role === 'Parent') targetPath = '/parent';
+        else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school?.id) {
+          targetPath = `/school-admin/${currentUser.administered_school.id}`;
+        }
+        // If user is Platform Admin and profile is complete, targetPath remains null, they stay on '/'
+      }
+
+      if (targetPath && pathname !== targetPath) {
+        // setIsRedirecting(true); // Already true or set by isLoadingAuth
+        router.push(targetPath);
+      } else {
+        setIsRedirecting(false); // No redirection needed or already on target path
+      }
+    } else { // No current user (and auth is not loading)
+      setIsRedirecting(false); // Will show public page
+    }
+  }, [isLoadingAuth, currentUser, needsProfileCompletion, router, pathname]);
 
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || isRedirecting) {
     return (
       <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
@@ -181,90 +214,78 @@ export default function UnifiedDashboardPage() {
             <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-700")} />
         </div>
         <p className="text-lg md:text-xl text-muted-foreground">
-            Preparing Your GenAI-Campus Experience...
+            Loading Your GenAI-Campus Experience...
         </p>
       </div>
     );
   }
 
-  if (!currentUser && !isLoadingAuth) {
-    const animationDelayClasses = ['animation-delay-100', 'animation-delay-200', 'animation-delay-300', 'animation-delay-400', 'animation-delay-500', 'animation-delay-700'];
-    return (
-      <div className="w-full">
-        <FixedBackground />
-        <HeroSection />
+  // If not loading and not redirecting, show public welcome content
+  // This applies to unauthenticated users, or authenticated users (like platform admin) who should see the root page.
+  return (
+    <div className="w-full">
+      <FixedBackground />
+      <HeroSection />
 
-        <ContentWrapper>
-          <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
-            <section>
-              <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {studentFeatures.map((feature, index) => (
-                  <FeatureCard
-                    key={feature.title}
-                    icon={feature.icon}
-                    title={feature.title}
-                    description={feature.description}
-                    iconColor={feature.iconColor}
-                    animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
-                  />
-                ))}
-              </div>
-            </section>
+      <ContentWrapper>
+        <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
+          <section>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {studentFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor={feature.iconColor}
+                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+                />
+              ))}
+            </div>
+          </section>
 
-            <section>
-              <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {parentFeatures.map((feature, index) => (
-                  <FeatureCard
-                    key={feature.title}
-                    icon={feature.icon}
-                    title={feature.title}
-                    description={feature.description}
-                    iconColor={feature.iconColor}
-                    animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
-                  />
-                ))}
-              </div>
-            </section>
+          <section>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {parentFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor={feature.iconColor}
+                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+                />
+              ))}
+            </div>
+          </section>
 
-            <section>
-              <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {schoolTeacherFeatures.map((feature, index) => (
-                  <FeatureCard
-                    key={feature.title}
-                    icon={feature.icon}
-                    title={feature.title}
-                    description={feature.description}
-                    iconColor={feature.iconColor}
-                    animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
-                  />
-                ))}
-              </div>
-            </section>
+          <section>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              {schoolTeacherFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor={feature.iconColor}
+                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+                />
+              ))}
+            </div>
+          </section>
 
-            <section className="py-12 bg-card rounded-xl shadow-lg border border-border/50">
-              <div className="container mx-auto px-4">
-                   <ContactSalesForm />
-              </div>
-            </section>
-          </div>
-        </ContentWrapper>
-      </div>
-    );
-  }
-
-  // Fallback for authenticated users waiting for redirection logic to complete
-  if (currentUser && !isLoadingAuth) {
-     return (
-        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
-            <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Preparing Your Dashboard...</p>
+          <section className="py-12 bg-card rounded-xl shadow-lg border border-border/50">
+            <div className="container mx-auto px-4">
+                 <ContactSalesForm />
+            </div>
+          </section>
         </div>
-    );
-  }
-
-  return null; // Should not be reached if logic is correct
+      </ContentWrapper>
+    </div>
+  );
 }
+
+    
