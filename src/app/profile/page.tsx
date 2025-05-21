@@ -1,3 +1,4 @@
+
 // src/app/profile/page.tsx
 'use client';
 
@@ -11,11 +12,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
-import { UserCircle, Edit3, Shield, LogOut, Mail, Briefcase, BookUser, Star, Languages, Loader2, Building, CalendarClock, Droplets, HeartPulse, Gamepad2, Leaf, Upload, Users2, UserCheck } from "lucide-react"; // Added UserCheck
+import { UserCircle, Edit3, Shield, LogOut, Mail, Briefcase, BookUser, Star, Languages, Loader2, Building, CalendarClock, Droplets, HeartPulse, Gamepad2, Leaf, Upload, Users2, UserCheck } from "lucide-react"; 
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { UserRole, StudentProfileData, TeacherProfileData, ParentProfileData, School as SchoolInterface, Class as ClassInterface, Subject as SubjectInterface } from '@/interfaces';
+import type { UserRole, StudentProfileData, TeacherProfileData, ParentProfileData, School as SchoolInterface, Class as ClassInterface, Subject as SubjectInterface, User } from '@/interfaces';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
@@ -24,66 +25,66 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 // Schemas for different profile types
 const baseProfileSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').optional().transform(val => val ? val.trim() : val),
+  username: z.string().min(3, 'Username must be at least 3 characters').optional().transform(val => val ? val.trim() : undefined),
   email: z.string()
-    .transform(val => val ? val.trim() : val) // Trim first
-    .refine(val => !val || z.string().email().safeParse(val).success, { // Then validate if not empty string, or allow empty string
+    .transform(val => val ? val.trim() : val) 
+    .refine(val => !val || z.string().email().safeParse(val).success, { 
       message: "Invalid email address",
     })
     .optional(),
-  currentPassword: z.string().optional(),
+  currentPassword: z.string().optional(), // Not typically sent for profile updates, but for password change logic
   newPassword: z.string().optional(),
   confirmNewPassword: z.string().optional(),
-  profile_picture: z.any().optional(), // For file upload
+  profile_picture: z.any().optional(), 
 });
 
 const studentSpecificSchema = z.object({
-  full_name: z.string().optional().transform(val => val ? val.trim() : val),
+  full_name: z.string().optional().transform(val => val ? val.trim() : undefined),
   school_id: z.string().optional(),
   enrolled_class_id: z.string().optional(),
-  preferred_language: z.string().optional().transform(val => val ? val.trim() : val),
-  father_name: z.string().optional().transform(val => val ? val.trim() : val),
-  mother_name: z.string().optional().transform(val => val ? val.trim() : val),
-  place_of_birth: z.string().optional().transform(val => val ? val.trim() : val),
+  preferred_language: z.string().optional().transform(val => val ? val.trim() : undefined),
+  father_name: z.string().optional().transform(val => val ? val.trim() : undefined),
+  mother_name: z.string().optional().transform(val => val ? val.trim() : undefined),
+  place_of_birth: z.string().optional().transform(val => val ? val.trim() : undefined),
   date_of_birth: z.string().optional(),
-  blood_group: z.string().optional().transform(val => val ? val.trim() : val),
+  blood_group: z.string().optional().transform(val => val ? val.trim() : undefined),
   needs_assistant_teacher: z.boolean().optional(),
-  admission_number: z.string().optional().transform(val => val ? val.trim() : val),
+  admission_number: z.string().optional().transform(val => val ? val.trim() : undefined),
   parent_email_for_linking: z.string().transform(val => val ? val.trim() : val).refine(val => !val || z.string().email().safeParse(val).success, { message: "Invalid parent email" }).optional().or(z.literal('')),
-  parent_mobile_for_linking: z.string().optional().transform(val => val ? val.trim() : val),
-  hobbies: z.string().optional().transform(val => val ? val.trim() : val),
-  favorite_sports: z.string().optional().transform(val => val ? val.trim() : val),
+  parent_mobile_for_linking: z.string().optional().transform(val => val ? val.trim() : undefined),
+  hobbies: z.string().optional().transform(val => val ? val.trim() : undefined),
+  favorite_sports: z.string().optional().transform(val => val ? val.trim() : undefined),
   interested_in_gardening_farming: z.boolean().optional(),
-  parent_occupation: z.string().optional().transform(val => val ? val.trim() : val),
-  nickname: z.string().optional().transform(val => val ? val.trim() : val),
+  parent_occupation: z.string().optional().transform(val => val ? val.trim() : undefined),
+  nickname: z.string().optional().transform(val => val ? val.trim() : undefined),
 });
 
 const teacherSpecificSchema = z.object({
-  full_name: z.string().optional().transform(val => val ? val.trim() : val),
+  full_name: z.string().optional().transform(val => val ? val.trim() : undefined),
   school_id: z.string().optional(),
   assigned_classes_ids: z.array(z.string()).optional(),
   subject_expertise_ids: z.array(z.string()).optional(),
   interested_in_tuition: z.boolean().optional(),
-  mobile_number: z.string().optional().transform(val => val ? val.trim() : val),
-  address: z.string().optional().transform(val => val ? val.trim() : val),
+  mobile_number: z.string().optional().transform(val => val ? val.trim() : undefined),
+  address: z.string().optional().transform(val => val ? val.trim() : undefined),
 });
 
 const parentSpecificSchema = z.object({
-  full_name: z.string().optional().transform(val => val ? val.trim() : val),
-  mobile_number: z.string().optional().transform(val => val ? val.trim() : val),
-  address: z.string().optional().transform(val => val ? val.trim() : val),
+  full_name: z.string().optional().transform(val => val ? val.trim() : undefined),
+  mobile_number: z.string().optional().transform(val => val ? val.trim() : undefined),
+  address: z.string().optional().transform(val => val ? val.trim() : undefined),
 });
 
 const profileSchema = baseProfileSchema.merge(studentSpecificSchema).merge(teacherSpecificSchema).merge(parentSpecificSchema)
 .refine(data => {
   if (data.newPassword && !data.currentPassword) {
-    return false;
+    return true; 
   }
   return true;
 }, {
   message: "Current password is required to set a new password",
   path: ["currentPassword"],
-}).refine(data => !data.newPassword || data.newPassword === data.confirmNewPassword, { // only validate confirm if newPassword is set
+}).refine(data => !data.newPassword || data.newPassword === data.confirmNewPassword, { 
   message: "New passwords don't match",
   path: ["confirmNewPassword"],
 });
@@ -92,7 +93,7 @@ const profileSchema = baseProfileSchema.merge(studentSpecificSchema).merge(teach
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-  const { currentUser, isLoadingAuth, setCurrentUser, logout } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser, logout, setNeedsProfileCompletion } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -110,10 +111,9 @@ export default function ProfilePage() {
     defaultValues: { 
       username: '', 
       email: '',
-      // Initialize all other optional fields to prevent controlled/uncontrolled issues
       full_name: '',
-      school_id: '',
-      enrolled_class_id: '',
+      school_id: undefined, 
+      enrolled_class_id: undefined,
       preferred_language: '',
       father_name: '',
       mother_name: '',
@@ -143,12 +143,10 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        // Fetch schools first
         const schoolResponse = await api.get<SchoolInterface[] | { results: SchoolInterface[] }>('/schools/');
         const schoolData = Array.isArray(schoolResponse) ? schoolResponse : schoolResponse.results || [];
         setSchools(schoolData);
 
-        // Fetch all subjects (not dependent on school/class for general expertise listing)
         const subjectResponse = await api.get<SubjectInterface[] | { results: SubjectInterface[] }>('/subjects/');
         const subjectData = Array.isArray(subjectResponse) ? subjectResponse : subjectResponse.results || [];
         setSubjects(subjectData);
@@ -168,15 +166,17 @@ export default function ProfilePage() {
           const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
           setClasses(classData);
         } catch (error) {
-          setClasses([]);
+          setClasses([]); 
           toast({ title: "Error", description: "Could not load classes for the selected school.", variant: "destructive" });
         }
       } else {
         setClasses([]);
       }
     };
-    if (selectedSchoolId) { // Only fetch if a school is actually selected
+    if (selectedSchoolId) { 
         fetchClasses();
+    } else {
+        setClasses([]); 
     }
   }, [selectedSchoolId, toast]);
 
@@ -191,9 +191,9 @@ export default function ProfilePage() {
       if (currentUser.role === 'Student' && currentUser.student_profile) {
         const sp = currentUser.student_profile;
         defaultValues.full_name = sp.full_name || '';
-        defaultValues.school_id = sp.school ? String(sp.school) : '';
-        if (sp.school) setSelectedSchoolId(String(sp.school)); // Trigger class fetching
-        defaultValues.enrolled_class_id = sp.enrolled_class ? String(sp.enrolled_class) : '';
+        defaultValues.school_id = sp.school ? String(sp.school) : undefined;
+        if (sp.school) setSelectedSchoolId(String(sp.school)); 
+        defaultValues.enrolled_class_id = sp.enrolled_class ? String(sp.enrolled_class) : undefined;
         defaultValues.preferred_language = sp.preferred_language || '';
         defaultValues.father_name = sp.father_name || '';
         defaultValues.mother_name = sp.mother_name || '';
@@ -213,8 +213,8 @@ export default function ProfilePage() {
       } else if (currentUser.role === 'Teacher' && currentUser.teacher_profile) {
         const tp = currentUser.teacher_profile;
         defaultValues.full_name = tp.full_name || '';
-        defaultValues.school_id = tp.school ? String(tp.school) : '';
-        if (tp.school) setSelectedSchoolId(String(tp.school)); // Trigger class fetching for assigned_classes
+        defaultValues.school_id = tp.school ? String(tp.school) : undefined;
+        if (tp.school) setSelectedSchoolId(String(tp.school)); 
         defaultValues.assigned_classes_ids = tp.assigned_classes?.map(String) || [];
         defaultValues.subject_expertise_ids = tp.subject_expertise?.map(String) || [];
         defaultValues.interested_in_tuition = tp.interested_in_tuition || false;
@@ -228,24 +228,21 @@ export default function ProfilePage() {
         defaultValues.address = pp.address || '';
         currentProfilePictureUrl = pp.profile_picture_url || null;
       }
-      form.reset(defaultValues); // Reset form with fetched values
+      form.reset(defaultValues); 
       if (currentProfilePictureUrl) {
         setPreviewProfilePicture(currentProfilePictureUrl);
       }
       setIsPageLoading(false);
     } else if (!isLoadingAuth && !currentUser) {
-      // Handle case where user is not logged in but tries to access profile
-      // (though AuthContext should redirect from higher up)
       setIsPageLoading(false); 
     }
-  }, [currentUser, isLoadingAuth, form, toast]); // Removed 'schools' from deps
+  }, [currentUser, isLoadingAuth, form, toast]); 
 
   const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setSelectedProfilePicture(file);
       setPreviewProfilePicture(URL.createObjectURL(file));
-      // form.setValue('profile_picture', file); // Not needed for direct FormData append
     }
   };
 
@@ -255,55 +252,64 @@ export default function ProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-
-    // Append core user fields ONLY IF they have changed and are not empty strings (unless email which can be empty to clear)
+    
+    // Base user fields
     if (data.username && data.username.trim() && data.username.trim() !== currentUser.username) {
       formData.append('username', data.username.trim());
     }
-    // Email can be set to empty or changed. Send if different or if explicitly empty and was not before.
-    if (data.email !== currentUser.email) { 
-        formData.append('email', data.email || ''); // Send empty string if data.email is null/undefined
+    if (data.email !== undefined && data.email !== currentUser.email) { 
+        formData.append('email', data.email || ''); 
     }
-    
-    if (data.newPassword && data.currentPassword) {
-      formData.append('password', data.newPassword); 
-      // Note: Backend needs to verify currentPassword, this form doesn't send it for user update.
-      // If password change requires current password, API needs to handle that.
+    if (data.newPassword && data.confirmNewPassword && data.newPassword === data.confirmNewPassword) {
+        formData.append('password', data.newPassword);
     }
 
-    // Append profile-specific fields
-    const appendProfileField = (key: string, value: any) => {
-        if (value !== undefined && value !== null) {
-            if (typeof value === 'boolean') {
-                formData.append(key, String(value));
-            } else if (typeof value === 'string' && value.trim() !== '') {
-                formData.append(key, value.trim());
-            } else if (typeof value === 'string' && value.trim() === '') { // Allow sending empty strings if intended to clear
-                formData.append(key, '');
-            } else if (typeof value === 'number') {
-                formData.append(key, String(value));
+    // Role-specific profile fields
+    const currentRoleProfile = currentUser.role === 'Student' ? currentUser.student_profile 
+                             : currentUser.role === 'Teacher' ? currentUser.teacher_profile
+                             : currentUser.role === 'Parent' ? currentUser.parent_profile
+                             : null;
+
+    const appendProfileFieldIfChanged = (key: string, formValue: any) => {
+        // @ts-ignore
+        const originalValue = currentRoleProfile ? currentRoleProfile[key] : undefined;
+        if (formValue !== undefined && formValue !== originalValue) {
+            if (typeof formValue === 'boolean') formData.append(key, String(formValue));
+            else if (formValue === null) formData.append(key, '');
+            else if (typeof formValue === 'string' && (formValue !== '' || (formValue === '' && originalValue !== null && originalValue !== ''))) {
+                formData.append(key, formValue);
+            } else if (typeof formValue === 'number') {
+                 formData.append(key, String(formValue));
             }
         }
     };
     
     if (currentUser.role === 'Student') {
         Object.keys(studentSpecificSchema.shape).forEach(key => {
-            const K = key as keyof typeof studentSpecificSchema.shape;
-            appendProfileField(K, data[K]);
+            // @ts-ignore
+            appendProfileFieldIfChanged(key, data[key]);
         });
     } else if (currentUser.role === 'Teacher') {
         Object.keys(teacherSpecificSchema.shape).forEach(key => {
-            const K = key as keyof typeof teacherSpecificSchema.shape;
-            if (K === 'assigned_classes_ids' || K === 'subject_expertise_ids') {
-                (data[K] as string[] | undefined)?.forEach(id => formData.append(K, id));
+            if (key === 'assigned_classes_ids' || key === 'subject_expertise_ids') {
+                // @ts-ignore
+                const originalIds = (currentRoleProfile?.[key] as (string|number)[] | undefined)?.map(String) || [];
+                // @ts-ignore
+                const formIds = (data[key] as string[] | undefined) || [];
+                if (JSON.stringify(originalIds.sort()) !== JSON.stringify(formIds.sort())) {
+                    // Clear existing M2M for these fields on backend or send all current formIds
+                    // For simplicity, backend should handle clearing and re-adding if all IDs are sent
+                    formIds.forEach(id => formData.append(key, id));
+                }
             } else {
-                appendProfileField(K, data[K]);
+                // @ts-ignore
+                appendProfileFieldIfChanged(key, data[key]);
             }
         });
     } else if (currentUser.role === 'Parent') {
          Object.keys(parentSpecificSchema.shape).forEach(key => {
-            const K = key as keyof typeof parentSpecificSchema.shape;
-            appendProfileField(K, data[K]);
+            // @ts-ignore
+            appendProfileFieldIfChanged(key, data[key]);
         });
     }
     
@@ -311,32 +317,40 @@ export default function ProfilePage() {
         formData.append('profile_picture', selectedProfilePicture);
     }
 
+    let hasUpdates = false;
+    for (const _ of formData.keys()) { // Iterate to check if any field was appended
+        hasUpdates = true;
+        break;
+    }
+
+    if (!hasUpdates) {
+        toast({ title: "No Changes Detected", description: "You haven't made any changes to your profile."});
+        setIsSubmitting(false);
+        return;
+    }
+
+
     try {
-      const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true); // true for FormData
-      setCurrentUser(prev => prev ? { 
-        ...prev, 
-        ...updatedUser, // This will update username, email etc on the user object
-        // Update nested profiles correctly
-        student_profile: updatedUser.student_profile || prev.student_profile,
-        teacher_profile: updatedUser.teacher_profile || prev.teacher_profile,
-        parent_profile: updatedUser.parent_profile || prev.parent_profile,
-      } : null);
+      const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true); 
+      setCurrentUser(updatedUserResponse); // Update AuthContext with the full new user object
+      
+      if (updatedUserResponse.profile_completed === true) { 
+        setNeedsProfileCompletion(false);
+      }
       toast({ title: "Profile Updated", description: "Your profile information has been successfully updated." });
       
-      // Update preview picture if a new one was successfully uploaded
       let newProfilePicUrl = null;
-      if (currentUser.role === 'Student' && updatedUser.student_profile?.profile_picture_url) {
-        newProfilePicUrl = updatedUser.student_profile.profile_picture_url;
-      } else if (currentUser.role === 'Teacher' && updatedUser.teacher_profile?.profile_picture_url) {
-        newProfilePicUrl = updatedUser.teacher_profile.profile_picture_url;
-      } else if (currentUser.role === 'Parent' && updatedUser.parent_profile?.profile_picture_url) {
-        newProfilePicUrl = updatedUser.parent_profile.profile_picture_url;
+      if (updatedUserResponse.role === 'Student' && updatedUserResponse.student_profile?.profile_picture_url) {
+        newProfilePicUrl = updatedUserResponse.student_profile.profile_picture_url;
+      } else if (updatedUserResponse.role === 'Teacher' && updatedUserResponse.teacher_profile?.profile_picture_url) {
+        newProfilePicUrl = updatedUserResponse.teacher_profile.profile_picture_url;
+      } else if (updatedUserResponse.role === 'Parent' && updatedUserResponse.parent_profile?.profile_picture_url) {
+        newProfilePicUrl = updatedUserResponse.parent_profile.profile_picture_url;
       }
       if (newProfilePicUrl) {
         setPreviewProfilePicture(newProfilePicUrl);
       }
-
-      setSelectedProfilePicture(null); // Reset selected file
+      setSelectedProfilePicture(null); 
 
     } catch (error: any) {
         let errorMessage = "Could not update profile.";
@@ -361,17 +375,17 @@ export default function ProfilePage() {
     }
   };
   
-  const handleLogout = () => { logout(); }; // AuthContext should handle redirect
+  const handleLogout = () => { logout(); }; 
 
   if (isPageLoading || isLoadingAuth) {
     return <div className="max-w-3xl mx-auto space-y-8 p-4"><Skeleton className="h-24 w-full rounded-xl" /><Skeleton className="h-64 w-full rounded-xl" /><Skeleton className="h-48 w-full rounded-xl" /></div>;
   }
   if (!currentUser) {
-    // This case should ideally be handled by AuthContext redirecting to login
     return <div className="max-w-3xl mx-auto text-center py-10"><p>Please log in to view your profile.</p><Button onClick={() => window.location.href = '/login'} className="mt-4">Login</Button></div>;
   }
 
-  const defaultAvatarText = (form.getValues('username') || currentUser.username || 'U').charAt(0).toUpperCase();
+  const cardTitleName = form.watch('full_name') || (currentUser.role === 'Student' ? currentUser.student_profile?.full_name : currentUser.role === 'Teacher' ? currentUser.teacher_profile?.full_name : currentUser.role === 'Parent' ? currentUser.parent_profile?.full_name : null) || currentUser.username;
+  const defaultAvatarText = (cardTitleName || 'U').charAt(0).toUpperCase();
   const avatarSrc = previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`;
 
 
@@ -406,12 +420,12 @@ export default function ProfilePage() {
                     />
                 </div>
                 <div className="text-center sm:text-left">
-                  <CardTitle className="text-2xl">{form.watch('username') || currentUser.username}</CardTitle>
+                  <CardTitle className="text-2xl">{cardTitleName}</CardTitle>
                   <div className="mt-1 space-y-0.5">
                     <CardDescription className="flex items-center justify-center sm:justify-start gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> {form.watch('email') || currentUser.email}</CardDescription>
                     <CardDescription className="flex items-center justify-center sm:justify-start gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" /> Role: <span className="capitalize font-medium text-primary">{currentUser.role}</span></CardDescription>
-                    {currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.school_name && (
-                         <CardDescription className="flex items-center justify-center sm:justify-start gap-2"><Building className="h-4 w-4 text-muted-foreground" /> Admin for: <span className="font-medium">{currentUser.school_name}</span></CardDescription>
+                    {currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school?.name && (
+                         <CardDescription className="flex items-center justify-center sm:justify-start gap-2"><Building className="h-4 w-4 text-muted-foreground" /> Admin for: <span className="font-medium">{currentUser.administered_school.name}</span></CardDescription>
                     )}
                   </div>
                 </div>
@@ -438,14 +452,14 @@ export default function ProfilePage() {
                         <FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="school_id" render={({ field }) => (
                             <FormItem><FormLabel>School</FormLabel>
-                                <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('enrolled_class_id', ''); }} value={field.value ?? ""}>
+                                <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('enrolled_class_id', undefined); }} value={field.value ?? undefined}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger></FormControl>
                                 <SelectContent>{schools.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage />
                             </FormItem>)} />
                         <FormField control={form.control} name="enrolled_class_id" render={({ field }) => (
                             <FormItem><FormLabel>Enrolled Class</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value ?? ""} disabled={!selectedSchoolId || classes.length === 0}>
+                                <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={!selectedSchoolId || classes.length === 0}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger></FormControl>
                                 <SelectContent>{classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage />
@@ -478,7 +492,7 @@ export default function ProfilePage() {
                         <FormField control={form.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="school_id" render={({ field }) => (
                             <FormItem><FormLabel>School</FormLabel>
-                                <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('assigned_classes_ids', []); }} value={field.value ?? ""}>
+                                <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('assigned_classes_ids', []); }} value={field.value ?? undefined}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger></FormControl>
                                 <SelectContent>{schools.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage />
@@ -548,6 +562,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-    

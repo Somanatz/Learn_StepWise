@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ParentStudentLinkAPI } from '@/interfaces';
+import type { ParentStudentLinkAPI, StudentProfileData, User } from '@/interfaces';
 
 
 interface DisplayChild {
@@ -27,9 +27,10 @@ interface DisplayChild {
   studentId: string;
   name: string;
   avatarUrl?: string;
-  classLevel: number;
-  overallProgress: number; 
-  lastActivity?: string; 
+  classLevel: number | string; // Can be string like "Class 5" or number
+  overallProgress: number;
+  lastActivity?: string;
+  studentProfile?: StudentProfileData;
 }
 
 const linkChildSchema = z.object({
@@ -71,13 +72,14 @@ export default function MyChildrenPage() {
       }
       
       const displayChildren: DisplayChild[] = actualLinks.map(link => ({
-        id: String(link.id), 
-        studentId: String(link.student), 
-        name: link.student_username || "Unknown Student",
-        avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_username || "U").charAt(0)}`, 
-        classLevel: link.student_details?.enrolled_class_name ? parseInt(link.student_details.enrolled_class_name.match(/\d+/)?.[0] || '0') : 0,
-        overallProgress: Math.floor(Math.random() * 50) + 50, 
-        lastActivity: "Mocked Activity", 
+        id: String(link.id),
+        studentId: String(link.student),
+        name: link.student_details?.full_name || link.student_username || "Unknown Student",
+        avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_details?.full_name || link.student_username || "U").charAt(0).toUpperCase()}`,
+        classLevel: link.student_details?.enrolled_class_name || (link.student_details?.enrolled_class ? `Class ${link.student_details.enrolled_class}` : 'N/A'),
+        overallProgress: Math.floor(Math.random() * 50) + 50, // TODO: Replace with actual progress data from API if available
+        lastActivity: "Mocked: Logged In", // TODO: Replace with actual last activity data
+        studentProfile: link.student_details,
       }));
       setLinkedChildren(displayChildren);
     } catch (err) {
@@ -89,7 +91,11 @@ export default function MyChildrenPage() {
   };
 
   useEffect(() => {
-    fetchLinkedChildren();
+    if (currentUser) { // Only fetch if currentUser is available
+        fetchLinkedChildren();
+    } else {
+        setIsLoading(false); // Not logged in or role mismatch
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
@@ -97,14 +103,19 @@ export default function MyChildrenPage() {
     if (!currentUser) return;
     setIsLinking(true);
     try {
-      // Backend now directly links if verification passes.
-      const linkedStudentData = await api.post('/parent-student-links/link-child-by-admission/', {
-        admission_number: data.student_admission_number,
-        school_id_code: data.student_school_id_code,
-      });
+      const linkedStudentData = await api.post<{link_id: number; message: string; student_details: StudentProfileData}>(
+        '/parent-student-links/link-child-by-admission/', 
+        {
+          admission_number: data.student_admission_number,
+          school_id_code: data.student_school_id_code,
+        }
+      );
 
-      toast({ title: "Child Linked Successfully!", description: `${linkedStudentData.student_full_name || linkedStudentData.student_username} is now linked.` });
-      fetchLinkedChildren(); 
+      toast({ 
+        title: "Child Linked Successfully!", 
+        description: `${linkedStudentData.student_details?.full_name || 'The student'} is now linked. ${linkedStudentData.message || ''}` 
+      });
+      fetchLinkedChildren(); // Re-fetch the list to include the new child
       setIsLinkChildDialogOpen(false);
       form.reset();
     } catch (err: any) {
@@ -147,7 +158,7 @@ export default function MyChildrenPage() {
   }
 
   if (error) {
-     return <Card className="text-center py-10"><CardContent><AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" /><CardTitle>Error Loading Children</CardTitle><CardDescription>{error}</CardDescription></CardContent></Card>;
+     return <Card className="text-center py-10"><CardContent><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><CardTitle>Error Loading Children</CardTitle><CardDescription>{error}</CardDescription></CardContent></Card>;
   }
 
   return (
@@ -159,7 +170,7 @@ export default function MyChildrenPage() {
         </div>
         <Dialog open={isLinkChildDialogOpen} onOpenChange={setIsLinkChildDialogOpen}>
             <DialogTrigger asChild>
-                <Button size="lg" onClick={() => setIsLinkChildDialogOpen(true)}>
+                <Button size="lg" onClick={() => { form.reset(); setIsLinkChildDialogOpen(true); }}>
                     <PlusCircle className="mr-2 h-5 w-5" /> Link Another Child
                 </Button>
             </DialogTrigger>
@@ -216,11 +227,11 @@ export default function MyChildrenPage() {
               <CardHeader className="flex flex-row items-center space-x-4">
                 <Avatar className="h-20 w-20 border-2 border-primary">
                   <AvatarImage src={child.avatarUrl} alt={child.name} data-ai-hint="child avatar"/>
-                  <AvatarFallback>{child.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  <AvatarFallback>{child.name ? child.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'S'}</AvatarFallback>
                 </Avatar>
                 <div>
                   <CardTitle className="text-2xl">{child.name}</CardTitle>
-                  <CardDescription>Class {child.classLevel || 'N/A'}</CardDescription>
+                  <CardDescription>{typeof child.classLevel === 'number' && child.classLevel > 0 ? `Class ${child.classLevel}` : child.classLevel || 'N/A'}</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 flex-grow">
@@ -257,7 +268,7 @@ export default function MyChildrenPage() {
             <CardDescription>It looks like you haven't linked any children to your account yet.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button size="lg" onClick={() => setIsLinkChildDialogOpen(true)}>
+            <Button size="lg" onClick={() => { form.reset(); setIsLinkChildDialogOpen(true);}}>
               <PlusCircle className="mr-2 h-5 w-5" /> Link Your First Child
             </Button>
           </CardContent>
@@ -266,3 +277,4 @@ export default function MyChildrenPage() {
     </div>
   );
 }
+
