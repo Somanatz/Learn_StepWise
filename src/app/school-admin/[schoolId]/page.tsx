@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { School, Event as EventInterface, CustomUser, Class } from '@/interfaces';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
 
 interface StatCardProps { title: string; value: string | number; icon: React.ElementType; note?: string; href?: string; }
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, note, href }) => {
@@ -46,11 +47,23 @@ export default function SchoolAdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!schoolId || isLoadingAuth) return;
+    if (!schoolId || isLoadingAuth) {
+      if (isLoadingAuth) setIsLoadingPage(true); // Ensure loading page shows if auth is still loading
+      return;
+    }
+    
+    // Initial check to see if currentUser is loaded
+    if (!currentUser) {
+        // If auth is done but no user, could redirect or show error, for now we wait for currentUser.
+        // This case might be hit if AuthContext is slow to update immediately.
+        setIsLoadingPage(true); 
+        return;
+    }
 
-    if (currentUser && (!currentUser.is_school_admin || String(currentUser.administered_school?.id) !== schoolId)) {
+    if (currentUser.role !== 'Admin' || !currentUser.is_school_admin || String(currentUser.administered_school?.id) !== schoolId) {
       setError("Access Denied: You do not have permission to view this school's admin dashboard.");
       setIsLoadingPage(false);
+      // Consider router.push('/login') or router.push('/') if access is denied.
       return;
     }
     
@@ -59,29 +72,34 @@ export default function SchoolAdminDashboard() {
 
     Promise.all([
       api.get<School>(`/schools/${schoolId}/`),
-      api.get<{ count: number } | CustomUser[]>(`/users/?school=${schoolId}&role=Student&page_size=1`), // just need count
-      api.get<{ count: number, results: CustomUser[] } | CustomUser[]>(`/users/?school=${schoolId}&role=Teacher&page_size=5`), // get a few teachers
+      api.get<{ count: number } | CustomUser[]>(`/users/?school=${schoolId}&role=Student&page_size=1`),
+      api.get<{ count: number, results: CustomUser[] } | CustomUser[]>(`/users/?school=${schoolId}&role=Teacher&page_size=5`),
       api.get<EventInterface[] | { results: EventInterface[] }>(`/events/?school=${schoolId}&ordering=-date&page_size=5`)
     ]).then(([schoolData, studentsResponse, teachersResponse, eventsResponse]) => {
       setSchoolDetails(schoolData);
 
       if (typeof (studentsResponse as { count: number }).count === 'number') {
         setStudentCount((studentsResponse as { count: number }).count);
+      } else if (Array.isArray(studentsResponse)) {
+        setStudentCount((studentsResponse as CustomUser[]).length);
       } else {
-        setStudentCount((studentsResponse as CustomUser[]).length); // Fallback if not paginated/no count
+        setStudentCount(0); // Default if format is unexpected
       }
       
       let actualTeachers: CustomUser[];
       if (typeof (teachersResponse as { count: number, results: CustomUser[] }).count === 'number') {
         setTeacherCount((teachersResponse as { count: number, results: CustomUser[] }).count);
-        actualTeachers = (teachersResponse as { count: number, results: CustomUser[] }).results;
-      } else {
+        actualTeachers = (teachersResponse as { count: number, results: CustomUser[] }).results || [];
+      } else if (Array.isArray(teachersResponse)) {
         actualTeachers = teachersResponse as CustomUser[];
         setTeacherCount(actualTeachers.length);
+      } else {
+        actualTeachers = [];
+        setTeacherCount(0);
       }
       setTeachers(actualTeachers);
       
-      const actualEvents = Array.isArray(eventsResponse) ? eventsResponse : eventsResponse.results || [];
+      const actualEvents = Array.isArray(eventsResponse) ? eventsResponse : (eventsResponse as {results: EventInterface[]}).results || [];
       setEvents(actualEvents);
 
     }).catch(err => {
@@ -112,17 +130,28 @@ export default function SchoolAdminDashboard() {
   
   if (error) {
     return (
-      <Card className="m-6 p-6 text-center">
-        <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-2" />
-        <CardTitle>Error</CardTitle>
-        <CardDescription>{error}</CardDescription>
-        <Button onClick={() => router.push('/')} className="mt-4">Go to My Dashboard</Button>
+      <Card className="m-6 p-6 text-center bg-destructive/10 border-destructive rounded-xl shadow-lg">
+        <CardHeader>
+            <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <CardTitle className="text-xl font-semibold">Access Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <CardDescription className="text-destructive-foreground">{error}</CardDescription>
+            <Button onClick={() => router.push('/')} className="mt-6" variant="outline">
+                Go to Homepage
+            </Button>
+        </CardContent>
       </Card>
     );
   }
 
   if (!schoolDetails) {
-    return <Card className="m-6 p-6 text-center"><CardTitle>School Not Found</CardTitle></Card>;
+    return (
+        <Card className="m-6 p-6 text-center rounded-xl shadow-lg">
+            <CardHeader><SchoolIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><CardTitle>School Not Found</CardTitle></CardHeader>
+            <CardContent><CardDescription>The requested school details could not be loaded.</CardDescription></CardContent>
+        </Card>
+    );
   }
 
   const upcomingEvents = events.filter(e => new Date(e.date) >= new Date());
@@ -135,7 +164,7 @@ export default function SchoolAdminDashboard() {
              <SchoolIcon size={52} className="flex-shrink-0"/>
             <div className="flex-grow">
                 <CardTitle className="text-4xl font-bold">{schoolDetails.name}</CardTitle>
-                <CardDescription className="text-primary-foreground/80 text-lg mt-1">School Administration Dashboard</CardDescription>
+                <CardDescription className="text-primary-foreground/80 text-lg mt-1">School Administration Dashboard (ID: {schoolId})</CardDescription>
             </div>
             <Button variant="secondary" size="lg" asChild className="mt-4 sm:mt-0 self-start sm:self-center">
               <Link href={`/school-admin/${schoolId}/settings`}><Settings className="mr-2"/>School Settings</Link>
@@ -169,7 +198,7 @@ export default function SchoolAdminDashboard() {
                         <div key={event.id} className="p-3 border rounded-lg bg-card hover:border-primary transition-colors">
                             <div className="flex justify-between items-start">
                                 <h4 className="font-semibold">{event.title}</h4>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${event.type === 'Exam' ? 'bg-red-100 text-red-700' : event.type === 'Holiday' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{event.type}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${event.type === 'Exam' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' : event.type === 'Holiday' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'}`}>{event.type}</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(event.date), "PPP")}</p>
                             {event.description && <p className="text-sm mt-1 text-muted-foreground truncate">{event.description}</p>}
