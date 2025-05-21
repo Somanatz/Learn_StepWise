@@ -1,8 +1,10 @@
+
 // src/components/layout/Header.tsx
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide, LayoutDashboard } from 'lucide-react';
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide, LayoutDashboard, Award, MessageSquare, Lightbulb } from 'lucide-react'; // Added Award, MessageSquare, Lightbulb
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
@@ -10,7 +12,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import type { User, UserRole } from '@/interfaces'; // Added User type
+import type { User, UserRole } from '@/interfaces';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -21,20 +23,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Logo from '@/components/shared/Logo';
+import { useTheme } from '@/context/ThemeContext';
 
-const allNavLinks: NavLink[] = [
-  { href: '/student/rewards', label: 'Rewards', roles: ['Student'], authRequired: true },
-  { href: '/forum', label: 'Forum', authRequired: true },
-  { href: '/student/recommendations', label: 'Suggestions', roles: ['Student'], authRequired: true },
-];
 
 interface NavLink {
   href: string;
-  label: string;
+  label:string;
   roles?: UserRole[];
   authRequired?: boolean;
   guestOnly?: boolean;
+  icon: LucideIcon; // Icon is now mandatory for these styled links
+  desktopHoverClasses: string;
+  mobileHoverClasses: string;
 }
+
+const allNavLinks: NavLink[] = [
+  {
+    href: '/student/rewards',
+    label: 'Rewards',
+    roles: ['Student'],
+    authRequired: true,
+    icon: Award,
+    desktopHoverClasses: 'hover:bg-primary/15 hover:text-primary',
+    mobileHoverClasses: 'hover:bg-primary/15 hover:text-primary',
+  },
+  {
+    href: '/forum',
+    label: 'Forum',
+    authRequired: true,
+    icon: MessageSquare,
+    desktopHoverClasses: 'hover:bg-accent/15 hover:text-accent',
+    mobileHoverClasses: 'hover:bg-accent/15 hover:text-accent',
+  },
+  {
+    href: '/student/recommendations',
+    label: 'Suggestions',
+    roles: ['Student'],
+    authRequired: true,
+    icon: Lightbulb,
+    desktopHoverClasses: 'hover:bg-secondary hover:text-secondary-foreground',
+    mobileHoverClasses: 'hover:bg-secondary hover:text-secondary-foreground',
+  },
+];
+
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,6 +73,8 @@ export default function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { currentUser, isLoadingAuth, logout } = useAuth();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
 
   const isAuthPage = pathname === '/login' ||
                      pathname === '/signup' ||
@@ -65,7 +98,7 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    // router.push('/login'); // AuthContext handles redirect or main page logic does
   };
 
   const getDashboardPath = (user: User | null): string => {
@@ -93,36 +126,61 @@ export default function Header() {
     if (isLoadingAuth) return false;
     if (currentUser) {
       if (link.guestOnly) return false;
-      if (link.authRequired === false) return true;
-      if (!link.roles && link.authRequired) return true;
+      if (link.authRequired === false) return true; // Explicitly public links for logged-in users
+      if (!link.roles && link.authRequired) return true; // Generic authenticated links
       return link.roles && link.roles.includes(currentUser.role as UserRole);
     } else {
-      return !link.authRequired || link.guestOnly;
+      return !link.authRequired || link.guestOnly; // Links for guests or explicitly public
     }
   });
 
+
+  // Placeholder for SSR and initial client render before 'mounted' is true
   if (!mounted) {
-    // Simplified SSR/Initial Client Render Placeholder
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          {/* Logo Placeholder */}
-          <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="bg-muted rounded animate-pulse opacity-70"></div>
-
-          <div className="flex-grow"></div> {/* Spacer */}
-
-          {/* Right side placeholders */}
+          <div className="flex items-center gap-4">
+            {/* Logo Placeholder */}
+            <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="bg-muted rounded animate-pulse opacity-70"></div>
+            {/* Theme Toggle Placeholder */}
+            <div className="h-8 w-8 rounded-md bg-muted animate-pulse opacity-70"></div>
+          </div>
+          {/* Nav Links Placeholder */}
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse opacity-70"></div> {/* Theme/User placeholder */}
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse opacity-70 md:hidden"></div> {/* Mobile menu placeholder */}
+             {/* Simplified: Three generic placeholders for potential nav items */}
+            <div className="h-8 w-20 rounded-md bg-muted animate-pulse opacity-70"></div>
+            <div className="h-8 w-20 rounded-md bg-muted animate-pulse opacity-70"></div>
+            <div className="h-8 w-20 rounded-md bg-muted animate-pulse opacity-70"></div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* Search Placeholder */}
+            <div className="h-9 w-24 rounded-md bg-muted animate-pulse opacity-70"></div>
+            {/* User Icon/Buttons Placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse opacity-70"></div>
+            {/* Mobile Menu Toggle Placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse opacity-70 md:hidden"></div>
           </div>
         </div>
       </header>
     );
   }
+  
+  const ThemeToggleButton = () => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </Button>
+  );
 
   const DashboardLink = ({ isMobile = false }: { isMobile?: boolean }) => {
     if (!currentUser || shouldHideMainHeaderElements) return null;
+    const isActive = pathname === dashboardPath || (dashboardPath !== '/' && pathname.startsWith(dashboardPath) && dashboardPath.split('/').length <= pathname.split('/').length);
+
     return (
       <Link
         href={dashboardPath}
@@ -131,10 +189,9 @@ export default function Header() {
           isMobile
             ? "block w-full text-left px-4 py-3 text-base rounded-md"
             : "px-4 py-2 text-sm rounded-lg",
-          (pathname === dashboardPath || (dashboardPath !== '/' && pathname.startsWith(dashboardPath)))
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-primary",
-          !isMobile && (pathname === dashboardPath || (dashboardPath !== '/' && pathname.startsWith(dashboardPath))) && "ring-1 ring-primary/20"
+          isActive
+            ? (isMobile ? "bg-primary/10 text-primary" : "bg-primary/10 text-primary ring-1 ring-primary/20")
+            : "text-muted-foreground hover:bg-primary/15 hover:text-primary"
         )}
         onClick={() => isMobile && setIsMobileMenuOpen(false)}
       >
@@ -146,45 +203,50 @@ export default function Header() {
 
   const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => (
     <>
-      {visibleNavLinks.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={cn(
-            "font-medium transition-all duration-150 ease-in-out flex items-center",
-            isMobile
-              ? "block w-full text-left px-4 py-3 text-base rounded-md"
-              : "px-4 py-2 text-sm rounded-lg",
-            pathname === link.href
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-primary",
-            !isMobile && pathname === link.href && "ring-1 ring-primary/20"
-          )}
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
-        >
-          {link.label}
-        </Link>
-      ))}
+      {visibleNavLinks.map((link) => {
+        const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/' && link.href.length > 1);
+        const Icon = link.icon;
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={cn(
+              "font-medium transition-all duration-150 ease-in-out flex items-center gap-2",
+              isMobile
+                ? "block w-full text-left px-4 py-3 text-base rounded-md"
+                : "px-4 py-2 text-sm rounded-lg",
+              isActive
+                ? (isMobile ? "bg-primary/10 text-primary" : "bg-primary/10 text-primary ring-1 ring-primary/20")
+                : `text-muted-foreground ${isMobile ? link.mobileHoverClasses : link.desktopHoverClasses}`
+            )}
+            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+          >
+            <Icon className="h-4 w-4" />
+            {link.label}
+          </Link>
+        );
+      })}
     </>
   );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <Logo />
-          {/* Theme toggle button is now in settings pages */}
+          <ThemeToggleButton />
         </div>
 
         {!shouldHideMainHeaderElements && (
-          <nav className="hidden md:flex items-center space-x-2">
+          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {!isLoadingAuth && <DashboardLink />}
             {!isLoadingAuth && <NavItems />}
             {isLoadingAuth && (
               <>
-                <Skeleton className="h-8 w-24 rounded-md" /> {/* Dashboard Link Skeleton */}
-                <Skeleton className="h-8 w-20 rounded-md" />
-                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-8 w-28 rounded-md" /> {/* Dashboard Link Skeleton */}
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-24 rounded-md" />
               </>
             )}
           </nav>
@@ -197,9 +259,8 @@ export default function Header() {
             </div>
         )}
 
-
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {!isUnauthenticatedHomepage && !isAuthPage && !isProfileCompletionPage && (
+          {!shouldHideMainHeaderElements && (
             <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Search platform..." className="pl-10 h-9 w-[100px] lg:w-[200px]" />
@@ -228,19 +289,19 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
               {!isAuthPage && pathname !== '/register-school' && (
-                 <Button variant="outline" asChild>
+                 <Button variant="outline" size="sm" asChild>
                     <Link href="/register-school"><SchoolIconLucide className="mr-2 h-4 w-4" />Register School</Link>
                  </Button>
               )}
               {pathname !== '/login' && (
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" size="sm" asChild>
                   <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
                 </Button>
               )}
               {pathname !== '/signup' && (
-                <Button variant="default" asChild>
+                <Button variant="default" size="sm" asChild>
                   <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                 </Button>
               )}
@@ -256,8 +317,12 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
                  <SheetHeader className="p-4 border-b">
-                  <SheetTitle className="sr-only">Main Menu</SheetTitle> {/* For accessibility */}
-                  <Logo />
+                   <div className="flex justify-between items-center">
+                     <Logo />
+                     <ThemeToggleButton />
+                   </div>
+                   {/* Visually hidden title for accessibility */}
+                   <SheetTitle className="sr-only">Main Menu</SheetTitle>
                 </SheetHeader>
 
                 <nav className="flex flex-col space-y-1 p-4">
@@ -267,24 +332,26 @@ export default function Header() {
                       <>
                         <Skeleton className="h-10 w-full rounded-md mb-1" /> {/* Dashboard Link Skeleton */}
                         <Skeleton className="h-10 w-full rounded-md mb-1" />
+                        <Skeleton className="h-10 w-full rounded-md mb-1" />
                         <Skeleton className="h-10 w-full rounded-md" />
                       </>
                   )}
                 </nav>
 
                 <div className={cn("mt-auto p-4 border-t space-y-4", (isLoadingAuth || shouldHideMainHeaderElements) && "pt-4")}>
+                  {!shouldHideMainHeaderElements && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input type="search" placeholder="Search platform..." className="pl-10 h-9 w-full" />
+                    </div>
+                  )}
                   {isUnauthenticatedHomepage && (
                      <div className="relative">
                         <SchoolIconLucide className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input type="search" placeholder="Find a School..." className="pl-10 h-9 w-full" />
                     </div>
                   )}
-                  {!isUnauthenticatedHomepage && !isAuthPage && !isProfileCompletionPage && (
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input type="search" placeholder="Search platform..." className="pl-10 h-9 w-full" />
-                    </div>
-                  )}
+
                   {isLoadingAuth ? (
                     <Skeleton className="h-10 w-full rounded-md" />
                   ) : currentUser ? (
@@ -297,7 +364,7 @@ export default function Header() {
                       </Button>
                     </>
                   ) : (
-                    <>
+                    <div className="space-y-2">
                      {!isAuthPage && pathname !== '/register-school' && (
                         <Button variant="outline" size="sm" className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
                            <Link href="/register-school"><SchoolIconLucide className="mr-2 h-4 w-4" />Register School</Link>
@@ -313,7 +380,7 @@ export default function Header() {
                           <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" />Sign Up</Link>
                         </Button>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               </SheetContent>
