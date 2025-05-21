@@ -4,14 +4,14 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react'; // Added MessageSquare
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
 import { Button } from '@/components/ui/button';
-import Logo from '@/components/shared/Logo'; // Import the Logo component
+import Logo from '@/components/shared/Logo'; 
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -89,7 +89,7 @@ const FixedBackground = () => (
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 100); // Small delay to ensure animation triggers
+    const timer = setTimeout(() => setIsMounted(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -99,19 +99,19 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
       {/* Decorative Images Container */}
-      <div className="relative w-full max-w-6xl mx-auto h-full">
+      <div className="absolute inset-0 w-full h-full">
         {isMounted && (
           <>
-            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-36 md:h-36 top-10 left-5 sm:left-1/4 md:left-1/4 opacity-80", textBaseClasses, "animation-delay-200")}>
+            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-36 md:h-36 top-10 left-5 sm:top-1/4 sm:left-1/6 md:top-20 md:left-1/4 opacity-80", textBaseClasses, "animation-delay-200")}>
               <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-32 md:h-32 bottom-10 right-5 sm:right-1/4 md:right-1/4 opacity-70", textBaseClasses, "animation-delay-400")}>
+            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-32 md:h-32 bottom-10 right-5 sm:bottom-1/4 sm:right-1/6 md:bottom-20 md:right-1/4 opacity-70", textBaseClasses, "animation-delay-400")}>
               <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 top-1/3 right-10 md:right-1/5 opacity-90", textBaseClasses, "animation-delay-600")}>
+            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 top-1/3 right-10 md:top-1/4 md:right-1/5 opacity-90", textBaseClasses, "animation-delay-600")}>
               <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/5 opacity-60", textBaseClasses, "animation-delay-800")}>
+            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 bottom-1/4 left-10 md:bottom-1/3 md:left-1/5 opacity-60", textBaseClasses, "animation-delay-800")}>
               <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
             </div>
           </>
@@ -119,9 +119,13 @@ const HeroSection = () => {
       </div>
 
       {/* Central Text Content */}
-      <div className={cn("absolute inset-0 flex flex-col items-center justify-center z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
-        <div className="mb-8"> {/* Wrapper for the logo */}
-            <Logo /> {/* Application Logo */}
+      <div className={cn(
+          "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8", 
+          isMounted ? textBaseClasses : 'opacity-0'
+        )} style={{ animationDelay: isMounted ? '0.1s' : undefined }}
+      >
+        <div className="mb-8"> 
+            <Logo /> 
         </div>
         <h1
           className={cn(
@@ -135,7 +139,7 @@ const HeroSection = () => {
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-primary", // Changed to text-primary (skyblue)
+            "text-base sm:text-xl text-primary",
             "font-medium",
             "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
@@ -150,13 +154,13 @@ const HeroSection = () => {
 };
 
 const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative z-0 bg-card/80 backdrop-blur-sm"> {/* Changed from bg-background/80 */}
+  <div className="relative z-0 bg-card/80 backdrop-blur-sm">
     {children}
   </div>
 );
 
 export default function UnifiedDashboardPage() {
-  const { currentUser, isLoadingAuth, needsProfileCompletion } = useAuth();
+  const { currentUser, isLoadingAuth, needsProfileCompletion, currentUserRole } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -167,17 +171,25 @@ export default function UnifiedDashboardPage() {
             else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
             else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
               router.push(`/school-admin/${currentUser.administered_school.id}`);
+            } else {
+              // If profile is complete or role doesn't require specific completion, go to main dashboard
+              if (currentUserRole === 'Student') router.push('/student');
+              else if (currentUserRole === 'Teacher') router.push('/teacher');
+              else if (currentUserRole === 'Parent') router.push('/parent');
+              else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
+                router.push(`/school-admin/${currentUser.administered_school.id}`);
+              }
             }
-        } else {
-            if (currentUser.role === 'Student') router.push('/student');
-            else if (currentUser.role === 'Teacher') router.push('/teacher');
-            else if (currentUser.role === 'Parent') router.push('/parent');
-            else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
+        } else { // Profile is complete, redirect to role dashboard
+            if (currentUserRole === 'Student') router.push('/student');
+            else if (currentUserRole === 'Teacher') router.push('/teacher');
+            else if (currentUserRole === 'Parent') router.push('/parent');
+            else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
               router.push(`/school-admin/${currentUser.administered_school.id}`);
             }
         }
     }
-  }, [isLoadingAuth, currentUser, needsProfileCompletion, router, currentUser?.role, currentUser?.is_school_admin, currentUser?.administered_school]);
+  }, [isLoadingAuth, currentUser, needsProfileCompletion, currentUserRole, router]);
 
 
   if (isLoadingAuth) {
@@ -267,11 +279,17 @@ export default function UnifiedDashboardPage() {
     );
   }
 
-  return (
-     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
-        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Preparing Your Dashboard...</p>
-    </div>
-  );
+  // Fallback for authenticated users waiting for redirection logic to complete
+  // This prevents rendering anything briefly before redirection.
+  if (currentUser && !isLoadingAuth) {
+     return (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+            <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Preparing Your Dashboard...</p>
+        </div>
+    );
+  }
+
+  return null; // Should not be reached if logic is correct
 }
