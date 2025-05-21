@@ -49,8 +49,8 @@ class SchoolSerializer(serializers.ModelSerializer):
                 password=admin_password,
                 role='Admin',
                 is_school_admin=True,
-                is_staff=True,
-                is_active=True # Explicitly set as active
+                is_staff=False, # School admins are not Django staff by default
+                is_active=True
             )
         except Exception as e: 
             raise serializers.ValidationError({"admin_user_creation": str(e)})
@@ -70,7 +70,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = '__all__' 
-        read_only_fields = ['user', 'profile_picture_url']
+        read_only_fields = ['user', 'profile_picture_url', 'school_name', 'enrolled_class_name']
         extra_kwargs = {
             'school': {'required': False, 'allow_null': True},
             'enrolled_class': {'required': False, 'allow_null': True},
@@ -95,7 +95,7 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherProfile
         fields = '__all__'
-        read_only_fields = ['user', 'profile_picture_url']
+        read_only_fields = ['user', 'profile_picture_url', 'school_name', 'assigned_classes_details', 'subject_expertise_details']
         extra_kwargs = {
             'school': {'required': False, 'allow_null': True},
             'assigned_classes': {'required': False},
@@ -137,20 +137,20 @@ class ParentProfileSerializer(serializers.ModelSerializer):
         return None
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    # Pass context to nested serializers if they use SerializerMethodField relying on request
     student_profile = StudentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
     teacher_profile = TeacherProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
     parent_profile = ParentProfileSerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
     school_name = serializers.CharField(source='school.name', read_only=True, allow_null=True)
     school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True, allow_null=True, required=False)
     profile_completed = serializers.SerializerMethodField()
+    administered_school = SchoolSerializer(read_only=True, allow_null=True) # For school admin user details
 
 
     class Meta:
         model = CustomUser
         fields = [
             'id', 'username', 'email', 'role', 'password', 'is_school_admin',
-            'school_id', 'school_name', 
+            'school_id', 'school_name', 'administered_school',
             'student_profile', 'teacher_profile', 'parent_profile',
             'profile_completed',
         ]
@@ -165,7 +165,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             return obj.teacher_profile.profile_completed
         elif obj.role == 'Parent' and hasattr(obj, 'parent_profile') and obj.parent_profile:
             return obj.parent_profile.profile_completed
-        return False # Default or for Admin roles (non-school admin)
+        return False 
 
     def create(self, validated_data):
         user = CustomUser.objects.create_user(**validated_data)
@@ -205,9 +205,8 @@ class UserSignupSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             role=validated_data['role'],
-            is_active=True # Explicitly set as active
+            is_active=True 
         )
-        # Create empty profile based on role with profile_completed=False
         if user.role == 'Student':
             StudentProfile.objects.create(user=user, profile_completed=False)
         elif user.role == 'Teacher':
@@ -282,4 +281,3 @@ class ParentProfileCompletionSerializer(serializers.ModelSerializer):
         model = ParentProfile
         fields = ['full_name', 'mobile_number', 'address', 'profile_picture', 'profile_completed']
         read_only_fields = ['user']
-

@@ -13,29 +13,31 @@ from .serializers import (
     SchoolSerializer, StudentProfileSerializer, TeacherProfileSerializer, ParentProfileSerializer,
     StudentProfileCompletionSerializer, TeacherProfileCompletionSerializer, ParentProfileCompletionSerializer
 )
-from .permissions import IsParent, IsTeacher, IsTeacherOrReadOnly
+from .permissions import IsParent, IsTeacher, IsTeacherOrReadOnly, IsAdminOfThisSchoolOrPlatformStaff
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 
 
 class SchoolViewSet(viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_fields = ['name', 'school_id_code']
 
     def get_permissions(self):
         if self.action == 'create':
             self.permission_classes = [permissions.AllowAny]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [permissions.IsAdminUser] # Or a custom IsSchoolAdminOfThisSchool
+        elif self.action in ['update', 'partial_update']:
+            # Uses IsAdminOfThisSchoolOrPlatformStaff for object-level permission
+            self.permission_classes = [permissions.IsAuthenticated, IsAdminOfThisSchoolOrPlatformStaff]
+        elif self.action == 'destroy':
+            self.permission_classes = [permissions.IsAdminUser] # Only platform staff/superusers can delete
         else: # list, retrieve
             self.permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         return super().get_permissions()
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all().select_related('student_profile', 'teacher_profile', 'parent_profile', 'school')
+    queryset = CustomUser.objects.all().select_related('student_profile', 'teacher_profile', 'parent_profile', 'school', 'administered_school')
     serializer_class = CustomUserSerializer
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_fields = ['role', 'username', 'email', 'school'] 
@@ -68,23 +70,21 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user != request.user and not request.user.is_staff: 
             raise PermissionDenied("You can only update your own profile or you lack staff permissions.")
 
-        # Make a mutable copy of request.data
         profile_data_from_request = request.data.copy()
         
-        # Handle CustomUser fields (username, email, password)
         custom_user_update_data = {}
         if 'username' in profile_data_from_request and profile_data_from_request['username'] and profile_data_from_request['username'] != user.username:
-            # FormData sends values as list if not a file, take first item
-            custom_user_update_data['username'] = profile_data_from_request.pop('username')[0] if isinstance(profile_data_from_request.get('username'), list) else profile_data_from_request.pop('username')
+            username_val = profile_data_from_request.pop('username')
+            custom_user_update_data['username'] = (username_val[0] if isinstance(username_val, list) else username_val)
         
-        # For email, allow it to be updated even if it becomes an empty string (to clear it)
         if 'email' in profile_data_from_request and profile_data_from_request['email'] != user.email:
             email_val = profile_data_from_request.pop('email')
             custom_user_update_data['email'] = (email_val[0] if isinstance(email_val, list) else email_val) or ""
 
 
         if 'password' in profile_data_from_request and profile_data_from_request['password']:
-            custom_user_update_data['password'] = profile_data_from_request.pop('password')[0] if isinstance(profile_data_from_request.get('password'), list) else profile_data_from_request.pop('password')
+            password_val = profile_data_from_request.pop('password')
+            custom_user_update_data['password'] = (password_val[0] if isinstance(password_val, list) else password_val)
         
         if custom_user_update_data:
             print(f"DEBUG: custom_user_data_dict being sent to CustomUserSerializer: {custom_user_update_data}") # DEBUG
@@ -114,16 +114,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             profile_instance, _ = ParentProfile.objects.get_or_create(user=user)
         
         if profile_serializer_class and profile_instance:
-            if 'profile_completed' not in profile_specific_data and not profile_instance.profile_completed:
-                if profile_specific_data.get('full_name'): # Basic check
-                     profile_specific_data['profile_completed'] = True
+            if 'profile_completed' not in profile_specific_data: # Ensure profile_completed is set if it's a completion flow
+                profile_specific_data['profile_completed'] = True
             
-            # print(f"DEBUG: Data for {user.role}ProfileCompletionSerializer: {profile_specific_data}") # DEBUG
             profile_serializer = profile_serializer_class(profile_instance, data=profile_specific_data, partial=True, context=self.get_serializer_context())
             if profile_serializer.is_valid():
                 profile_serializer.save()
             else:
-                # print(f"DEBUG: Profile serializer errors: {profile_serializer.errors}") # DEBUG
                 return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         final_user_serializer = CustomUserSerializer(user, context=self.get_serializer_context())
@@ -147,11 +144,11 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or user.role == 'Admin': # Platform admin or unassigned school admin
+        if user.is_staff or user.role == 'Admin': 
             return ParentStudentLink.objects.all()
         if user.role == 'Parent':
             return ParentStudentLink.objects.filter(parent=user)
-        if user.is_school_admin and user.school: # School admin can see links within their school
+        if user.is_school_admin and user.school: 
             students_in_school = CustomUser.objects.filter(school=user.school, role='Student')
             return ParentStudentLink.objects.filter(student__in=students_in_school)
         return ParentStudentLink.objects.none()
@@ -165,7 +162,7 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
             if parent_from_data != user:
                  raise PermissionDenied("Parents can only link students to their own account.")
             serializer.save(parent=user)
-        elif user.is_staff or user.role == 'Admin': # Includes school admins
+        elif user.is_staff or user.role == 'Admin': 
             if not parent_from_data or not student_from_data:
                 raise drf_serializers.ValidationError({"detail": "Parent and Student IDs must be provided by admin."})
             if user.is_school_admin and user.school and student_from_data.school != user.school:
@@ -197,6 +194,7 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
         
         link, created = ParentStudentLink.objects.get_or_create(parent=parent_user, student=student_user)
         
+        # Pass request context to StudentProfileSerializer if it uses SerializerMethodField for URLs
         serialized_student_profile = StudentProfileSerializer(student_profile, context={'request': request}).data
 
         response_data = {
@@ -224,4 +222,3 @@ class TeacherActionsViewSet(viewsets.ViewSet):
 @parser_classes([MultiPartParser, FormParser])
 def bulk_upload_users(request):
     return Response({"message": "Bulk user upload received (placeholder)."}, status=status.HTTP_200_OK)
-

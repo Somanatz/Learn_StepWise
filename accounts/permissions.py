@@ -1,3 +1,4 @@
+
 from rest_framework import permissions
 
 class IsTeacher(permissions.BasePermission):
@@ -36,3 +37,21 @@ class IsTeacherOrReadOnly(permissions.BasePermission):
 
         # Write permissions are only allowed to users with role 'Teacher'.
         return request.user and request.user.is_authenticated and request.user.role == 'Teacher'
+
+class IsAdminOfThisSchoolOrPlatformStaff(permissions.BasePermission):
+    """
+    Allows access if user is staff (platform admin) OR
+    if the user is the designated admin_user of the school instance.
+    Assumes 'obj' is the School instance being accessed.
+    """
+    def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        # Platform staff (superusers) can always access/modify
+        if request.user.is_staff:
+            return True
+        # Check if the user is the designated admin_user for this specific school
+        # and they have the 'Admin' role and 'is_school_admin' flag.
+        if request.user.role == 'Admin' and request.user.is_school_admin and obj.admin_user == request.user:
+            return True
+        return False
