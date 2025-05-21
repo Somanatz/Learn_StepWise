@@ -1,26 +1,47 @@
+
 // src/lib/api.ts
 import type { UserRole } from '@/interfaces';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+let API_ENDPOINT_BASE: string;
+
+if (!API_BASE_URL) {
+  console.warn(
+    "WARNING: NEXT_PUBLIC_API_URL environment variable is not set. " +
+    "Defaulting to http://127.0.0.1:8000. " +
+    "Ensure your Django backend is running there, or set the variable."
+  );
+  API_BASE_URL = 'http://127.0.0.1:8000';
+}
+API_ENDPOINT_BASE = `${API_BASE_URL}/api`;
+
 
 interface ApiError {
   message: string;
   details?: Record<string, any>;
 }
 
+// User interface should match backend CustomUserSerializer including profiles
 interface UserData {
   id: number;
   username: string;
   email: string;
   role: UserRole;
-  // Add other fields your /api/users/me/ endpoint returns
+  is_school_admin?: boolean;
+  administered_school?: { id: number; name: string; school_id_code: string } | null;
+  student_profile?: any | null; // Replace 'any' with actual StudentProfileData
+  teacher_profile?: any | null; // Replace 'any' with actual TeacherProfileData
+  parent_profile?: any | null; // Replace 'any' with actual ParentProfileData
+  profile_completed?: boolean;
 }
+
 
 async function request<T>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   body?: any,
   isFormData: boolean = false,
+  useApiPrefix: boolean = true, // New flag to control adding /api prefix
 ): Promise<T> {
   const headers: HeadersInit = {};
   if (!isFormData) {
@@ -40,32 +61,54 @@ async function request<T>(
   if (body) {
     config.body = isFormData ? body : JSON.stringify(body);
   }
+  
+  const baseUrlToUse = useApiPrefix ? API_ENDPOINT_BASE : API_BASE_URL;
+  const fullUrl = `${baseUrlToUse}${endpoint}`;
+  console.log(`Attempting to fetch: ${method} ${fullUrl}`);
+
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const response = await fetch(fullUrl, config);
 
     if (!response.ok) {
       let errorData;
+      let errorMessage = `HTTP error ${response.status}`;
       try {
         errorData = await response.json();
+        if (errorData?.detail) {
+            errorMessage = errorData.detail;
+        } else if (typeof errorData === 'object' && errorData !== null) {
+            const fieldErrors = Object.entries(errorData)
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                .join('; ');
+            if (fieldErrors) errorMessage = fieldErrors;
+        }
       } catch (e) {
-        // If response is not JSON, use status text
-        errorData = { message: response.statusText };
+        errorMessage = response.statusText || `HTTP error ${response.status} (non-JSON response)`;
       }
-      const errorMessage = errorData?.detail || errorData?.message || `HTTP error ${response.status}`;
-      console.error(`API Error (${response.status}) on ${method} ${endpoint}:`, errorMessage, errorData);
+      console.error(`API Error (${response.status}) on ${method} ${fullUrl}:`, errorMessage, errorData || '(No JSON error data)');
       throw new Error(errorMessage);
     }
     
-    // Handle cases where response might be empty (e.g., 204 No Content)
     if (response.status === 204) {
-        return undefined as T; // Or handle as needed, e.g., return a specific success object
+        return undefined as T; 
+    }
+
+    // Handle potentially paginated responses for GET requests
+    if (method === 'GET') {
+        const responseData = await response.json();
+        if (responseData && typeof responseData === 'object' && 'results' in responseData && Array.isArray(responseData.results)) {
+            // It's a paginated response, return the results array
+            // You might want to handle pagination metadata (count, next, previous) elsewhere
+            return responseData.results as T; 
+        }
+        return responseData as T; // Not paginated or not the expected structure, return as is
     }
 
     return await response.json() as T;
   } catch (error) {
-    console.error(`Network or other error on ${method} ${endpoint}:`, error);
-    throw error; // Re-throw to be caught by the caller
+    console.error(`Network or other error on ${method} ${fullUrl}:`, error);
+    throw error; 
   }
 }
 
@@ -77,35 +120,33 @@ export const api = {
   delete: <T>(endpoint: string) => request<T>(endpoint, 'DELETE'),
 };
 
-// Specific auth functions
 export const loginUser = async (credentials: any) => {
-  // Django's obtain_auth_token expects 'username' and 'password'
-  const response = await api.post<{ token: string }>('/token-auth/', credentials); // Ensure this matches your Django URL for token auth
+  const response = await request<{ token: string }>('/token-auth/', 'POST', credentials, false, false); // useApiPrefix = false
   if (response.token) {
     localStorage.setItem('authToken', response.token);
   }
   return response;
 };
 
-export const signupUser = async (userData: any) => {
-  return api.post<UserData>('/signup/', userData);
+export const signupUser = async (userData: FormData) => { // Expect FormData now
+  return request<UserData>('/signup/', 'POST', userData, true);
 };
 
 export const fetchCurrentUser = async (): Promise<UserData | null> => {
   const token = localStorage.getItem('authToken');
   if (!token) return null;
   try {
-    return await api.get<UserData>('/users/me/');
+    // Assuming CustomUserSerializer (which /users/me/ uses) returns a direct object, not paginated
+    const userData = await request<UserData>('/users/me/', 'GET', undefined, false, true);
+    return userData;
   } catch (error) {
     console.error("Error fetching current user, possibly invalid token:", error);
-    localStorage.removeItem('authToken'); // Clear invalid token
+    localStorage.removeItem('authToken'); 
     return null;
   }
 };
 
 export const logoutUser = () => {
   localStorage.removeItem('authToken');
-  localStorage.removeItem('currentUserRole'); // Also clear role if stored separately
-  // Optionally: call a backend logout endpoint if it exists (to invalidate token server-side)
-  // await api.post('/logout/', {});
 };
+

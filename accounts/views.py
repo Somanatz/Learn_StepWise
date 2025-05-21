@@ -1,9 +1,9 @@
 
-from rest_framework import viewsets, status, generics, serializers as drf_serializers
+from rest_framework import viewsets, status, generics, serializers as drf_serializers, permissions
 from rest_framework.generics import CreateAPIView
 from .models import CustomUser, ParentStudentLink, School, StudentProfile, TeacherProfile, ParentProfile
-from content.models import Class as ContentClass, Subject as ContentSubject # Import models
-from rest_framework.decorators import action, api_view, permission_classes
+from content.models import Class as ContentClass, Subject as ContentSubject, models as content_models # Import models
+from rest_framework.decorators import action, api_view, permission_classes as dec_permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 import django_filters.rest_framework
 from rest_framework.response import Response
@@ -14,13 +14,13 @@ from .serializers import (
     StudentProfileCompletionSerializer, TeacherProfileCompletionSerializer, ParentProfileCompletionSerializer
 )
 from .permissions import IsParent, IsTeacher, IsTeacherOrReadOnly
-from rest_framework.exceptions import PermissionDenied, NotFound
+from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 
 
 class SchoolViewSet(viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly] 
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_fields = ['name', 'school_id_code']
 
@@ -41,111 +41,104 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         elif self.action == 'update_profile':
             self.permission_classes = [IsAuthenticated]
         elif self.action == 'create': 
-            self.permission_classes = [IsAdminUser]
+            self.permission_classes = [IsAdminUser] # Only platform admins can create users this way
         elif self.action == 'list' or self.action == 'retrieve':
-             self.permission_classes = [IsAuthenticatedOrReadOnly] # Allow list for some cases (e.g. school admin view)
+             self.permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
         else: 
             self.permission_classes = [IsAdminUser]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='me', permission_classes=[IsAuthenticated])
     def me(self, request):
-        serializer = self.get_serializer(request.user)
+        serializer = self.get_serializer(request.user, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], url_path='profile', permission_classes=[IsAuthenticated])
     def update_profile(self, request, pk=None):
         user = self.get_object()
-        if user != request.user and not request.user.is_staff: # Staff can edit any profile
+        if user != request.user and not request.user.is_staff:
             raise PermissionDenied("You can only update your own profile or you lack staff permissions.")
 
-        profile_data = request.data.copy()
+        profile_data = request.data.copy() # Use copy for mutable data
 
         # Handle core CustomUser fields first if present
         user_fields = {'username', 'email', 'password'} 
-        custom_user_data = {k: profile_data.pop(k) for k in user_fields if k in profile_data and profile_data[k]}
+        custom_user_data_dict = {}
+        for field in user_fields:
+            if field in profile_data and profile_data[field]:
+                custom_user_data_dict[field] = profile_data.pop(field)
         
-        if 'school_id' in profile_data:
+        if 'school_id' in profile_data: # For user's direct school link (e.g. teacher, school admin)
             school_id_for_user = profile_data.pop('school_id', None)
             if school_id_for_user is not None and school_id_for_user != '':
                 try:
-                    custom_user_data['school'] = School.objects.get(pk=school_id_for_user)
-                except School.DoesNotExist:
-                    if user.role not in ['Student', 'Teacher']:
-                        return Response({"school_id": "Invalid school ID for user."}, status=status.HTTP_400_BAD_REQUEST)
-            elif school_id_for_user == '': # Explicitly setting to null
-                 custom_user_data['school'] = None
+                    # Ensure school_id is treated as an integer if it comes as string
+                    custom_user_data_dict['school'] = School.objects.get(pk=int(school_id_for_user))
+                except (School.DoesNotExist, ValueError):
+                     return Response({"school_id": "Invalid school ID for user."}, status=status.HTTP_400_BAD_REQUEST)
+            elif school_id_for_user == '': 
+                 custom_user_data_dict['school'] = None
         
-        if custom_user_data:
-            user_serializer = CustomUserSerializer(user, data=custom_user_data, partial=True, context=self.get_serializer_context())
+        if custom_user_data_dict:
+            user_serializer = CustomUserSerializer(user, data=custom_user_data_dict, partial=True, context=self.get_serializer_context())
             if user_serializer.is_valid():
                 user_serializer.save()
-                user.refresh_from_db() # Refresh user instance after save
+                user.refresh_from_db() 
             else:
                 return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # Determine profile serializer and instance
         profile_serializer_class = None
         profile_instance = None
-        
+        profile_specific_data = {}
+
         if user.role == 'Student':
             profile_serializer_class = StudentProfileCompletionSerializer
             profile_instance, _ = StudentProfile.objects.get_or_create(user=user)
-            # If school_id was meant for profile and not user, re-add it to profile_data
-            if 'school_id' in request.data and request.data.get('school_id'):
-                profile_data['school_id'] = request.data['school_id']
-            if 'enrolled_class_id' in request.data and request.data.get('enrolled_class_id'):
-                profile_data['enrolled_class_id'] = request.data['enrolled_class_id']
+            profile_specific_data_keys = [f.name for f in StudentProfile._meta.get_fields()]
+            profile_specific_data_keys.extend(['school_id', 'enrolled_class_id']) # For write-only fields
 
         elif user.role == 'Teacher':
             profile_serializer_class = TeacherProfileCompletionSerializer
             profile_instance, _ = TeacherProfile.objects.get_or_create(user=user)
-            if 'school_id' in request.data and request.data.get('school_id'):
-                profile_data['school_id'] = request.data['school_id']
-            if 'assigned_classes_ids' in request.data:
-                profile_data['assigned_classes_ids'] = request.data.getlist('assigned_classes_ids')
-            if 'subject_expertise_ids' in request.data:
-                profile_data['subject_expertise_ids'] = request.data.getlist('subject_expertise_ids')
+            profile_specific_data_keys = [f.name for f in TeacherProfile._meta.get_fields()]
+            profile_specific_data_keys.extend(['school_id', 'assigned_classes_ids', 'subject_expertise_ids'])
+
 
         elif user.role == 'Parent':
             profile_serializer_class = ParentProfileCompletionSerializer
             profile_instance, _ = ParentProfile.objects.get_or_create(user=user)
+            profile_specific_data_keys = [f.name for f in ParentProfile._meta.get_fields()]
         
         if profile_serializer_class and profile_instance:
-            # Create a dictionary with only the fields present in the request for the profile
-            relevant_profile_data = {}
-            profile_model_fields = [f.name for f in profile_instance._meta.get_fields()]
-            
-            # Add _id fields for ForeignKey/ManyToManyField writes
-            if user.role == 'Student':
-                profile_model_fields.extend(['school_id', 'enrolled_class_id'])
-            elif user.role == 'Teacher':
-                profile_model_fields.extend(['school_id', 'assigned_classes_ids', 'subject_expertise_ids'])
+            # Populate profile_specific_data from profile_data (remaining request data)
+            for key in profile_specific_data_keys:
+                if key in profile_data:
+                    field_instance = profile_instance._meta.get_field(key) if hasattr(profile_instance._meta, 'get_field') else None
+                    if isinstance(field_instance, content_models.BooleanField): # Check for BooleanField specifically
+                         profile_specific_data[key] = str(profile_data[key]).lower() in ['true', '1']
+                    elif key.endswith('_ids') and isinstance(profile_data, type(request.data)): # M2M fields from frontend using getlist
+                         profile_specific_data[key] = request.data.getlist(key)
+                    elif profile_data[key] is not None and profile_data[key] != '':
+                        profile_specific_data[key] = profile_data[key]
+                    # Handle null/empty string for optional fields to clear them if needed
+                    elif profile_data[key] == '':
+                        profile_specific_data[key] = None
 
-            for field_name in profile_model_fields:
-                if field_name in profile_data:
-                    if isinstance(profile_instance._meta.get_field(field_name), models.BooleanField):
-                         relevant_profile_data[field_name] = str(profile_data[field_name]).lower() == 'true'
-                    elif field_name.endswith('_ids'): # M2M fields from frontend
-                         relevant_profile_data[field_name] = profile_data.getlist(field_name)
-                    elif profile_data[field_name] is not None and profile_data[field_name] != '':
-                        relevant_profile_data[field_name] = profile_data[field_name]
-                elif field_name in request.FILES: # For profile_picture
-                     relevant_profile_data[field_name] = request.FILES[field_name]
-            
-            # Ensure profile_completed is set to True if critical fields are present
-            # This logic might be better in the serializer's save method or as a signal
-            if relevant_profile_data: # Only update if there's data for the profile
-                # If critical fields are being updated, mark profile as completed
-                if relevant_profile_data.get('full_name'): # Example: if full_name is key
-                    relevant_profile_data['profile_completed'] = True
+                elif key in request.FILES: # For profile_picture
+                     profile_specific_data[key] = request.FILES[key]
 
-                profile_serializer = profile_serializer_class(profile_instance, data=relevant_profile_data, partial=True, context=self.get_serializer_context())
+            if 'profile_completed' not in profile_specific_data and profile_specific_data.get('full_name'):
+                profile_specific_data['profile_completed'] = True
+
+            if profile_specific_data: 
+                profile_serializer = profile_serializer_class(profile_instance, data=profile_specific_data, partial=True, context=self.get_serializer_context())
                 if profile_serializer.is_valid():
                     profile_serializer.save()
                 else:
                     return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        # Return the full user data after all updates
         return Response(CustomUserSerializer(user, context=self.get_serializer_context()).data, status=status.HTTP_200_OK)
 
 
@@ -153,7 +146,7 @@ class UserSignupView(CreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSignupSerializer
     permission_classes = [AllowAny]
-    parser_classes = [MultiPartParser, FormParser] # Added to handle potential future direct profile picture on signup
+    parser_classes = [MultiPartParser, FormParser]
 
 
 class ParentStudentLinkViewSet(viewsets.ModelViewSet):
@@ -202,7 +195,6 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
                 admission_number=student_admission_number,
                 school__school_id_code=student_school_id_code
             )
-            # Verification step: Check parent_email_for_linking
             if student_profile.parent_email_for_linking != parent_user.email:
                  return Response({"error": "Parent email on student record does not match your email. Verification failed."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -231,9 +223,10 @@ class TeacherActionsViewSet(viewsets.ViewSet):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser]) 
+@dec_permission_classes([IsAuthenticated, IsAdminUser]) 
 @parser_classes([MultiPartParser, FormParser])
 def bulk_upload_users(request):
     # Implement bulk user upload logic here (e.g., from CSV/Excel)
     # This is a placeholder
     return Response({"message": "Bulk user upload received (placeholder)."}, status=status.HTTP_200_OK)
+
