@@ -1,4 +1,3 @@
-
 // src/app/student/complete-profile/page.tsx
 'use client';
 
@@ -64,26 +63,32 @@ export default function CompleteStudentProfilePage() {
       preferred_language: 'en',
       needs_assistant_teacher: false,
       interested_in_gardening_farming: false,
-      date_of_birth: '', // Initialize as empty string
+      date_of_birth: '',
     },
   });
-  
+
   useEffect(() => {
-    if (!isLoadingAuth && !currentUser) {
-      setIsRedirecting(true);
-      router.push('/login');
-    } else if (currentUser && currentUser.role !== 'Student') {
-      setIsRedirecting(true);
-      router.push('/'); // Or role-specific dashboard if already completed
+    if (!isLoadingAuth) {
+      if (!currentUser) {
+        setIsRedirecting(true);
+        router.push('/login');
+      } else if (currentUser.role !== 'Student') {
+        setIsRedirecting(true);
+        router.push('/');
+      } else if (currentUser.profile_completed) {
+        setIsRedirecting(true); // Already completed, go to dashboard
+        router.push('/student');
+      }
     }
   }, [isLoadingAuth, currentUser, router]);
 
-
   useEffect(() => {
-    if (currentUser) {
-        api.get<SchoolInterface[]>('/schools/').then(setSchools).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
-        
-        // Pre-fill form if profile data exists (e.g., user refreshes page)
+    if (currentUser && currentUser.role === 'Student') {
+        api.get<SchoolInterface[] | {results: SchoolInterface[]}>('/schools/').then(res => {
+          const data = Array.isArray(res) ? res : res.results || [];
+          setSchools(data);
+        }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
+
         const sp = currentUser.student_profile;
         if (sp) {
             form.reset({
@@ -116,12 +121,12 @@ export default function CompleteStudentProfilePage() {
     const fetchClassesForSchool = async (schoolId: string) => {
         if (!schoolId) {
             setClasses([]);
-            form.setValue("enrolled_class_id", undefined); // Use setValue for controlled components
+            form.setValue("enrolled_class_id", undefined);
             return;
         }
         try {
             const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolId}`);
-            const classData = Array.isArray(classResponse) ? classResponse : classResponse.results;
+            const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
         } catch (error) {
             toast({ title: "Error", description: "Could not load classes for the selected school.", variant: "destructive" });
@@ -151,7 +156,7 @@ export default function CompleteStudentProfilePage() {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
         const K = key as keyof StudentProfileFormValues;
-        if (K === 'profile_picture') return; 
+        if (K === 'profile_picture') return;
         const value = data[K];
         if (value !== undefined && value !== null) {
              if (typeof value === 'boolean') {
@@ -163,17 +168,17 @@ export default function CompleteStudentProfilePage() {
              }
         }
     });
-    
-    formData.append('profile_completed', 'true'); // Mark as completed
+
+    formData.append('profile_completed', 'true');
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
-    
+
     try {
       const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
       setCurrentUser(prev => prev ? { ...prev, ...updatedUser, student_profile: updatedUser.student_profile || prev.student_profile, profile_completed: true } : null);
-      setNeedsProfileCompletion(false); // Update context
+      setNeedsProfileCompletion(false);
       toast({ title: "Profile Completed!", description: "Your student profile has been updated." });
       router.push('/student');
     } catch (error: any) {
@@ -189,11 +194,10 @@ export default function CompleteStudentProfilePage() {
       setIsSubmitting(false);
     }
   };
-  
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+
+  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.profile_completed && currentUser.role === 'Student')) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
-
 
   const defaultAvatarText = (currentUser?.username || 'S').charAt(0).toUpperCase();
 
@@ -209,7 +213,7 @@ export default function CompleteStudentProfilePage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex flex-col items-center space-y-3 mb-6">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser.username} data-ai-hint="profile student"/>
+                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username} data-ai-hint="profile student"/>
                   <AvatarFallback>{defaultAvatarText}</AvatarFallback>
                 </Avatar>
                 <FormField control={form.control} name="profile_picture" render={({ field }) => (
@@ -229,14 +233,14 @@ export default function CompleteStudentProfilePage() {
                <FormField control={form.control} name="nickname" render={({ field }) => (
                 <FormItem><FormLabel>Nickname (Optional)</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
-              
+
               <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="school_id" render={({ field }) => (
                     <FormItem>
                         <FormLabel><SchoolIcon className="inline mr-1 h-4 w-4"/>School</FormLabel>
                         <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('enrolled_class_id', undefined); }} value={field.value ?? undefined}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select your school" /></SelectTrigger></FormControl>
-                            <SelectContent>{schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{Array.isArray(schools) && schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
                         </Select><FormMessage />
                     </FormItem>
                 )} />
@@ -245,16 +249,16 @@ export default function CompleteStudentProfilePage() {
                         <FormLabel>Class to Enroll In</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={!selectedSchoolId || classes.length === 0}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select your class" /></SelectTrigger></FormControl>
-                            <SelectContent>{classes.map(cls => <SelectItem key={cls.id} value={String(cls.id)}>{cls.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{Array.isArray(classes) && classes.map(cls => <SelectItem key={cls.id} value={String(cls.id)}>{cls.name}</SelectItem>)}</SelectContent>
                         </Select><FormMessage />
                     </FormItem>
                 )} />
               </div>
-              
+
               <FormField control={form.control} name="admission_number" render={({ field }) => (
                 <FormItem><FormLabel>Admission Number</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
-              
+
               <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="date_of_birth" render={({ field }) => (
                     <FormItem><FormLabel><CalendarClock className="inline mr-1 h-4 w-4"/>Date of Birth (Optional)</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
@@ -284,7 +288,7 @@ export default function CompleteStudentProfilePage() {
                     <FormItem><FormLabel>Parent's Mobile for Linking (Optional)</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
                  )} />
               </div>
-              
+
               <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="preferred_language" render={({ field }) => (
                     <FormItem><FormLabel>Preferred Language (e.g., en, es)</FormLabel><FormControl><Input {...field} value={field.value ?? "en"} /></FormControl><FormMessage /></FormItem>

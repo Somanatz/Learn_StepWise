@@ -26,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login: authLogin, currentUser, isLoadingAuth } = useAuth(); // Added currentUser and isLoadingAuth
+  const { login: authLogin, currentUser, isLoadingAuth } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -38,9 +38,10 @@ export default function LoginPage() {
     },
   });
 
-  // Redirect if user is already logged in and tries to access login page
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
+      // If user is already logged in, redirect from login page
+      // The main page '/' will handle role-based redirection
       router.push('/');
     }
   }, [currentUser, isLoadingAuth, router]);
@@ -53,9 +54,10 @@ export default function LoginPage() {
         await authLogin(loginResponse.token); // This updates currentUser in AuthContext
         toast({
           title: "Login Successful",
-          description: `Welcome back!`,
+          description: `Welcome back! Redirecting...`,
         });
-        router.push('/'); // Explicitly redirect to home page
+        // Redirect to main page, which will handle further role-based routing
+        router.push('/');
       } else {
          toast({
           title: "Login Failed",
@@ -73,12 +75,11 @@ export default function LoginPage() {
       setIsSubmitting(false);
     }
   };
-  
+
   // Render loading or null if redirection is about to happen or auth is loading
   if (isLoadingAuth || (!isLoadingAuth && currentUser)) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
-
 
   return (
     <div className="relative flex flex-col md:flex-row items-center justify-center min-h-screen overflow-hidden p-4">
@@ -96,7 +97,7 @@ export default function LoginPage() {
       </video>
 
       <div className="absolute top-0 left-0 w-full h-full bg-black/60 dark:bg-black/70 z-10"></div>
-      
+
       <div className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl xl:max-w-6xl mx-auto items-center md:space-x-10 lg:space-x-16">
         <div className="w-full md:w-2/5 flex-shrink-0 mb-12 md:mb-0 text-center md:text-left">
           <h1 className="text-5xl lg:text-6xl font-poppins font-extrabold text-primary-foreground [text-shadow:_3px_3px_8px_rgb(0_0_0_/_0.6)] animation-delay-100">

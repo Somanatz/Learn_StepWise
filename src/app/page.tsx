@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
-import Logo from '@/components/shared/Logo'; 
+import Logo from '@/components/shared/Logo';
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -88,7 +88,7 @@ const FixedBackground = () => (
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 100);
+    const timer = setTimeout(() => setIsMounted(true), 100); // Small delay for transition
     return () => clearTimeout(timer);
   }, []);
 
@@ -96,49 +96,29 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Decorative Images - Positioned to frame content */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none">
-        {/* Image 1 - Top-Left area */}
-        <div className="absolute top-[5%] left-[5%] w-24 h-24 md:w-32 md:h-32 lg:w-48 lg:h-48 opacity-0 animate-fade-in-up animation-delay-300" data-ai-hint="happy child learning abstract">
-          <Image src="https://placehold.co/200x200/81C784/FFFFFF.png?text=Edu1" alt="Decorative Learning Element 1" layout="fill" objectFit="cover" className="rounded-full shadow-lg border-2 border-primary/30"/>
-        </div>
-        {/* Image 2 - Bottom-Right area */}
-        <div className="absolute bottom-[5%] right-[5%] w-20 h-20 md:w-28 md:h-28 lg:w-40 lg:h-40 opacity-0 animate-fade-in-up animation-delay-400" data-ai-hint="students collaboration digital">
-          <Image src="https://placehold.co/180x180/64B5F6/FFFFFF.png?text=Edu2" alt="Decorative Learning Element 2" layout="fill" objectFit="cover" className="rounded-full shadow-lg border-2 border-accent/30"/>
-        </div>
-        {/* Image 3 - Top-Right area (more subtle) */}
-        <div className="absolute top-[15%] right-[10%] w-16 h-16 md:w-20 md:h-20 lg:w-28 lg:h-28 opacity-0 animate-fade-in-up animation-delay-500 hidden sm:block" data-ai-hint="teacher guiding student">
-          <Image src="https://placehold.co/150x150/FFB74D/FFFFFF.png?text=Edu3" alt="Decorative Learning Element 3" layout="fill" objectFit="cover" className="rounded-full shadow-md border border-primary/20"/>
-        </div>
-         {/* Image 4 - Bottom-Left area (more subtle) */}
-        <div className="absolute bottom-[15%] left-[10%] w-16 h-16 md:w-20 md:h-20 lg:w-28 lg:h-28 opacity-0 animate-fade-in-up animation-delay-700 hidden sm:block" data-ai-hint="books technology learning">
-          <Image src="https://placehold.co/160x160/4DB6AC/FFFFFF.png?text=Edu4" alt="Decorative Learning Element 4" layout="fill" objectFit="cover" className="rounded-full shadow-md border border-accent/20"/>
-        </div>
-      </div>
-
       {/* Central Text Content */}
        <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8",
           isMounted ? textBaseClasses : 'opacity-0'
         )} style={{ animationDelay: isMounted ? '0.1s' : undefined }}
       >
-        <div className="mb-8"> 
-             <Logo imageWidth={436} imageHeight={120} /> 
+        <div className="mb-8">
+             <Logo imageWidth={436} imageHeight={120} />
         </div>
         <h1
           className={cn(
             "font-extrabold mb-10 animate-text-pulse",
-            "text-4xl sm:text-5xl md:text-6xl text-primary-foreground", // Changed to primary-foreground
-            "leading-tight", 
-            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]" 
+            "text-4xl sm:text-5xl md:text-6xl text-primary",
+            "leading-tight",
+            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]"
           )}
         >
           Empowering Every <span className="text-primary">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-accent", // Kept as accent for "light green"
-            "font-medium animate-text-pulse", 
+            "text-base sm:text-xl text-accent",
+            "font-medium animate-text-pulse",
             "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
           )}
@@ -158,10 +138,10 @@ const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function UnifiedDashboardPage() {
-  const { currentUser, isLoadingAuth, needsProfileCompletion } = useAuth();
+  const { currentUser, isLoadingAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isRedirecting, setIsRedirecting] = useState(true); // Start true to show loader initially
+  const [isRedirecting, setIsRedirecting] = useState(true);
 
   useEffect(() => {
     if (isLoadingAuth) {
@@ -171,14 +151,12 @@ export default function UnifiedDashboardPage() {
 
     if (currentUser) {
       let targetPath: string | null = null;
-      // profile_completed from User object in AuthContext is now the source of truth
       const profileIncomplete = currentUser.profile_completed === false;
 
       if (profileIncomplete) {
         if (currentUser.role === 'Student') targetPath = '/student/complete-profile';
         else if (currentUser.role === 'Teacher') targetPath = '/teacher/complete-profile';
         else if (currentUser.role === 'Parent') targetPath = '/parent/complete-profile';
-        // Admin profile completion is assumed to be handled differently or not forced here
       } else { // Profile is complete or not applicable for separate completion step
         if (currentUser.role === 'Student') targetPath = '/student';
         else if (currentUser.role === 'Teacher') targetPath = '/teacher';
@@ -190,7 +168,7 @@ export default function UnifiedDashboardPage() {
       }
 
       if (targetPath && pathname !== targetPath) {
-        // setIsRedirecting(true); // Already true or set by isLoadingAuth
+        setIsRedirecting(true);
         router.push(targetPath);
       } else {
         setIsRedirecting(false); // No redirection needed or already on target path
@@ -198,7 +176,7 @@ export default function UnifiedDashboardPage() {
     } else { // No current user (and auth is not loading)
       setIsRedirecting(false); // Will show public page
     }
-  }, [isLoadingAuth, currentUser, needsProfileCompletion, router, pathname]);
+  }, [isLoadingAuth, currentUser, router, pathname]);
 
 
   if (isLoadingAuth || isRedirecting) {
@@ -287,5 +265,3 @@ export default function UnifiedDashboardPage() {
     </div>
   );
 }
-
-    

@@ -1,4 +1,3 @@
-
 // src/app/teacher/complete-profile/page.tsx
 'use client';
 
@@ -24,7 +23,7 @@ import type { School as SchoolInterface, Class as ClassInterface, Subject as Sub
 const teacherProfileSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
   school_id: z.string().min(1, "School selection is required"),
-  assigned_classes_ids: z.array(z.string()).optional(), 
+  assigned_classes_ids: z.array(z.string()).optional(),
   subject_expertise_ids: z.array(z.string()).optional(),
   interested_in_tuition: z.boolean().default(false).optional(),
   mobile_number: z.string().optional(),
@@ -41,7 +40,7 @@ export default function CompleteTeacherProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
-  const [classes, setClasses] = useState<ClassInterface[]>([]); 
+  const [classes, setClasses] = useState<ClassInterface[]>([]);
   const [subjects, setSubjects] = useState<SubjectInterface[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>(undefined);
   const [previewProfilePicture, setPreviewProfilePicture] = useState<string | null>(null);
@@ -54,27 +53,38 @@ export default function CompleteTeacherProfilePage() {
       interested_in_tuition: false,
       assigned_classes_ids: [],
       subject_expertise_ids: [],
+      mobile_number: '',
+      address: '',
     },
   });
 
   useEffect(() => {
-    if (!isLoadingAuth && !currentUser) {
-      setIsRedirecting(true);
-      router.push('/login');
-    } else if (currentUser && currentUser.role !== 'Teacher') {
-      setIsRedirecting(true);
-      router.push('/');
+    if (!isLoadingAuth) {
+      if (!currentUser) {
+        setIsRedirecting(true);
+        router.push('/login');
+      } else if (currentUser.role !== 'Teacher') {
+        setIsRedirecting(true);
+        router.push('/');
+      } else if (currentUser.profile_completed) {
+        setIsRedirecting(true); // Already completed, go to dashboard
+        router.push('/teacher');
+      }
     }
   }, [isLoadingAuth, currentUser, router]);
 
   useEffect(() => {
-    if (currentUser) {
-        api.get<SchoolInterface[]>('/schools/').then(setSchools).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
-        api.get<{results: SubjectInterface[]} | SubjectInterface[]>('/subjects/').then(res => {
-            const subjectData = Array.isArray(res) ? res : res.results;
-            setSubjects(subjectData);
+    if (currentUser && currentUser.role === 'Teacher') {
+        api.get<SchoolInterface[]|{results: SchoolInterface[]}>('/schools/').then(res => {
+            const data = Array.isArray(res) ? res : res.results || [];
+            setSchools(data);
+        }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
+
+        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => {
+            const data = Array.isArray(res) ? res : res.results || [];
+            setSubjects(data);
         }).catch(err => toast({ title: "Error", description: "Could not load subjects.", variant: "destructive" }));
-        
+
         const tp = currentUser.teacher_profile;
         if (tp) {
             form.reset({
@@ -101,7 +111,7 @@ export default function CompleteTeacherProfilePage() {
         }
         try {
             const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolId}`);
-            const classData = Array.isArray(classResponse) ? classResponse : classResponse.results;
+            const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
         } catch (error) {
             toast({ title: "Error", description: "Could not load classes for selected school.", variant: "destructive" });
@@ -128,12 +138,12 @@ export default function CompleteTeacherProfilePage() {
   const onSubmit = async (data: TeacherProfileFormValues) => {
     if (!currentUser || currentUser.role !== 'Teacher') return;
     setIsSubmitting(true);
-    
+
     const formData = new FormData();
     Object.keys(data).forEach(key => {
         const K = key as keyof TeacherProfileFormValues;
-        if (K === 'profile_picture') return; 
-        
+        if (K === 'profile_picture') return;
+
         const value = data[K];
         if (K === 'assigned_classes_ids' || K === 'subject_expertise_ids') {
             (value as string[] | undefined)?.forEach(id => formData.append(K, id));
@@ -172,8 +182,8 @@ export default function CompleteTeacherProfilePage() {
       setIsSubmitting(false);
     }
   };
-  
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+
+  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.profile_completed && currentUser.role === 'Teacher')) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -208,13 +218,13 @@ export default function CompleteTeacherProfilePage() {
               <FormField control={form.control} name="full_name" render={({ field }) => (
                 <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />
-              
+
               <FormField control={form.control} name="school_id" render={({ field }) => (
                   <FormItem>
                       <FormLabel><SchoolIcon className="inline mr-1 h-4 w-4"/>Your School</FormLabel>
                       <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('assigned_classes_ids', []); }} value={field.value ?? undefined}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select your school" /></SelectTrigger></FormControl>
-                          <SelectContent>{schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
+                          <SelectContent>{ Array.isArray(schools) && schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
                       </Select><FormMessage />
                   </FormItem>
               )} />
@@ -222,7 +232,7 @@ export default function CompleteTeacherProfilePage() {
               <FormField control={form.control} name="assigned_classes_ids" render={() => (
                   <FormItem>
                       <FormLabel>Classes You Teach (Optional)</FormLabel>
-                      {classes.length > 0 ? classes.map(cls => (
+                      { Array.isArray(classes) && classes.length > 0 ? classes.map(cls => (
                           <FormField key={cls.id} control={form.control} name="assigned_classes_ids"
                               render={({ field }) => (
                                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
@@ -244,11 +254,11 @@ export default function CompleteTeacherProfilePage() {
                       <FormMessage />
                   </FormItem>
               )} />
-              
+
                <FormField control={form.control} name="subject_expertise_ids" render={() => (
                   <FormItem>
                       <FormLabel>Subjects You Specialize In (Optional)</FormLabel>
-                       {subjects.length > 0 ? subjects.map(sub => (
+                       { Array.isArray(subjects) && subjects.length > 0 ? subjects.map(sub => (
                           <FormField key={sub.id} control={form.control} name="subject_expertise_ids"
                               render={({ field }) => (
                                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">

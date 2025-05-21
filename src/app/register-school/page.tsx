@@ -27,7 +27,7 @@ const schoolRegistrationSchema = z.object({
   principal_full_name: z.string().optional(),
   principal_contact_number: z.string().optional(),
   principal_email: z.string().email({ message: "Invalid principal email" }).optional().or(z.literal('')),
-  
+
   admin_username: z.string().min(3, "Admin username must be at least 3 characters"),
   admin_email: z.string().email("Invalid admin email address"),
   admin_password: z.string().min(8, "Admin password must be at least 8 characters"),
@@ -65,7 +65,6 @@ export default function RegisterSchoolPage() {
 
   const onSubmit = async (data: SchoolRegistrationFormValues) => {
     setIsLoading(true);
-    // Remove confirm password before sending to API
     const { admin_confirm_password, ...payload } = data;
     try {
       const newSchool = await api.post('/schools/', payload);
@@ -73,13 +72,13 @@ export default function RegisterSchoolPage() {
         title: "School Registration Successful!",
         description: `${newSchool.name} has been registered. The initial admin account (${payload.admin_username}) has been created. Please log in.`,
       });
-      router.push('/login'); 
+      router.push('/login');
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
       if (error.response && error.response.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object' && errorData !== null) {
-            errorMessage = Object.entries(errorData).map(([key, value]) => `${key}: ${(Array.isArray(value) ? value.join(', ') : value)}`).join('; ');
+            errorMessage = Object.entries(errorData).map(([key, value]) => `${key}: ${(Array.isArray(value) ? value.join(', ') : String(value))}`).join('; ');
         } else if (errorData.detail) {
             errorMessage = errorData.detail;
         }
@@ -107,7 +106,7 @@ export default function RegisterSchoolPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
+
               <h3 className="text-lg font-semibold flex items-center"><SchoolIcon className="mr-2 h-5 w-5 text-accent"/> School Details</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>School Name</FormLabel><FormControl><Input placeholder="e.g., Oakwood Academy" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -117,7 +116,7 @@ export default function RegisterSchoolPage() {
               <FormField control={form.control} name="license_number" render={({ field }) => (<FormItem><FormLabel>School License Number (Optional)</FormLabel><FormControl><Input placeholder="For verification" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="phone_number" render={({ field }) => (<FormItem><FormLabel>School Phone Number (Optional)</FormLabel><FormControl><Input placeholder="e.g., +1-555-123-4567" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>School Address (Optional)</FormLabel><FormControl><Textarea placeholder="Full school address" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              
+
               <Separator className="my-6" />
               <h3 className="text-lg font-semibold flex items-center"><UserCog className="mr-2 h-5 w-5 text-accent"/> Principal's Information (Optional)</h3>
               <div className="grid md:grid-cols-2 gap-6">
@@ -136,7 +135,7 @@ export default function RegisterSchoolPage() {
                 <FormField control={form.control} name="admin_password" render={({ field }) => (<FormItem><FormLabel>Admin Password</FormLabel><FormControl><Input type="password" placeholder="Create a strong password" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="admin_confirm_password" render={({ field }) => (<FormItem><FormLabel>Confirm Admin Password</FormLabel><FormControl><Input type="password" placeholder="Confirm admin password" {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
-              
+
               <Button type="submit" className="w-full !mt-8" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                 {isLoading ? 'Registering School...' : 'Register School & Create Admin'}

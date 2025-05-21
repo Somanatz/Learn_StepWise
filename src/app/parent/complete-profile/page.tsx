@@ -1,4 +1,3 @@
-
 // src/app/parent/complete-profile/page.tsx
 'use client';
 
@@ -24,7 +23,6 @@ const parentProfileSchema = z.object({
   mobile_number: z.string().optional(),
   address: z.string().optional(),
   profile_picture: z.any().optional(),
-  // For linking child
   student_admission_number: z.string().optional(),
   student_school_id_code: z.string().optional(),
 });
@@ -34,11 +32,19 @@ type ParentProfileFormValues = z.infer<typeof parentProfileSchema>;
 interface StudentForConfirmation {
     student_id: string;
     student_username: string;
-    student_full_name: string;
-    student_email: string;
-    enrolled_class_name: string;
-    link_id: string;
-    message: string;
+    student_full_name?: string; // Make optional as it might not always be there
+    student_email?: string; // Make optional
+    enrolled_class_name?: string; // Make optional
+    link_id?: string; // Make optional
+    message?: string; // Make optional
+    // Add student_details as it seems to be part of the successful response
+    student_details?: {
+      full_name?: string;
+      admission_number?: string;
+      school_name?: string;
+      enrolled_class_name?: string;
+      profile_picture_url?: string;
+    }
 }
 
 
@@ -57,20 +63,27 @@ export default function CompleteParentProfilePage() {
 
   const form = useForm<ParentProfileFormValues>({
     resolver: zodResolver(parentProfileSchema),
-    defaultValues: { 
+    defaultValues: {
       full_name: '',
       student_admission_number: '',
       student_school_id_code: '',
+      mobile_number: '',
+      address: '',
     },
   });
 
    useEffect(() => {
-    if (!isLoadingAuth && !currentUser) {
-      setIsRedirecting(true);
-      router.push('/login');
-    } else if (currentUser && currentUser.role !== 'Parent') {
-      setIsRedirecting(true);
-      router.push('/');
+    if (!isLoadingAuth) {
+      if (!currentUser) {
+        setIsRedirecting(true);
+        router.push('/login');
+      } else if (currentUser.role !== 'Parent') {
+        setIsRedirecting(true);
+        router.push('/');
+      } else if (currentUser.profile_completed) {
+        setIsRedirecting(true); // Already completed, go to dashboard
+        router.push('/parent');
+      }
     }
   }, [isLoadingAuth, currentUser, router]);
 
@@ -80,6 +93,8 @@ export default function CompleteParentProfilePage() {
             full_name: currentUser.parent_profile.full_name || '',
             mobile_number: currentUser.parent_profile.mobile_number || '',
             address: currentUser.parent_profile.address || '',
+            student_admission_number: '', // Keep these clear for new link attempts
+            student_school_id_code: '',
         });
         if (currentUser.parent_profile.profile_picture_url) {
             setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
@@ -99,7 +114,7 @@ export default function CompleteParentProfilePage() {
     if (!currentUser || currentUser.role !== 'Parent') return;
     setIsSubmittingProfile(true);
     const formData = new FormData();
-    
+
     if (data.full_name) formData.append('full_name', data.full_name);
     if (data.mobile_number) formData.append('mobile_number', data.mobile_number);
     if (data.address) formData.append('address', data.address);
@@ -114,8 +129,8 @@ export default function CompleteParentProfilePage() {
       setCurrentUser(prev => prev ? { ...prev, ...updatedUser, parent_profile: updatedUser.parent_profile || prev.parent_profile, profile_completed: true } : null);
       setNeedsProfileCompletion(false);
       toast({ title: "Profile Updated!", description: "Your parent profile has been saved." });
-      // If no child linking attempted or successful, redirect to dashboard
-      if (!form.getValues("student_admission_number") && !form.getValues("student_school_id_code")) {
+
+      if (!form.getValues("student_admission_number") && !form.getValues("student_school_id_code") && !studentToConfirm) {
         router.push('/parent');
       }
     } catch (error: any) {
@@ -148,15 +163,15 @@ export default function CompleteParentProfilePage() {
             school_id_code: student_school_id_code,
         };
         const response = await api.post<StudentForConfirmation>('/parent-student-links/link-child-by-admission/', linkData);
-        setStudentToConfirm(response); 
-        toast({ title: "Child Linked Successfully!", description: `${response.student_full_name || response.student_username} is now linked.` });
+        setStudentToConfirm(response);
+        toast({ title: "Child Linked Successfully!", description: `${response.student_details?.full_name || response.student_username || 'Child'} is now linked.` });
         form.resetField("student_admission_number");
         form.resetField("student_school_id_code");
 
     } catch (error: any) {
-        let errMsg = "Could not link child.";
-        if (error.response && error.response.data && error.response.data.error) {
-            errMsg = error.response.data.error;
+        let errMsg = "Could not link child. Ensure admission number, school ID code are correct, and your email matches the student's parent contact email on record.";
+        if (error.response && error.response.data && (error.response.data.error || error.response.data.detail)) {
+            errMsg = error.response.data.error || error.response.data.detail;
         } else if (error.message) {
             errMsg = error.message;
         }
@@ -166,8 +181,8 @@ export default function CompleteParentProfilePage() {
         setIsLinkingChild(false);
     }
   };
-  
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+
+  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.profile_completed && currentUser.role === 'Parent')) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -217,7 +232,7 @@ export default function CompleteParentProfilePage() {
             <div className="mt-8 pt-6 border-t">
                 <h3 className="text-lg font-semibold mb-3">Link Your Child</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                    Enter your child's admission number and their school's ID code. Your email ({currentUser?.email}) must match the parent email on the student's record for verification.
+                    Enter your child's Admission Number and their School ID Code. Your email ({currentUser?.email}) must match the parent email on the student's record for verification.
                 </p>
                  <div className="grid sm:grid-cols-2 gap-4 mb-4">
                     <FormField control={form.control} name="student_admission_number" render={({ field }) => (
@@ -227,7 +242,7 @@ export default function CompleteParentProfilePage() {
                         <FormItem><FormLabel>Child's School ID Code</FormLabel><FormControl><Input {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                <Button onClick={handleVerifyChild} className="w-full" variant="outline" disabled={isLinkingChild}>
+                <Button onClick={handleVerifyChild} className="w-full" variant="outline" disabled={isLinkingChild || isSubmittingProfile}>
                     {isLinkingChild ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
                     Verify & Link Child
                 </Button>
@@ -238,15 +253,15 @@ export default function CompleteParentProfilePage() {
                         <AlertDescription>{linkingError}</AlertDescription>
                     </Alert>
                 )}
-                 {studentToConfirm && (
+                 {studentToConfirm && studentToConfirm.student_details && (
                     <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700">
                         <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
                         <AlertTitle className="text-green-700 dark:text-green-300">Child Linked Successfully!</AlertTitle>
-                        <AlertDescription className="text-green-600 dark:text-green-400">
-                            <p><strong>Name:</strong> {studentToConfirm.student_full_name || studentToConfirm.student_username}</p>
-                            <p><strong>Email:</strong> {studentToConfirm.student_email}</p>
-                            <p><strong>Class:</strong> {studentToConfirm.enrolled_class_name}</p>
-                            <p>{studentToConfirm.message}</p>
+                        <AlertDescription className="text-green-600 dark:text-green-400 space-y-1">
+                            <p><strong>Name:</strong> {studentToConfirm.student_details.full_name || studentToConfirm.student_username}</p>
+                            {studentToConfirm.student_details.school_name && <p><strong>School:</strong> {studentToConfirm.student_details.school_name}</p>}
+                            {studentToConfirm.student_details.enrolled_class_name && <p><strong>Class:</strong> {studentToConfirm.student_details.enrolled_class_name}</p>}
+                            {studentToConfirm.message && <p className="mt-1">{studentToConfirm.message}</p>}
                         </AlertDescription>
                     </Alert>
                 )}
