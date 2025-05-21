@@ -14,14 +14,38 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.CreateModel(
+            name='School',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=255)),
+                ('school_id_code', models.CharField(help_text="Unique external ID for the school", max_length=100, unique=True)),
+                ('license_number', models.CharField(blank=True, max_length=100, null=True)),
+                ('official_email', models.EmailField(max_length=254, unique=True)),
+                ('phone_number', models.CharField(blank=True, max_length=20, null=True)),
+                ('address', models.TextField(blank=True, null=True)),
+                ('principal_full_name', models.CharField(blank=True, max_length=255, null=True)),
+                ('principal_contact_number', models.CharField(blank=True, max_length=20, null=True)),
+                ('principal_email', models.EmailField(blank=True, max_length=254, null=True)),
+                ('admin_user', models.OneToOneField(
+                    blank=True,
+                    help_text='The primary admin user for this school, created during registration.',
+                    null=True,
+                    on_delete=django.db.models.deletion.SET_NULL,
+                    related_name='administered_school',
+                    to=settings.AUTH_USER_MODEL
+                )),
+            ],
+        ),
         migrations.AddField(
             model_name='customuser',
             name='school',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='staff_and_students', to='accounts.school'),
-        ),
-        migrations.AddField(
-            model_name='school',
-            name='admin_user',
-            field=models.OneToOneField(blank=True, help_text='The primary admin user for this school, created during registration.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='administered_school', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='staff_and_students',
+                to='accounts.School' # Changed to 'School' (uppercase S)
+            ),
         ),
     ]
