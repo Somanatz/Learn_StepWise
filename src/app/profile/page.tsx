@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
-import { UserCircle, Edit3, Shield, LogOut, Mail, Briefcase, BookUser, Star, Languages, Loader2, Building, CalendarClock, Droplets, HeartPulse, Gamepad2, Leaf, Upload, Users2 } from "lucide-react";
+import { UserCircle, Edit3, Shield, LogOut, Mail, Briefcase, BookUser, Star, Languages, Loader2, Building, CalendarClock, Droplets, HeartPulse, Gamepad2, Leaf, Upload, Users2, UserCheck } from "lucide-react"; // Added UserCheck
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -549,3 +549,5 @@ export default function ProfilePage() {
   );
 }
 
+
+    
