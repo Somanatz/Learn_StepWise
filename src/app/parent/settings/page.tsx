@@ -10,9 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Settings, Bell, UserCircle, Users, Palette } from "lucide-react";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTheme } from '@/context/ThemeContext'; // Import useTheme
 
 
 export default function ParentSettingsPage() {
+  const { theme, setTheme } = useTheme(); // Use the theme context
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <header className="text-center py-8">
@@ -79,7 +82,7 @@ export default function ParentSettingsPage() {
           <p className="text-xs text-muted-foreground mt-2">Here you can add new children or modify settings for existing linked profiles.</p>
         </CardContent>
       </Card>
-      
+
       <Separator />
 
       <Card className="shadow-xl rounded-xl">
@@ -102,7 +105,7 @@ export default function ParentSettingsPage() {
         <CardContent className="space-y-4">
            <div>
             <Label htmlFor="theme-select-parent">Theme</Label>
-            <Select defaultValue="system">
+            <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
               <SelectTrigger id="theme-select-parent">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
@@ -112,7 +115,6 @@ export default function ParentSettingsPage() {
                 <SelectItem value="system">System Default</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Note: Theme switching is illustrative and may require full implementation.</p>
           </div>
         </CardContent>
       </Card>

@@ -4,15 +4,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Bell, UserCircle, BookOpen, Palette } from "lucide-react";
+import { Settings, Bell, UserCircle, Palette } from "lucide-react"; // Removed BookOpen
 import Link from "next/link";
+import { useTheme } from '@/context/ThemeContext'; // Import useTheme
 
 export default function TeacherSettingsPage() {
+  const { theme, setTheme } = useTheme(); // Use the theme context
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <header className="text-center py-8">
@@ -69,7 +71,7 @@ export default function TeacherSettingsPage() {
           <CardDescription>Manage your personal account details and security.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="w-full">
             <Link href="/profile">Go to My Profile (Edit Name, Email, Password)</Link>
           </Button>
           <div>
@@ -88,7 +90,7 @@ export default function TeacherSettingsPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       <Separator />
 
        <Card className="shadow-xl rounded-xl">
@@ -98,9 +100,9 @@ export default function TeacherSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
            <div>
-            <Label htmlFor="theme-select">Theme</Label>
-            <Select defaultValue="system">
-              <SelectTrigger id="theme-select">
+            <Label htmlFor="theme-select-teacher">Theme</Label>
+            <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
+              <SelectTrigger id="theme-select-teacher">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent>
@@ -109,7 +111,6 @@ export default function TeacherSettingsPage() {
                 <SelectItem value="system">System Default</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Note: Theme switching is illustrative and may require full implementation.</p>
           </div>
         </CardContent>
       </Card>

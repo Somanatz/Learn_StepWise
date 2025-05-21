@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide } from 'lucide-react'; 
+import { Search, UserCircle, Menu, X, LogIn, UserPlus, LogOutIcon, School as SchoolIconLucide, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from 'next/image';
 import Logo from '@/components/shared/Logo';
-
+// Removed ThemeToggleButton and useTheme import from here
 
 const allNavLinks: NavLink[] = [
   { href: '/student/rewards', label: 'Rewards', roles: ['Student'], authRequired: true },
@@ -44,9 +44,9 @@ export default function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { currentUser, isLoadingAuth, logout } = useAuth();
-  
-  const isAuthPage = pathname === '/login' || 
-                     pathname === '/signup' || 
+
+  const isAuthPage = pathname === '/login' ||
+                     pathname === '/signup' ||
                      pathname === '/register-school' ||
                      pathname.startsWith('/student/complete-profile') ||
                      pathname.startsWith('/parent/complete-profile') ||
@@ -75,20 +75,21 @@ export default function Header() {
       if (link.authRequired === false) return true;
       if (!link.roles && link.authRequired) return true;
       return link.roles && link.roles.includes(currentUser.role as UserRole);
-    } else { 
+    } else {
       return !link.authRequired || link.guestOnly;
     }
   });
-  
+
   if (!mounted) {
+    // Simplified SSR/Initial Client Render Placeholder
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
         <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-          <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="animate-pulse bg-muted rounded"></div>
-           <div className="flex-grow"></div>
+          <div style={{ width: '218px', height: '60px', minHeight: '60px' }} className="bg-muted rounded animate-pulse"></div> {/* Logo placeholder */}
+          <div className="flex-grow"></div> {/* Spacer */}
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> 
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div> {/* User/Auth placeholder */}
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse md:hidden"></div> {/* Mobile menu placeholder */}
           </div>
         </div>
       </header>
@@ -122,12 +123,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
-        <Logo />
+        <div className="flex items-center gap-4">
+          <Logo />
+          {/* Theme toggle button removed from here */}
+        </div>
 
         {!shouldHideMainHeaderElements && (
           <nav className="hidden md:flex items-center space-x-2">
             {!isLoadingAuth && <NavItems />}
-            {isLoadingAuth && ( 
+            {isLoadingAuth && (
               <>
                 <Skeleton className="h-8 w-20 rounded-md" />
                 <Skeleton className="h-8 w-20 rounded-md" />
@@ -136,7 +140,7 @@ export default function Header() {
             )}
           </nav>
         )}
-        
+
         {isUnauthenticatedHomepage && (
             <div className="relative hidden sm:block">
               <SchoolIconLucide className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -174,7 +178,7 @@ export default function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : ( 
+          ) : (
             <div className="hidden md:flex items-center space-x-2">
               {pathname !== '/login' && (
                 <Button variant="ghost" asChild>
@@ -203,19 +207,19 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
                  <SheetHeader className="p-4 border-b">
-                  <SheetTitle className="sr-only">Main Menu</SheetTitle> 
+                   <SheetTitle className="sr-only">Main Menu</SheetTitle>
                   <Logo />
                 </SheetHeader>
-                
+
                 {!shouldHideMainHeaderElements && (
                   <nav className="flex flex-col space-y-1 p-4">
                     {!isLoadingAuth && <NavItems isMobile={true} />}
-                     {isLoadingAuth && ( 
+                     {isLoadingAuth && (
                         <> <Skeleton className="h-10 w-full rounded-md mb-1" /> <Skeleton className="h-10 w-full rounded-md mb-1" /> <Skeleton className="h-10 w-full rounded-md" /> </>
                     )}
                   </nav>
                 )}
-
+                {/* Theme toggle removed from mobile menu as well */}
                 <div className={cn("mt-auto p-4 border-t space-y-4", (isLoadingAuth || shouldHideMainHeaderElements) && "pt-4")}>
                   {isUnauthenticatedHomepage && (
                      <div className="relative">

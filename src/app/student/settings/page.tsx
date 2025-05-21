@@ -1,18 +1,19 @@
-
 // src/app/student/settings/page.tsx
 'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Bell, UserCircle, Palette, Shield } from "lucide-react";
+import { Settings, Bell, UserCircle, Palette } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from '@/context/ThemeContext'; // Import useTheme
 
 export default function StudentSettingsPage() {
+  const { theme, setTheme } = useTheme(); // Use the theme context
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <header className="text-center py-8">
@@ -49,7 +50,7 @@ export default function StudentSettingsPage() {
           </Button>
         </CardContent>
       </Card>
-      
+
       <Separator />
 
        <Card className="shadow-xl rounded-xl">
@@ -59,7 +60,7 @@ export default function StudentSettingsPage() {
         <CardContent className="space-y-4">
            <div>
             <Label htmlFor="theme-select-student">Theme</Label>
-            <Select defaultValue="system">
+            <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
               <SelectTrigger id="theme-select-student">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
