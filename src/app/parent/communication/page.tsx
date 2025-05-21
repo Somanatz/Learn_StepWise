@@ -1,3 +1,4 @@
+
 // src/app/parent/communication/page.tsx
 'use client';
 
@@ -9,32 +10,51 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send, Inbox, Users, Mail } from "lucide-react";
+import { MessageSquare, Send, Inbox, Users, Mail, Loader2, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api"; // Assuming API utility
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
   id: string;
   subject: string;
   sender: string; // Or 'You'
   recipient?: string; // For sent messages
-  avatarUrl?: string;
+  avatarUrl?: string; // Placeholder
   date: string;
   snippet: string;
   read: boolean;
   childName?: string; // Relevant child for the message
 }
 
-const mockInboxMessages: Message[] = [
-  { id: "m1", subject: "Update on Alex's Math Progress", sender: "Dr. Emily Carter (Math Teacher)", avatarUrl: "https://placehold.co/40x40.png?text=EC", date: "2024-07-14", snippet: "Alex did wonderfully on the recent fractions test...", read: false, childName: "Alex Johnson" },
-  { id: "m2", subject: "Parent-Teacher Meeting Scheduled", sender: "Oakwood Elementary Admin", avatarUrl: "https://placehold.co/40x40.png?text=OA", date: "2024-07-12", snippet: "Dear Parents, PTM is scheduled for July 25th...", read: true, childName: "Alex Johnson" },
-  { id: "m3", subject: "Mia's Reading Log Reminder", sender: "Ms. Sarah Davis (Class Teacher)", avatarUrl: "https://placehold.co/40x40.png?text=SD", date: "2024-07-10", snippet: "Just a friendly reminder to submit Mia's reading log...", read: true, childName: "Mia Williams" },
-];
-
-const mockSentMessages: Message[] = [
-  { id: "s1", subject: "Re: Alex's Math Progress", recipient: "Dr. Emily Carter", date: "2024-07-15", snippet: "Thank you for the update, Dr. Carter! We're so pleased...", read: true, childName: "Alex Johnson", sender: "You" },
-  { id: "s2", subject: "Question about Science Fair", recipient: "Oakwood Elementary Admin", date: "2024-07-11", snippet: "Could you please clarify the submission deadline for the science fair?", read: true, childName: "Alex Johnson", sender: "You" },
-];
-
 export default function ParentCommunicationPage() {
+  const [inboxMessages, setInboxMessages] = useState<Message[]>([]);
+  const [sentMessages, setSentMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // TODO: Implement API endpoints for parent messages
+        // const inbox = await api.get<Message[]>('/messages/inbox/');
+        // const sent = await api.get<Message[]>('/messages/sent/');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        setInboxMessages([]); // setInboxMessages(inbox);
+        setSentMessages([]); // setSentMessages(sent);
+        setError("Messaging API not yet implemented. Displaying empty state.");
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+        setError(err instanceof Error ? err.message : "Could not load messages.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMessages();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -46,22 +66,22 @@ export default function ParentCommunicationPage() {
 
       <Tabs defaultValue="inbox" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 mb-6">
-          <TabsTrigger value="inbox"><Inbox className="mr-2 h-4 w-4" />Inbox ({mockInboxMessages.filter(m => !m.read).length} unread)</TabsTrigger>
+          <TabsTrigger value="inbox"><Inbox className="mr-2 h-4 w-4" />Inbox ({inboxMessages.filter(m => !m.read).length} unread)</TabsTrigger>
           <TabsTrigger value="sent"><Send className="mr-2 h-4 w-4" />Sent</TabsTrigger>
           <TabsTrigger value="compose" className="col-span-2 md:col-span-1"><Mail className="mr-2 h-4 w-4" />Compose Message</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inbox">
-          <MessageList messages={mockInboxMessages} type="inbox" />
+          <MessageList messages={inboxMessages} type="inbox" isLoading={isLoading} error={error} />
         </TabsContent>
         <TabsContent value="sent">
-          <MessageList messages={mockSentMessages} type="sent" />
+          <MessageList messages={sentMessages} type="sent" isLoading={isLoading} error={error} />
         </TabsContent>
         <TabsContent value="compose">
           <Card className="shadow-lg rounded-xl">
             <CardHeader>
               <CardTitle>Compose New Message</CardTitle>
-              <CardDescription>Send a message to a teacher or school staff.</CardDescription>
+              <CardDescription>Send a message to a teacher or school staff. (TBI: Teacher/Staff list from API)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -71,9 +91,8 @@ export default function ParentCommunicationPage() {
                     <SelectValue placeholder="Select teacher or staff" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="carter_e">Dr. Emily Carter (Alex's Math Teacher)</SelectItem>
-                    <SelectItem value="davis_s">Ms. Sarah Davis (Mia's Class Teacher)</SelectItem>
-                    <SelectItem value="oakwood_admin">Oakwood Elementary Admin</SelectItem>
+                    <SelectItem value="teacher_placeholder_1">Teacher Placeholder 1</SelectItem>
+                    <SelectItem value="admin_placeholder">School Admin Placeholder</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -84,9 +103,9 @@ export default function ParentCommunicationPage() {
                     <SelectValue placeholder="Select child (if applicable)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="alex_j">Alex Johnson</SelectItem>
-                    <SelectItem value="mia_w">Mia Williams</SelectItem>
-                     <SelectItem value="general">General Inquiry</SelectItem>
+                     {/* TODO: Populate with parent's linked children */}
+                    <SelectItem value="child_placeholder_1">Child Placeholder 1</SelectItem>
+                    <SelectItem value="general">General Inquiry</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -98,7 +117,7 @@ export default function ParentCommunicationPage() {
                 <Label htmlFor="message-body">Message</Label>
                 <Textarea id="message-body" placeholder="Type your message here..." rows={5} />
               </div>
-              <Button className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" onClick={() => alert("Send Message - TBI")}>
                 <Send className="mr-2 h-4 w-4" /> Send Message
               </Button>
             </CardContent>
@@ -112,11 +131,29 @@ export default function ParentCommunicationPage() {
 interface MessageListProps {
   messages: Message[];
   type: "inbox" | "sent";
+  isLoading: boolean;
+  error: string | null;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, type }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, type, isLoading, error }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-0">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-none border-b" />)}
+      </div>
+    );
+  }
+  if (error) {
+     return (
+        <Card className="text-center py-6 bg-destructive/10 border-destructive rounded-md">
+            <AlertTriangle className="mx-auto h-8 w-8 text-destructive mb-2" />
+            <CardTitle className="text-lg">Error Loading Messages</CardTitle>
+            <CardDescription className="text-destructive-foreground">{error}</CardDescription>
+        </Card>
+    );
+  }
   if (messages.length === 0) {
-    return <p className="text-center text-muted-foreground py-10">No messages in your {type} box.</p>;
+    return <p className="text-center text-muted-foreground py-10">No messages in your {type} box. (Messaging API TBI)</p>;
   }
   return (
     <Card className="shadow-md rounded-xl">
@@ -133,7 +170,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, type }) => {
                   <p className={`font-semibold ${!msg.read && type === "inbox" ? "text-primary" : ""}`}>
                     {type === "inbox" ? msg.sender : `To: ${msg.recipient}`}
                   </p>
-                  <p className="text-xs text-muted-foreground">{msg.date}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(msg.date).toLocaleDateString()}</p>
                 </div>
                 <p className={`text-sm font-medium ${!msg.read && type === "inbox" ? "text-foreground" : "text-muted-foreground"}`}>{msg.subject}</p>
                 <p className="text-xs text-muted-foreground truncate max-w-md">{msg.snippet}</p>
@@ -149,4 +186,3 @@ const MessageList: React.FC<MessageListProps> = ({ messages, type }) => {
     </Card>
   );
 };
-

@@ -1,62 +1,125 @@
+
 // src/app/parent/reports/[childId]/page.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, FileText, UserCircle, CalendarDays, BarChartBig, MessageSquare } from "lucide-react";
+import { Download, FileText, UserCircle, CalendarDays, BarChartBig, MessageSquare, Loader2, AlertTriangle } from "lucide-react";
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data - in a real app, fetch this based on childId
-const mockReportCardData = {
-  child1: {
-    studentName: "Alex Johnson",
-    avatarUrl: "https://placehold.co/100x100.png",
-    classLevel: 5,
-    reportDate: "July 15, 2024",
-    schoolName: "Oakwood Elementary",
-    teacherName: "Dr. Emily Carter",
-    overallGrade: "B+",
-    overallComments: "Alex has demonstrated commendable progress this term, particularly in Mathematics where problem-solving skills have notably improved. Consistent effort in Science projects is evident. To further enhance learning, Alex is encouraged to participate more actively in History class discussions and focus on developing descriptive writing techniques in English. Overall, a positive term with strong potential for future growth.",
-    subjects: [
-      { name: "Mathematics", score: 88, grade: "B+", comments: "Excellent understanding of fractions and decimals. Good problem-solving skills." },
-      { name: "Science", score: 92, grade: "A-", comments: "Strong performance in experiments. Actively participates in group projects." },
-      { name: "English", score: 82, grade: "B", comments: "Good comprehension skills. Needs to work on descriptive writing." },
-      { name: "History", score: 78, grade: "C+", comments: "Understands key historical events. More active participation would be beneficial." },
-      { name: "Art", score: 95, grade: "A", comments: "Shows great creativity and technical skill." },
-    ]
-  },
-   child2: {
-    studentName: "Mia Williams",
-    avatarUrl: "https://placehold.co/100x100.png",
-    classLevel: 3,
-    reportDate: "July 12, 2024",
-    schoolName: "Willow Creek Academy",
-    teacherName: "Ms. Sarah Davis",
-    overallGrade: "C+",
-    overallComments: "Mia is a delightful student who is making steady progress in foundational skills. She shows enthusiasm for reading and phonics. Continued practice with basic math concepts, particularly addition and subtraction, is recommended. Mia is encouraged to ask questions more frequently in class.",
-    subjects: [
-      { name: "Phonics", score: 75, grade: "B-", comments: "Good grasp of letter sounds. Improving in blending." },
-      { name: "Basic Math", score: 68, grade: "C", comments: "Understands counting. Needs more practice with simple addition." },
-      { name: "Reading Comprehension", score: 72, grade: "C+", comments: "Enjoys stories. Working on recalling details." },
-      { name: "Handwriting", score: 80, grade: "B", comments: "Neat handwriting. Consistent letter formation." },
-    ]
-  }
-  // ... other children reports
-};
+interface SubjectPerformance {
+  name: string;
+  score: number;
+  grade: string;
+  comments: string;
+}
+
+interface ReportCardData {
+  studentName: string;
+  avatarUrl?: string;
+  classLevel: number | string;
+  reportDate: string;
+  schoolName: string;
+  teacherName: string;
+  overallGrade: string;
+  overallComments: string;
+  subjects: SubjectPerformance[];
+}
 
 export default function ChildReportCardPage() {
   const params = useParams();
-  const childId = params.childId as keyof typeof mockReportCardData | undefined;
+  const { currentUser } = useAuth();
+  const childId = params.childId as string;
   
-  const reportData = childId && typeof childId === 'string' && mockReportCardData[childId] 
-                      ? mockReportCardData[childId] 
-                      : mockReportCardData.child1; // Fallback to child1 if ID is invalid
+  const [reportData, setReportData] = useState<ReportCardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      if (!childId || !currentUser) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+        // TODO: Implement API endpoint for specific child report card
+        // For example: const data = await api.get<ReportCardData>(`/users/${childId}/report-card/latest/`);
+        // Simulating API call and response for now:
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const mockReport : ReportCardData = {
+            studentName: `Child ${childId} (Fetched)`, // Replace with actual data
+            avatarUrl: `https://placehold.co/100x100.png?text=C${childId}`,
+            classLevel: `Class X (Fetched)`, // Replace
+            reportDate: new Date().toISOString(),
+            schoolName: "GenAI Campus (Fetched)",
+            teacherName: "Dr. Teacher (Fetched)",
+            overallGrade: "B+",
+            overallComments: "This is a placeholder report. API integration needed to fetch real data for this child.",
+            subjects: [
+                { name: "Mathematics", score: 80, grade: "B", comments: "Good effort." },
+                { name: "Science", score: 75, grade: "B-", comments: "Shows interest." },
+            ]
+        };
+        setReportData(mockReport);
+        setError("Child report card API not yet fully implemented. Displaying placeholder structure.");
+      } catch (err) {
+        console.error("Failed to fetch child report card:", err);
+        setError(err instanceof Error ? err.message : "Could not load report card data.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+  }, [childId, currentUser]);
+
+  if (isLoading) {
+     return (
+      <div className="max-w-4xl mx-auto space-y-8 p-4">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-12 w-1/2 rounded" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error && !reportData) {
+     return (
+         <Card className="text-center py-10 bg-destructive/10 border-destructive rounded-xl shadow-lg">
+            <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><CardTitle>Error Loading Report</CardTitle></CardHeader>
+            <CardContent><CardDescription className="text-destructive-foreground">{error}</CardDescription></CardContent>
+        </Card>
+    );
+  }
+  
+  if (!reportData) {
+      return (
+        <Card className="text-center py-10 bg-card border rounded-xl shadow-lg">
+            <CardHeader><FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><CardTitle>Report Not Available</CardTitle></CardHeader>
+            <CardContent><CardDescription>The report card for this child could not be loaded or is not yet available.</CardDescription></CardContent>
+        </Card>
+      );
+  }
 
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+       {error && reportData && ( // Show non-blocking error if data is at least placeholder
+         <Alert variant="warning" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Note</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <Card className="shadow-xl rounded-xl overflow-hidden">
         <CardHeader className="bg-primary text-primary-foreground p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -76,7 +139,7 @@ export default function ChildReportCardPage() {
         <CardContent className="p-6 md:p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-6">
             <InfoBox icon={UserCircle} label="Teacher" value={reportData.teacherName} />
-            <InfoBox icon={CalendarDays} label="Report Date" value={reportData.reportDate} />
+            <InfoBox icon={CalendarDays} label="Report Date" value={new Date(reportData.reportDate).toLocaleDateString()} />
             <InfoBox icon={BarChartBig} label="Overall Grade" value={reportData.overallGrade} className="font-bold text-lg" />
           </div>
           
@@ -114,8 +177,8 @@ export default function ChildReportCardPage() {
           </div>
         </CardContent>
         <CardFooter className="p-6 md:p-8 bg-muted border-t">
-          <p className="text-xs text-muted-foreground">This report reflects {reportData.studentName}'s performance for the term ending {reportData.reportDate}. Please contact {reportData.teacherName} for any clarifications.</p>
-          <Button variant="default" size="lg" className="ml-auto">
+          <p className="text-xs text-muted-foreground">This report reflects {reportData.studentName}'s performance for the term ending {new Date(reportData.reportDate).toLocaleDateString()}. Please contact {reportData.teacherName} for any clarifications.</p>
+          <Button variant="default" size="lg" className="ml-auto" onClick={() => alert("PDF Download TBI")}>
             <Download className="mr-2 h-5 w-5" /> Download Report (PDF)
           </Button>
         </CardFooter>

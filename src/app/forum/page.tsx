@@ -1,3 +1,4 @@
+
 // src/app/forum/page.tsx
 'use client';
 
@@ -5,29 +6,56 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Search, Users, ThumbsUp, MessageCircle as MessageIcon, PlusCircle } from "lucide-react";
+import { MessageSquare, Search, Users, ThumbsUp, MessageCircle as MessageIcon, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api"; // Assuming you have this for API calls
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface ForumThread {
+interface ForumThread { // Assuming this structure for fetched threads
   id: string;
   title: string;
-  author: string;
-  replies: number;
-  views: number;
-  lastPost: string;
-  category: string;
-  tags: string[];
+  author_username: string; // Assuming backend sends author's username
+  reply_count: number;
+  view_count: number;
+  last_activity_by: string; // e.g., "Username - 2h ago"
+  category_name: string;
+  tags: string[]; // Assuming tags are simple strings
 }
 
-const mockThreads: ForumThread[] = [
-  { id: "t1", title: "Struggling with Advanced Algebra - Need Help!", author: "StudentAlex", replies: 12, views: 150, lastPost: "TeacherEmily - 2h ago", category: "Subject Help", tags: ["math", "algebra"] },
-  { id: "t2", title: "Tips for Preparing for the Science Fair", author: "ScienceGeek99", replies: 5, views: 89, lastPost: "ParentSarah - 1d ago", category: "General Discussion", tags: ["science", "projects"] },
-  { id: "t3", title: "Announcement: Upcoming Parent-Teacher Meetings", author: "AdminGenAI", replies: 0, views: 250, lastPost: "AdminGenAI - 3d ago", category: "Announcements", tags: ["school", "meetings"] },
-  { id: "t4", title: "Favorite Historical Period and Why?", author: "HistoryLover", replies: 25, views: 302, lastPost: "StudentMaria - 5m ago", category: "General Discussion", tags: ["history", "discussion"] },
-  { id: "t5", title: "Clarification on English Essay Submission", author: "BookwormBen", replies: 2, views: 45, lastPost: "TeacherDavid - 1h ago", category: "Subject Help", tags: ["english", "essay"] },
-];
-
 export default function ForumPage() {
+  const [threads, setThreads] = useState<ForumThread[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("all");
+
+  useEffect(() => {
+    const fetchThreads = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with actual API endpoint for forum threads
+        // const response = await api.get<ForumThread[]>(`/forum/threads/?category=${activeTab === 'all' ? '' : activeTab}`);
+        // For now, simulating an empty response as backend is not ready
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+        setThreads([]); 
+        // setError("Forum API endpoint not yet implemented. Showing empty state.");
+      } catch (err) {
+        console.error("Failed to fetch forum threads:", err);
+        setError(err instanceof Error ? err.message : "Could not load forum threads.");
+        setThreads([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchThreads();
+  }, [activeTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   return (
     <div className="space-y-8">
       <header className="py-10 bg-gradient-to-r from-accent to-blue-600 text-center rounded-xl shadow-xl">
@@ -43,12 +71,12 @@ export default function ForumPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input type="search" placeholder="Search forum threads..." className="pl-10 h-10 text-base" />
         </div>
-        <Button size="lg">
+        <Button size="lg" onClick={() => alert("Create new thread - TBI")}>
           <PlusCircle className="mr-2 h-5 w-5" /> Start New Thread
         </Button>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
           <TabsTrigger value="all">All Threads</TabsTrigger>
           <TabsTrigger value="general">General Discussion</TabsTrigger>
@@ -57,16 +85,16 @@ export default function ForumPage() {
         </TabsList>
 
         <TabsContent value="all">
-          <ThreadList threads={mockThreads} />
+          <ThreadList threads={threads} isLoading={isLoading} error={error} />
         </TabsContent>
         <TabsContent value="general">
-          <ThreadList threads={mockThreads.filter(t => t.category === "General Discussion")} />
+          <ThreadList threads={threads.filter(t => t.category_name === "General Discussion")} isLoading={isLoading} error={error} />
         </TabsContent>
         <TabsContent value="help">
-          <ThreadList threads={mockThreads.filter(t => t.category === "Subject Help")} />
+          <ThreadList threads={threads.filter(t => t.category_name === "Subject Help")} isLoading={isLoading} error={error} />
         </TabsContent>
         <TabsContent value="announcements">
-          <ThreadList threads={mockThreads.filter(t => t.category === "Announcements")} />
+          <ThreadList threads={threads.filter(t => t.category_name === "Announcements")} isLoading={isLoading} error={error} />
         </TabsContent>
       </Tabs>
     </div>
@@ -75,12 +103,32 @@ export default function ForumPage() {
 
 interface ThreadListProps {
   threads: ForumThread[];
+  isLoading: boolean;
+  error: string | null;
 }
 
-const ThreadList: React.FC<ThreadListProps> = ({ threads }) => {
-  if (threads.length === 0) {
-    return <p className="text-center text-muted-foreground py-10">No threads found in this category.</p>;
+const ThreadList: React.FC<ThreadListProps> = ({ threads, isLoading, error }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+        <Card className="text-center py-10 bg-destructive/10 border-destructive rounded-xl shadow-lg">
+            <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><CardTitle>Error Loading Threads</CardTitle></CardHeader>
+            <CardContent><CardDescription className="text-destructive-foreground">{error}</CardDescription></CardContent>
+        </Card>
+    );
+  }
+
+  if (threads.length === 0) {
+    return <p className="text-center text-muted-foreground py-10">No threads found in this category. (Forum API TBI)</p>;
+  }
+
   return (
     <div className="space-y-4">
       {threads.map(thread => (
@@ -92,15 +140,15 @@ const ThreadList: React.FC<ThreadListProps> = ({ threads }) => {
               </a>
             </Link>
             <CardDescription className="text-xs">
-              Started by <span className="font-medium text-accent">{thread.author}</span> in <span className="font-medium">{thread.category}</span>
+              Started by <span className="font-medium text-accent">{thread.author_username}</span> in <span className="font-medium">{thread.category_name}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-between items-center text-xs text-muted-foreground pb-3">
             <div className="flex gap-3">
-              <span><MessageIcon className="inline mr-1 h-4 w-4" />{thread.replies} Replies</span>
-              <span><Users className="inline mr-1 h-4 w-4" />{thread.views} Views</span>
+              <span><MessageIcon className="inline mr-1 h-4 w-4" />{thread.reply_count} Replies</span>
+              <span><Users className="inline mr-1 h-4 w-4" />{thread.view_count} Views</span>
             </div>
-            <div>Last post by <span className="font-medium text-foreground">{thread.lastPost.split(' - ')[0]}</span> ({thread.lastPost.split(' - ')[1]})</div>
+            <div>Last post by <span className="font-medium text-foreground">{thread.last_activity_by.split(' - ')[0]}</span> ({thread.last_activity_by.split(' - ')[1]})</div>
           </CardContent>
           <CardFooter className="pb-3 pt-0">
             <div className="flex gap-2">

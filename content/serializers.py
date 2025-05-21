@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward
 from accounts.models import School # Import School model
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -206,3 +206,21 @@ class UserQuizAttemptSerializer(serializers.ModelSerializer):
         # For simplicity, view handles scoring.
         return super().create(validated_data)
 
+
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
+        fields = ['id', 'title', 'description', 'icon_name']
+
+class UserRewardSerializer(serializers.ModelSerializer):
+    reward_details = RewardSerializer(source='reward', read_only=True)
+    user_username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = UserReward
+        fields = ['id', 'user', 'user_username', 'reward', 'reward_details', 'achieved_at']
+        read_only_fields = ['user', 'reward', 'achieved_at']
+
+    # If you want to create UserReward by passing user_id and reward_id
+    # user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    # reward = serializers.PrimaryKeyRelatedField(queryset=Reward.objects.all(), write_only=True)

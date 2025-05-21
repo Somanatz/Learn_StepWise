@@ -9,32 +9,83 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Lightbulb, BookOpen, Video, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Mock data for demonstration - In a real app, this would be fetched or derived
-const mockStudentId = "student-123";
-const mockPerformanceData = "Struggling with fractions in Math, but excelling in historical dates for History. Average in English grammar.";
-const mockAvailableLessons = "Math: Fractions Part 1, Fractions Part 2, Decimals. History: Ancient Rome, World War II. English: Advanced Verbs, Noun Clauses.";
-const mockAvailableVideos = "Math: Visualizing Fractions. History: Fall of Rome Documentary. English: Grammar Mistakes to Avoid.";
-const mockAvailableQuizzes = "Math: Fractions Quiz. History: Roman Empire Quiz. English: Verb Tense Quiz.";
+import { useAuth } from '@/context/AuthContext'; // To get student ID and data
+import { api } from '@/lib/api'; // To fetch lessons, videos, quizzes if needed
+import type { LessonSummary, Quiz } from '@/interfaces'; // Assuming these interfaces exist
 
 export default function LearningSuggestions() {
+  const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PersonalizedLearningSuggestionsOutput | null>(null);
-  const [studentId, setStudentId] = useState(mockStudentId); // Could be dynamic
+  
+  // States for dynamic data needed by the AI flow
+  const [performanceData, setPerformanceData] = useState<string>("");
+  const [availableLessons, setAvailableLessons] = useState<string>("");
+  const [availableVideos, setAvailableVideos] = useState<string>("");
+  const [availableQuizzes, setAvailableQuizzes] = useState<string>("");
+  const [isInputDataLoading, setIsInputDataLoading] = useState(true);
+
+
+  useEffect(() => {
+    const fetchInputData = async () => {
+      if (!currentUser || !currentUser.student_profile) {
+        setIsInputDataLoading(false);
+        setError("Student data not available to generate suggestions.");
+        return;
+      }
+      setIsInputDataLoading(true);
+      try {
+        // --- Fetch Performance Data (Example: Last few quiz scores) ---
+        // TODO: Replace with actual API calls to get student performance data
+        // const quizAttempts = await api.get(`/quizattempts/?user=${currentUser.id}&ordering=-completed_at&page_size=3`);
+        // const performanceSummary = quizAttempts.map(qa => `${qa.quiz_title}: ${qa.score}%`).join(', ') || "No recent quiz data.";
+        // setPerformanceData(performanceSummary);
+        setPerformanceData("Mock: Struggling with fractions, good at history dates."); // Placeholder
+
+        // --- Fetch Available Learning Materials ---
+        // TODO: Fetch actual lists of lessons, videos, quizzes relevant to the student (e.g., their enrolled class/subjects)
+        // const lessonsData = await api.get<LessonSummary[]>(`/lessons/?subject__class_obj=${currentUser.student_profile.enrolled_class}`);
+        // setAvailableLessons(lessonsData.map(l => l.title).join(', ') || "No lessons found.");
+        setAvailableLessons("Math: Fractions Part 1, Decimals. History: Ancient Rome."); // Placeholder
+
+        // setAvailableVideos("Math: Visualizing Fractions. History: Fall of Rome Doc."); // Placeholder
+        // setAvailableQuizzes("Math: Fractions Quiz. History: Roman Empire Quiz."); // Placeholder
+
+        // For videos and quizzes, if not directly linked to lessons, fetch them separately
+        // For simplicity, using placeholders for videos and quizzes now.
+        setAvailableVideos("Video: Fractions Explained, Video: Intro to Algebra");
+        setAvailableQuizzes("Quiz: Basic Algebra, Quiz: Fractions Advanced");
+
+      } catch (err) {
+        console.error("Error fetching input data for AI suggestions:", err);
+        setError("Could not load necessary data for suggestions.");
+      } finally {
+        setIsInputDataLoading(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchInputData();
+    } else {
+      setIsInputDataLoading(false); // Not logged in, no data to fetch
+    }
+  }, [currentUser]);
 
   const fetchSuggestions = async () => {
+    if (!currentUser || isInputDataLoading || !performanceData || !availableLessons) {
+        setError("Cannot fetch suggestions: prerequisite data missing or still loading.");
+        return;
+    }
     setIsLoading(true);
     setError(null);
-    // Keep existing suggestions while new ones are loading, or clear them:
-    // setSuggestions(null); 
-
+    
     const input: PersonalizedLearningSuggestionsInput = {
-      studentId,
-      performanceData: mockPerformanceData, // Replace with actual dynamic data
-      availableLessons: mockAvailableLessons, // Replace with actual dynamic data
-      availableVideos: mockAvailableVideos, // Replace with actual dynamic data
-      availableQuizzes: mockAvailableQuizzes, // Replace with actual dynamic data
+      studentId: String(currentUser.id),
+      performanceData,
+      availableLessons,
+      availableVideos,
+      availableQuizzes,
     };
 
     try {
@@ -42,16 +93,19 @@ export default function LearningSuggestions() {
       setSuggestions(result);
     } catch (err) {
       console.error("Error fetching learning suggestions:", err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred while fetching suggestions.');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
+  // Automatically fetch suggestions once input data is loaded
   useEffect(() => {
-    fetchSuggestions();
+      if(!isInputDataLoading && performanceData && availableLessons && !suggestions && !isLoading) {
+          fetchSuggestions();
+      }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studentId]);
+  }, [isInputDataLoading, performanceData, availableLessons]);
 
   return (
     <Card className="w-full max-w-3xl mx-auto shadow-2xl">
@@ -64,10 +118,11 @@ export default function LearningSuggestions() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex justify-end">
-          <Button onClick={fetchSuggestions} disabled={isLoading}>
-            {isLoading ? (
+          <Button onClick={fetchSuggestions} disabled={isLoading || isInputDataLoading}>
+            {(isLoading || isInputDataLoading) ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Refreshing...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                {isInputDataLoading ? 'Preparing...' : 'Refreshing...'}
               </>
             ) : (
               "Refresh Suggestions"
@@ -75,7 +130,7 @@ export default function LearningSuggestions() {
           </Button>
         </div>
 
-        {isLoading && !suggestions && (
+        {(isLoading || isInputDataLoading) && !suggestions && (
           <div className="space-y-4 p-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-20 w-full" />
@@ -86,12 +141,12 @@ export default function LearningSuggestions() {
 
         {error && (
           <Alert variant="destructive">
-            <AlertTitle>Error Fetching Suggestions</AlertTitle>
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {suggestions && ( // Display suggestions even if isLoading is true for a refresh
+        {suggestions && (
           <div className="space-y-6">
             <Alert className="bg-secondary border-primary/50">
               <Lightbulb className="h-5 w-5 text-primary" />

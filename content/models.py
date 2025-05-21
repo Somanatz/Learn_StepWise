@@ -132,3 +132,27 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
+
+class Reward(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    icon_name = models.CharField(max_length=50, help_text="Lucide icon name (e.g., Award, Star, Trophy)") # Store icon name
+    # points_required = models.PositiveIntegerField(default=0) # Or other criteria
+
+    class Meta:
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+class UserReward(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achieved_rewards')
+    reward = models.ForeignKey(Reward, on_delete=models.CASCADE, related_name='user_achievements')
+    achieved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'reward')
+        ordering = ['-achieved_at']
+
+    def __str__(self):
+        return f"{self.user.username} achieved {self.reward.title}"

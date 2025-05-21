@@ -5,25 +5,31 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2, MessageSquare } from "lucide-react";
+import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2, MessageSquare, ActivityIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from '@/lib/api';
-import type { Event as EventInterface } from '@/interfaces';
+import type { Event as EventInterface, User as UserInterface } from '@/interfaces';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 
-const stats = [
-  { title: "Total Students", value: "125", icon: Users, color: "text-primary", link: "/teacher/students" }, 
-  { title: "Active Courses", value: "8", icon: BookOpenText, color: "text-accent", link: "/teacher/content" }, 
-  { title: "Pending Reviews", value: "12", icon: CalendarCheck2, color: "text-orange-500", link: "#" }, 
-  { title: "Overall Performance", value: "85%", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics" }, 
-];
+interface Stat {
+    title: string;
+    value: string | number | JSX.Element;
+    icon: React.ElementType;
+    color: string;
+    link: string;
+    note?: string;
+}
 
-const recentActivitiesMock = [
-  { student: "Alex Johnson", action: "submitted Math Quiz 3.", time: "10m ago" },
-  { student: "Maria Garcia", action: "asked a question in Science forum.", time: "45m ago" },
-  { student: "David Lee", action: "completed History Lesson 5.", time: "2h ago" },
-  { student: "Sarah Miller", action: "achieved 'Top Learner' badge.", time: "5h ago" },
-];
+interface RecentActivity {
+  id: string; // Or number
+  description: string; // e.g., "Alex Johnson submitted Math Quiz 3."
+  timestamp: string; // e.g., "2024-07-20T10:30:00Z"
+  type: 'submission' | 'forum_post' | 'lesson_completion' | 'badge_earned';
+  studentName?: string;
+  link?: string; // Optional link to the activity
+}
+
 
 const quickLinks = [
     { href: "/teacher/students", label: "Manage Students", icon: Users },
@@ -33,25 +39,37 @@ const quickLinks = [
 ];
 
 export default function TeacherDashboard() {
+  const { currentUser } = useAuth();
   const [events, setEvents] = useState<EventInterface[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null); 
+  
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
+
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchDashboardData = async () => {
+      if (!currentUser || !currentUser.teacher_profile?.school) {
+        setIsLoadingEvents(false);
+        setIsLoadingStats(false);
+        setIsLoadingActivities(false);
+        // setStatsError("Teacher profile not fully configured or not associated with a school.");
+        return;
+      }
+      const schoolId = currentUser.teacher_profile.school;
+
+      // Fetch Events
       setIsLoadingEvents(true);
       setEventsError(null); 
       try {
-        const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
-        let actualApiEvents: EventInterface[];
-        if (Array.isArray(eventResponse)) {
-          actualApiEvents = eventResponse;
-        } else if (eventResponse && Array.isArray(eventResponse.results)) {
-          actualApiEvents = eventResponse.results;
-        } else {
-          console.error("Unexpected event data format:", eventResponse);
-          actualApiEvents = [];
-        }
+        const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>(`/events/?school=${schoolId}&ordering=date`);
+        let actualApiEvents: EventInterface[] = Array.isArray(eventResponse) ? eventResponse : eventResponse.results || [];
         setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
@@ -59,16 +77,50 @@ export default function TeacherDashboard() {
       } finally {
         setIsLoadingEvents(false);
       }
+
+      // Fetch Stats (student count, course count - placeholders for now)
+      setIsLoadingStats(true);
+      setStatsError(null);
+      try {
+        // Placeholder: In a real app, these would be separate API calls or an aggregated dashboard API
+        const studentCountData = await api.get<{ count: number } | UserInterface[]>(`/users/?role=Student&school=${schoolId}&page_size=1`);
+        const studentCount = typeof (studentCountData as { count: number }).count === 'number' ? (studentCountData as { count: number }).count : (studentCountData as UserInterface[]).length;
+        
+        // Mock other stats for now
+        const fetchedStats: Stat[] = [
+            { title: "Total Students", value: studentCount, icon: Users, color: "text-primary", link: "/teacher/students", note: "In your classes" }, 
+            { title: "Active Courses", value: "N/A", icon: BookOpenText, color: "text-accent", link: "/teacher/content", note:"Needs API"}, 
+            { title: "Pending Reviews", value: "N/A", icon: CalendarCheck2, color: "text-orange-500", link: "#", note:"Needs API"}, 
+            { title: "Overall Performance", value: "N/A", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics", note:"Needs API"}, 
+        ];
+        setStats(fetchedStats);
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+        setStatsError(err instanceof Error ? err.message : "Failed to load dashboard stats.");
+      } finally {
+        setIsLoadingStats(false);
+      }
+
+      // Fetch Recent Activities (Placeholder)
+      setIsLoadingActivities(true);
+      setActivitiesError(null);
+      // TODO: Implement API endpoint for recent student activities relevant to the teacher
+      // For now, showing a placeholder message.
+      setRecentActivities([]); // Or some mock data if you want to illustrate structure
+      setIsLoadingActivities(false);
+      // setActivitiesError("Recent activities API not yet implemented.");
+
+
     };
-    fetchEvents();
-  }, []);
+    fetchDashboardData();
+  }, [currentUser]);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 bg-card rounded-xl shadow-lg">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Teacher Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Manage your classes and students efficiently.</p>
+          <p className="text-muted-foreground">Welcome back, {currentUser?.teacher_profile?.full_name || currentUser?.username}! Manage your classes and students efficiently.</p>
         </div>
         <Button size="lg" asChild>
           <Link href="/teacher/content/lessons/create"> 
@@ -78,7 +130,13 @@ export default function TeacherDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => ( 
+        {isLoadingStats ? (
+            [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)
+        ) : statsError ? (
+            <Card className="lg:col-span-4 p-4 text-center text-destructive bg-destructive/10 border-destructive rounded-xl">
+                <AlertTriangle className="inline mr-2"/> Error loading stats: {statsError}
+            </Card>
+        ) : stats.map((stat) => ( 
           <Link key={stat.title} href={stat.link} passHref legacyBehavior>
             <a className="block">
                 <Card className="shadow-md hover:shadow-lg transition-shadow rounded-xl h-full">
@@ -88,9 +146,7 @@ export default function TeacherDashboard() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground pt-1">
-                    {stat.title === "Overall Performance" ? "+5% from last month" : "View Details"}
-                    </p>
+                    {stat.note && <p className="text-xs text-muted-foreground pt-1">{stat.note}</p>}
                 </CardContent>
                 </Card>
             </a>
@@ -101,34 +157,40 @@ export default function TeacherDashboard() {
       <div className="grid gap-8 md:grid-cols-3">
         <Card className="md:col-span-2 shadow-md rounded-xl">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Overview of recent student submissions and interactions. (Mock Data)</CardDescription>
+            <CardTitle className="flex items-center"><ActivityIcon className="mr-2 text-primary"/>Recent Activity</CardTitle>
+            <CardDescription>Overview of recent student submissions and interactions.</CardDescription>
           </CardHeader>
           <CardContent>
-            {recentActivitiesMock.length > 0 ? ( 
+            {isLoadingActivities ? (
+                 <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                 </div>
+            ) : activitiesError ? (
+                 <p className="text-sm text-destructive p-4 text-center"><AlertTriangle className="inline mr-1 h-4 w-4" />{activitiesError}</p>
+            ) : recentActivities.length > 0 ? ( 
             <ul className="space-y-3">
-              {recentActivitiesMock.map((activity, index) => (
-                <li key={index} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-md">
+              {recentActivities.map((activity) => (
+                <li key={activity.id} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-md">
                   <Users className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium">
-                      <span className="font-semibold text-accent">{activity.student}</span> {activity.action}
+                      {activity.description}
                     </p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(activity.timestamp).toLocaleString()}</p>
                   </div>
                 </li>
               ))}
             </ul>
             ) : (
-                 <p className="text-sm text-muted-foreground">No recent student activities.</p>
+                 <p className="text-sm text-muted-foreground text-center py-4">No recent student activities to display. API integration needed.</p>
             )}
-             <Button variant="outline" className="mt-6 w-full">View All Activities</Button>
+             <Button variant="outline" className="mt-6 w-full">View All Activities (TBI)</Button>
           </CardContent>
         </Card>
 
         <Card className="shadow-md rounded-xl">
           <CardHeader>
-            <CardTitle className="flex items-center"><CalendarDays className="mr-2 text-primary"/>Upcoming Events</CardTitle>
+            <CardTitle className="flex items-center"><CalendarDays className="mr-2 text-primary"/>Upcoming School Events</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingEvents ? (
@@ -149,7 +211,7 @@ export default function TeacherDashboard() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">No upcoming events.</p>
+              <p className="text-sm text-muted-foreground">No upcoming school events.</p>
             )}
             <Button variant="outline" size="sm" className="w-full mt-4" asChild>
               <Link href="/teacher/calendar">View Full Calendar</Link>
@@ -165,7 +227,7 @@ export default function TeacherDashboard() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickLinks.map(link => (
-                <Button variant="outline" asChild key={link.href} className="h-auto py-4 flex-col items-center justify-center gap-2 text-base hover:bg-accent/10 hover:border-primary transition-all duration-150 ease-in-out group">
+                <Button variant="outline" asChild key={link.href} className="h-auto py-6 flex-col items-center justify-center gap-2 text-base hover:bg-accent/10 hover:border-primary transition-all duration-150 ease-in-out group">
                   <Link href={link.href}>
                     <link.icon className="h-8 w-8 mb-1 text-primary group-hover:text-accent transition-colors" />
                     <span className="text-center">{link.label}</span>
