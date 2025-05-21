@@ -80,6 +80,8 @@ async function request<T>(
         errorData = await response.json();
         if (errorData?.detail) {
             errorMessage = errorData.detail;
+        } else if (errorData?.non_field_errors && Array.isArray(errorData.non_field_errors) && errorData.non_field_errors.length > 0) {
+            errorMessage = errorData.non_field_errors.join('; '); // More specific for this case
         } else if (typeof errorData === 'object' && errorData !== null) {
             const fieldErrors = Object.entries(errorData)
                 .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
@@ -97,11 +99,25 @@ async function request<T>(
         return undefined as T; 
     }
 
-    const responseData = await response.json();
-    if (method === 'GET' && responseData && typeof responseData === 'object' && 'results' in responseData && Array.isArray(responseData.results)) {
-        return responseData.results as T; 
+    // Check if response is empty before trying to parse JSON
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const responseText = await response.text();
+      if (responseText) {
+        const responseData = JSON.parse(responseText);
+        // Handle paginated results for GET requests
+        if (method === 'GET' && responseData && typeof responseData === 'object' && 'results' in responseData && Array.isArray(responseData.results)) {
+            return responseData.results as T;
+        }
+        return responseData as T;
+      } else {
+        return undefined as T; // Or handle as an error if JSON was expected
+      }
+    } else {
+      // Handle non-JSON responses if necessary, or assume undefined for now
+      return undefined as T;
     }
-    return responseData as T;
+
   } catch (error) {
     console.error(`Network or other error on ${method} ${fullUrl}:`, error);
     throw error; 
@@ -117,7 +133,6 @@ export const api = {
 };
 
 export const loginUser = async (credentials: any) => {
-  // Changed the last argument (useApiPrefix) from false to true
   const response = await request<{ token: string }>('/token-auth/', 'POST', credentials, false, true); 
   if (response.token) {
     localStorage.setItem('authToken', response.token);
@@ -125,7 +140,7 @@ export const loginUser = async (credentials: any) => {
   return response;
 };
 
-export const signupUser = async (userData: FormData) => { // Expect FormData now
+export const signupUser = async (userData: FormData) => { 
   return request<UserData>('/signup/', 'POST', userData, true);
 };
 
