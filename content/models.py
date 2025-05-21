@@ -8,6 +8,9 @@ class Class(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
+    class Meta:
+        ordering = ['name'] # Default ordering by name
+
     def __str__(self):
         return f"{self.name} ({self.school.name if self.school else 'No School'})"
 
@@ -15,6 +18,9 @@ class Subject(models.Model):
     class_obj = models.ForeignKey(Class, related_name='subjects', on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['name'] # Added default ordering
 
     def __str__(self):
         return f"{self.name} ({self.class_obj.name})"
@@ -43,6 +49,9 @@ class Quiz(models.Model):
     pass_mark_percentage = models.FloatField(default=70.0, help_text="Percentage required to pass this quiz.")
 
 
+    class Meta:
+        ordering = ['title'] # Added default ordering
+
     def __str__(self):
         return f"Quiz for {self.lesson.title}"
 
@@ -52,6 +61,9 @@ class Question(models.Model):
     # Add question_type if supporting more than MCQ, e.g., 'MCQ', 'TrueFalse', 'ShortAnswer'
     # question_type = models.CharField(max_length=20, default='MCQ')
 
+    class Meta:
+        ordering = ['id'] # Added default ordering (by creation order)
+
     def __str__(self):
         return self.text[:50] + '...'
 
@@ -59,6 +71,9 @@ class Choice(models.Model):
     question = models.ForeignKey(Question, related_name='choices', on_delete=models.CASCADE)
     text = models.CharField(max_length=200)
     is_correct = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['id'] # Added default ordering
 
     def __str__(self):
         return self.text
@@ -70,6 +85,9 @@ class UserQuizAttempt(models.Model):
     answers = models.JSONField(blank=True, null=True, help_text="Stores the user's answers for each question.") # E.g. [{"question_id": 1, "choice_id": 3}, ...]
     completed_at = models.DateTimeField(auto_now_add=True)
     passed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-completed_at'] # Most recent attempts first
 
     def __str__(self):
         return f"{self.user.username}'s attempt on {self.quiz.title}"
@@ -83,6 +101,7 @@ class UserLessonProgress(models.Model):
 
     class Meta:
         unique_together = ('user', 'lesson')
+        ordering = ['user', 'lesson'] # Added default ordering
 
     def __str__(self):
         return f"{self.user.username}'s progress in {self.lesson.title}"
@@ -95,6 +114,9 @@ class ProcessedNote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['-created_at'] # Most recent notes first
+
     def __str__(self):
         return f"Note from {self.user.username} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
@@ -104,6 +126,9 @@ class Book(models.Model):
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255, blank=True, null=True)
     file = models.FileField(upload_to='books/')
+
+    class Meta:
+        ordering = ['title'] # Added default ordering
 
     def __str__(self):
         return self.title
