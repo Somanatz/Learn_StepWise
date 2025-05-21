@@ -6,223 +6,238 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Users, Briefcase, Users2, BarChart3, Megaphone, CalendarDays, Brain, MessageSquare, Loader2, AlertTriangle, PlusCircle, School as SchoolIcon, CalendarIcon } from "lucide-react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Users, Briefcase, Users2, BarChart3, Megaphone, CalendarDays, Brain, MessageSquare, Loader2, AlertTriangle, PlusCircle, School as SchoolIcon, Settings, ListChecks, BookOpenText } from "lucide-react";
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import type { School, Event as EventInterface, CustomUser } from '@/interfaces'; // Assuming CustomUser for teacher/student lists
+import type { School, Event as EventInterface, CustomUser, Class } from '@/interfaces';
 import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
-const eventSchema = z.object({
-  title: z.string().min(3, "Title is required"),
-  description: z.string().optional(),
-  date: z.date({ required_error: "Date is required" }),
-  type: z.enum(['Holiday', 'Exam', 'Meeting', 'Activity', 'Deadline', 'General']),
-});
-type EventFormValues = z.infer<typeof eventSchema>;
+interface StatCardProps { title: string; value: string | number; icon: React.ElementType; note?: string; href?: string; }
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, note, href }) => {
+  const content = (
+    <Card className="shadow-lg rounded-xl hover:shadow-primary/20 transition-shadow h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-muted-foreground" />
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <div className="text-3xl font-bold">{value}</div>
+        {note && <p className="text-xs text-muted-foreground pt-1">{note}</p>}
+      </CardContent>
+    </Card>
+  );
+  return href ? <Link href={href} className="block h-full">{content}</Link> : content;
+};
 
 export default function SchoolAdminDashboard() {
   const params = useParams();
   const router = useRouter();
-  const { toast } = useToast();
   const { currentUser, isLoadingAuth } = useAuth();
   const schoolId = params.schoolId as string;
 
   const [schoolDetails, setSchoolDetails] = useState<School | null>(null);
-  const [students, setStudents] = useState<CustomUser[]>([]);
+  const [studentCount, setStudentCount] = useState<number | null>(null);
+  const [teacherCount, setTeacherCount] = useState<number | null>(null);
   const [teachers, setTeachers] = useState<CustomUser[]>([]);
   const [events, setEvents] = useState<EventInterface[]>([]);
-  const [isLoadingSchool, setIsLoadingSchool] = useState(true);
-  const [isLoadingData, setIsLoadingData] = useState(true); // For students, teachers, events
+  const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const eventForm = useForm<EventFormValues>({
-    resolver: zodResolver(eventSchema),
-    defaultValues: { type: 'General' },
-  });
-
   useEffect(() => {
-    if (!schoolId) return;
-    setIsLoadingSchool(true);
-    api.get<School>(`/schools/${schoolId}/`)
-      .then(setSchoolDetails)
-      .catch(err => {
-        console.error("Failed to fetch school details:", err);
-        setError("Could not load school information.");
-      })
-      .finally(() => setIsLoadingSchool(false));
-  }, [schoolId]);
+    if (!schoolId || isLoadingAuth) return;
 
-  useEffect(() => {
-    if (!schoolId || !currentUser || currentUser.administered_school?.id !== parseInt(schoolId)) {
-        if(!isLoadingAuth && currentUser) { // Only redirect if auth is resolved and user is not admin of this school
-           // router.push('/'); // Or to an error page
-           console.warn("User is not admin of this school or schoolId mismatch");
-        }
-        return;
+    if (currentUser && (!currentUser.is_school_admin || String(currentUser.administered_school?.id) !== schoolId)) {
+      setError("Access Denied: You do not have permission to view this school's admin dashboard.");
+      setIsLoadingPage(false);
+      return;
     }
+    
+    setIsLoadingPage(true);
+    setError(null);
 
-    setIsLoadingData(true);
     Promise.all([
-      api.get<CustomUser[]>(`/users/?school=${schoolId}&role=Student`),
-      api.get<CustomUser[]>(`/users/?school=${schoolId}&role=Teacher`),
-      api.get<EventInterface[]>(`/events/?school=${schoolId}&ordering=date`)
-    ]).then(([studentsData, teachersData, eventsData]) => {
-      setStudents(studentsData.slice(0, 10)); // Mock top 10
-      setTeachers(teachersData.sort((a,b) => (a.teacher_profile?.full_name || "").localeCompare(b.teacher_profile?.full_name || "")).slice(0, 10)); // Mock senior/sorted
-      setEvents(eventsData);
+      api.get<School>(`/schools/${schoolId}/`),
+      api.get<{ count: number } | CustomUser[]>(`/users/?school=${schoolId}&role=Student&page_size=1`), // just need count
+      api.get<{ count: number, results: CustomUser[] } | CustomUser[]>(`/users/?school=${schoolId}&role=Teacher&page_size=5`), // get a few teachers
+      api.get<EventInterface[] | { results: EventInterface[] }>(`/events/?school=${schoolId}&ordering=-date&page_size=5`)
+    ]).then(([schoolData, studentsResponse, teachersResponse, eventsResponse]) => {
+      setSchoolDetails(schoolData);
+
+      if (typeof (studentsResponse as { count: number }).count === 'number') {
+        setStudentCount((studentsResponse as { count: number }).count);
+      } else {
+        setStudentCount((studentsResponse as CustomUser[]).length); // Fallback if not paginated/no count
+      }
+      
+      let actualTeachers: CustomUser[];
+      if (typeof (teachersResponse as { count: number, results: CustomUser[] }).count === 'number') {
+        setTeacherCount((teachersResponse as { count: number, results: CustomUser[] }).count);
+        actualTeachers = (teachersResponse as { count: number, results: CustomUser[] }).results;
+      } else {
+        actualTeachers = teachersResponse as CustomUser[];
+        setTeacherCount(actualTeachers.length);
+      }
+      setTeachers(actualTeachers);
+      
+      const actualEvents = Array.isArray(eventsResponse) ? eventsResponse : eventsResponse.results || [];
+      setEvents(actualEvents);
+
     }).catch(err => {
-      console.error("Failed to load dashboard data:", err);
-      setError("Could not load school dashboard data.");
-    }).finally(() => setIsLoadingData(false));
+      console.error("Failed to load school dashboard data:", err);
+      setError(err.message || "Could not load school dashboard data.");
+    }).finally(() => {
+      setIsLoadingPage(false);
+    });
 
   }, [schoolId, currentUser, isLoadingAuth, router]);
 
 
-  const onEventSubmit = async (data: EventFormValues) => {
-    if (!schoolId) return;
-    try {
-      const payload = { ...data, school: schoolId, date: format(data.date, "yyyy-MM-dd") };
-      const newEvent = await api.post<EventInterface>('/events/', payload);
-      setEvents(prev => [newEvent, ...prev].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() ));
-      toast({ title: "Event Created", description: `${newEvent.title} has been added to the calendar.` });
-      eventForm.reset();
-    } catch (err: any) {
-      toast({ title: "Error Creating Event", description: err.message || "Could not create event.", variant: "destructive" });
-    }
-  };
-
-  if (isLoadingAuth || isLoadingSchool) {
-    return <div className="p-6"><Skeleton className="h-24 w-full mb-4" /><Skeleton className="h-64 w-full" /></div>;
+  if (isLoadingPage || isLoadingAuth) {
+    return (
+      <div className="space-y-8 p-4 md:p-6">
+        <Skeleton className="h-24 w-full rounded-xl mb-8" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+        </div>
+        <div className="grid gap-8 md:grid-cols-2">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+         <Skeleton className="h-48 w-full rounded-xl" />
+      </div>
+    );
   }
-  if (!currentUser || currentUser.role !== 'Admin' || !currentUser.is_school_admin || currentUser.administered_school?.id !== parseInt(schoolId)) {
-    return <Card className="m-6 p-6 text-center"><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-2" /><CardTitle>Access Denied</CardTitle><CardDescription>You do not have permission to view this school's admin dashboard.</CardDescription><Button onClick={() => router.push('/')} className="mt-4">Go to My Dashboard</Button></Card>;
-  }
+  
   if (error) {
-    return <Card className="m-6 p-6 text-center"><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-2" /><CardTitle>Error</CardTitle><CardDescription>{error}</CardDescription></Card>;
+    return (
+      <Card className="m-6 p-6 text-center">
+        <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-2" />
+        <CardTitle>Error</CardTitle>
+        <CardDescription>{error}</CardDescription>
+        <Button onClick={() => router.push('/')} className="mt-4">Go to My Dashboard</Button>
+      </Card>
+    );
   }
 
+  if (!schoolDetails) {
+    return <Card className="m-6 p-6 text-center"><CardTitle>School Not Found</CardTitle></Card>;
+  }
+
+  const upcomingEvents = events.filter(e => new Date(e.date) >= new Date());
 
   return (
-    <div className="space-y-8 p-4 md:p-6">
-      <Card className="shadow-xl rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground">
-        <CardHeader>
-          <div className="flex items-center gap-4">
-             <SchoolIcon size={40}/>
-            <div>
-                <CardTitle className="text-3xl font-bold">{schoolDetails?.name || 'School Admin Dashboard'}</CardTitle>
-                <CardDescription className="text-primary-foreground/80">Manage your school, students, staff, and communications.</CardDescription>
+    <div className="space-y-10">
+      <Card className="shadow-xl rounded-xl bg-gradient-to-br from-primary via-primary/90 to-accent text-primary-foreground overflow-hidden">
+        <CardHeader className="p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+             <SchoolIcon size={52} className="flex-shrink-0"/>
+            <div className="flex-grow">
+                <CardTitle className="text-4xl font-bold">{schoolDetails.name}</CardTitle>
+                <CardDescription className="text-primary-foreground/80 text-lg mt-1">School Administration Dashboard</CardDescription>
             </div>
+            <Button variant="secondary" size="lg" asChild className="mt-4 sm:mt-0 self-start sm:self-center">
+              <Link href={`/school-admin/${schoolId}/settings`}><Settings className="mr-2"/>School Settings</Link>
+            </Button>
           </div>
         </CardHeader>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Students" value={students.length || 0} icon={Users} />
-        <StatCard title="Total Staff" value={teachers.length || 0} icon={Briefcase} />
-        {/* Placeholders for more complex stats */}
-        <StatCard title="Avg. Performance" value="82%" icon={BarChart3} note="+2% this term" />
-        <StatCard title="Upcoming Events" value={events.filter(e => new Date(e.date) >= new Date()).length} icon={CalendarDays} />
+        <StatCard title="Total Students" value={studentCount ?? <Loader2 className="h-6 w-6 animate-spin"/>} icon={Users} href={`/school-admin/${schoolId}/students`} />
+        <StatCard title="Total Staff" value={teacherCount ?? <Loader2 className="h-6 w-6 animate-spin"/>} icon={Briefcase} href={`/school-admin/${schoolId}/teachers`} />
+        <StatCard title="Upcoming Events" value={upcomingEvents.length} icon={CalendarDays} href={`/school-admin/${schoolId}/calendar`} />
+        <StatCard title="Content Items" value={"N/A"} icon={BookOpenText} note="Lessons, Quizzes" href={`/school-admin/${schoolId}/content`}/>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <Card className="md:col-span-2 shadow-md rounded-xl">
-          <CardHeader><CardTitle className="flex items-center"><Megaphone className="mr-2 text-accent"/>Announcements / Event Creation</CardTitle></CardHeader>
+      <div className="grid gap-8 lg:grid-cols-3">
+        <Card className="lg:col-span-2 shadow-lg rounded-xl">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center text-xl"><Megaphone className="mr-2 text-primary"/>Recent School Announcements</CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/school-admin/${schoolId}/communication`}><PlusCircle className="mr-2 h-4 w-4"/> New Announcement</Link>
+              </Button>
+            </div>
+            <CardDescription>Latest important updates for your school community.</CardDescription>
+          </CardHeader>
           <CardContent>
-            <Form {...eventForm}>
-              <form onSubmit={eventForm.handleSubmit(onEventSubmit)} className="space-y-4">
-                <FormField control={eventForm.control} name="title" render={({ field }) => (
-                  <FormItem><FormLabel>Event Title</FormLabel><FormControl><Input placeholder="e.g., Mid-term Exams" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={eventForm.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Details about the event" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <FormField control={eventForm.control} name="date" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel>
-                            <Popover><PopoverTrigger asChild>
-                                <FormControl><Button variant="outline" className="pl-3 text-left font-normal">{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
-                            </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/></PopoverContent></Popover><FormMessage/>
-                        </FormItem>
-                    )} />
-                    <FormField control={eventForm.control} name="type" render={({ field }) => (
-                        <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select event type" /></SelectTrigger></FormControl>
-                            <SelectContent>{['Holiday', 'Exam', 'Meeting', 'Activity', 'Deadline', 'General'].map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage /></FormItem>
-                    )} />
-                </div>
-                <Button type="submit" disabled={eventForm.formState.isSubmitting}>
-                  {eventForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>} Create Event
-                </Button>
-              </form>
-            </Form>
-            <h4 className="font-semibold mt-6 mb-2">Current School Events:</h4>
-            {isLoadingData ? <Skeleton className="h-20 w-full"/> : events.length > 0 ? (
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+            {events.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                     {events.map(event => (
-                        <div key={event.id} className="p-2 border rounded-md text-sm bg-secondary/50">
-                            <strong>{event.title}</strong> ({event.type}) - {format(new Date(event.date), "PPP")}
-                            {event.target_class_name && <span className="text-xs text-muted-foreground"> (For: {event.target_class_name})</span>}
+                        <div key={event.id} className="p-3 border rounded-lg bg-card hover:border-primary transition-colors">
+                            <div className="flex justify-between items-start">
+                                <h4 className="font-semibold">{event.title}</h4>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${event.type === 'Exam' ? 'bg-red-100 text-red-700' : event.type === 'Holiday' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{event.type}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(event.date), "PPP")}</p>
+                            {event.description && <p className="text-sm mt-1 text-muted-foreground truncate">{event.description}</p>}
                         </div>
                     ))}
                 </div>
-            ) : <p className="text-sm text-muted-foreground">No events scheduled for this school yet.</p>}
+            ) : <p className="text-sm text-muted-foreground">No announcements or events posted yet.</p>}
           </CardContent>
         </Card>
 
-        <Card className="shadow-md rounded-xl">
-          <CardHeader><CardTitle  className="flex items-center"><Brain className="mr-2 text-accent"/>AI Management Tool</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-2">Get suggestions or chat with the AI assistant for school management insights.</p>
-            <Textarea placeholder="Ask the AI about school performance, resource allocation, etc..." className="mb-2" />
-            <Button variant="outline" className="w-full">Send to AI Assistant</Button>
-             <p className="text-xs text-muted-foreground mt-1">Feature coming soon.</p>
+        <Card className="shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl"><Brain className="mr-2 text-primary"/>AI Management Tool</CardTitle>
+            <CardDescription>Insights & suggestions for school administration.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full">
+            <div className="flex-grow">
+              <Textarea placeholder="Ask the AI about student performance, resource allocation, curriculum suggestions, etc..." className="mb-3 min-h-[100px]" />
+            </div>
+            <Button variant="default" className="w-full mt-auto">
+                <MessageSquare className="mr-2 h-4 w-4"/> Chat with AI Assistant
+            </Button>
+             <p className="text-xs text-muted-foreground mt-2 text-center">Feature coming soon.</p>
           </CardContent>
         </Card>
       </div>
       
-      {/* Placeholder sections for other requested data */}
-       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Top Performing Students (Placeholder)</CardTitle></CardHeader>
-          <CardContent><p className="text-muted-foreground">Data for top students per class will be shown here.</p></CardContent>
+      <div className="grid gap-8 md:grid-cols-2">
+        <Card className="shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl"><Users2 className="mr-2 text-primary"/>Featured Teachers</CardTitle>
+            <CardDescription>A quick look at some of the teaching staff.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {teachers.length > 0 ? (
+              <ul className="space-y-2">
+                {teachers.map(teacher => (
+                  <li key={teacher.id} className="flex items-center gap-3 p-2 border rounded-md bg-card">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={teacher.teacher_profile?.profile_picture_url} alt={teacher.teacher_profile?.full_name || teacher.username} data-ai-hint="teacher avatar"/>
+                      <AvatarFallback>{(teacher.teacher_profile?.full_name || teacher.username).charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{teacher.teacher_profile?.full_name || teacher.username}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Expertise: {teacher.teacher_profile?.subject_expertise_details?.map(s => s.name).join(', ') || 'N/A'}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-muted-foreground">No teachers listed or information unavailable.</p>}
+             <Button variant="outline" size="sm" className="w-full mt-4" asChild>
+              <Link href={`/school-admin/${schoolId}/teachers`}>Manage All Staff</Link>
+            </Button>
+          </CardContent>
         </Card>
-         <Card>
-          <CardHeader><CardTitle>Senior Teachers (Placeholder)</CardTitle></CardHeader>
-          <CardContent><p className="text-muted-foreground">List of most senior teachers will be displayed here.</p></CardContent>
+
+         <Card className="shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle  className="flex items-center text-xl"><BarChart3 className="mr-2 text-primary"/>School Performance (Placeholder)</CardTitle>
+            <CardDescription>Yearly progress, student pass rates, and key metrics.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-40 bg-muted/50 rounded-md">
+            <p className="text-muted-foreground">Detailed charts and performance data will appear here.</p>
+          </CardContent>
         </Card>
       </div>
-      <Card>
-        <CardHeader><CardTitle>School Performance Metrics (Placeholder)</CardTitle></CardHeader>
-        <CardContent><p className="text-muted-foreground">Charts and data on school's yearly progress will appear here.</p></CardContent>
-      </Card>
-
-
     </div>
   );
 }
-
-interface StatCardProps { title: string; value: string | number; icon: React.ElementType; note?: string; }
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, note }) => (
-  <Card className="shadow-sm rounded-xl">
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <Icon className="h-5 w-5 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-3xl font-bold">{value}</div>
-      {note && <p className="text-xs text-muted-foreground pt-1">{note}</p>}
-    </CardContent>
-  </Card>
-);
-

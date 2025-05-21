@@ -13,40 +13,42 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
-// Create SchoolAdminSidebarNav if specific navigation is needed
-// import { SchoolAdminSidebarNav } from '@/components/layout/SchoolAdminSidebarNav';
 import { Button } from '@/components/ui/button';
-import { LogOut, UserCircle, Settings, LayoutDashboard, Users, FileText, BarChart3, BookCopy, MessageSquare, CalendarDays } from 'lucide-react';
+import { LogOut, UserCircle, Settings, LayoutDashboard, Users, FileText, BarChart3, BookCopy, MessageSquare, CalendarDays, Users2 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
 
-// Define nav items directly here or import if it gets complex
-const getNavItems = (schoolId?: string | number | null) => [
-  { href: schoolId ? `/school-admin/${schoolId}` : '/teacher', label: 'Dashboard', icon: LayoutDashboard }, // Default to teacher if no schoolId
-  { href: schoolId ? `/school-admin/${schoolId}/students` : '#', label: 'Students', icon: Users },
-  { href: schoolId ? `/school-admin/${schoolId}/teachers` : '#', label: 'Teachers', icon: Users2 },
-  { href: schoolId ? `/school-admin/${schoolId}/content` : '#', label: 'Content Overview', icon: BookCopy },
-  { href: schoolId ? `/school-admin/${schoolId}/reports` : '#', label: 'School Reports', icon: FileText },
-  { href: schoolId ? `/school-admin/${schoolId}/analytics` : '#', label: 'Analytics', icon: BarChart3 },
-  { href: schoolId ? `/school-admin/${schoolId}/calendar` : '#', label: 'School Calendar', icon: CalendarDays },
-  { href: schoolId ? `/school-admin/${schoolId}/communication` : '#', label: 'Communication', icon: MessageSquare },
-  { href: schoolId ? `/school-admin/${schoolId}/settings` : '#', label: 'School Settings', icon: Settings },
-];
+// Define nav items
+const getNavItems = (schoolId?: string | null) => {
+  if (!schoolId) return []; // Or a default set of links if schoolId is not available
+  return [
+    { href: `/school-admin/${schoolId}`, label: 'Dashboard', icon: LayoutDashboard },
+    { href: `/school-admin/${schoolId}/students`, label: 'Students', icon: Users },
+    { href: `/school-admin/${schoolId}/teachers`, label: 'Teachers', icon: Users2 },
+    { href: `/school-admin/${schoolId}/content`, label: 'Content Overview', icon: BookCopy },
+    { href: `/school-admin/${schoolId}/reports`, label: 'School Reports', icon: FileText },
+    { href: `/school-admin/${schoolId}/analytics`, label: 'Analytics', icon: BarChart3 },
+    { href: `/school-admin/${schoolId}/calendar`, label: 'School Calendar', icon: CalendarDays },
+    { href: `/school-admin/${schoolId}/communication`, label: 'Communication', icon: MessageSquare },
+    { href: `/school-admin/${schoolId}/settings`, label: 'School Settings', icon: Settings },
+  ];
+};
 
 
 export default function SchoolAdminLayout({
   children,
-  params, // Next.js passes route params here for layouts of dynamic segments
 }: {
   children: React.ReactNode;
-  params: { schoolId?: string };
 }) {
   const pathname = usePathname();
-  const { currentUser, logout } = useAuth();
-  const navItems = getNavItems(params.schoolId || currentUser?.administered_school?.id);
+  const params = useParams(); // Get schoolId from URL params
+  const { logout } = useAuth();
+  
+  const schoolId = params.schoolId as string | undefined;
+  const navItems = getNavItems(schoolId);
 
 
   return (
@@ -61,7 +63,6 @@ export default function SchoolAdminLayout({
           </div>
         </SidebarHeader>
         <SidebarContent className="flex-1 p-2 overflow-y-auto">
-           {/* <SchoolAdminSidebarNav schoolId={params.schoolId} /> */}
             <SidebarMenu>
             {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
@@ -96,7 +97,7 @@ export default function SchoolAdminLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="p-2 md:p-6 bg-background min-h-full">
+        <div className="p-4 md:p-8 bg-background min-h-full">
           {children}
         </div>
       </SidebarInset>
