@@ -4,9 +4,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react'; // Added MessageSquare
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react';
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
@@ -93,31 +93,12 @@ const HeroSection = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const imageBaseClasses = "absolute rounded-full overflow-hidden shadow-xl border-4 border-background/30";
   const textBaseClasses = "opacity-0 animate-fade-in-up";
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Decorative Images Container */}
-      <div className="absolute inset-0 w-full h-full">
-        {isMounted && (
-          <>
-            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-36 md:h-36 top-10 left-5 sm:top-1/4 sm:left-1/6 md:top-20 md:left-1/4 opacity-80", textBaseClasses, "animation-delay-200")}>
-              <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
-            </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-32 md:h-32 bottom-10 right-5 sm:bottom-1/4 sm:right-1/6 md:bottom-20 md:right-1/4 opacity-70", textBaseClasses, "animation-delay-400")}>
-              <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
-            </div>
-            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 top-1/3 right-10 md:top-1/4 md:right-1/5 opacity-90", textBaseClasses, "animation-delay-600")}>
-              <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
-            </div>
-            <div className={cn(imageBaseClasses, "hidden lg:block w-20 h-20 md:w-28 md:h-28 bottom-1/4 left-10 md:bottom-1/3 md:left-1/5 opacity-60", textBaseClasses, "animation-delay-800")}>
-              <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
-            </div>
-          </>
-        )}
-      </div>
-
+      {/* Removed circular decorative images */}
+      
       {/* Central Text Content */}
       <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8", 
@@ -125,21 +106,21 @@ const HeroSection = () => {
         )} style={{ animationDelay: isMounted ? '0.1s' : undefined }}
       >
         <div className="mb-8"> 
-            <Logo /> 
+            <Logo imageWidth={436} imageHeight={120} /> 
         </div>
         <h1
           className={cn(
             "font-extrabold mb-10",
             "text-4xl sm:text-5xl md:text-6xl text-primary",
             "leading-tight",
-            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]"
+            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]" 
           )}
         >
           Empowering Every <span className="text-primary">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-primary",
+            "text-base sm:text-xl text-accent", // Changed color to accent
             "font-medium",
             "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
             isMounted ? 'animation-delay-300' : ''
@@ -170,15 +151,12 @@ export default function UnifiedDashboardPage() {
             else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
             else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
             else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
+              // Assuming school admin profiles are completed differently or not via this flag for now
               router.push(`/school-admin/${currentUser.administered_school.id}`);
-            } else {
-              // If profile is complete or role doesn't require specific completion, go to main dashboard
-              if (currentUserRole === 'Student') router.push('/student');
-              else if (currentUserRole === 'Teacher') router.push('/teacher');
-              else if (currentUserRole === 'Parent') router.push('/parent');
-              else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
-                router.push(`/school-admin/${currentUser.administered_school.id}`);
-              }
+            } else if (currentUser.role === 'Admin' && !currentUser.is_school_admin) {
+              // Platform admin - decide where they go, maybe a specific admin dashboard
+              // For now, let's assume they don't have a 'complete-profile' step like others.
+              // router.push('/admin-dashboard'); // Example
             }
         } else { // Profile is complete, redirect to role dashboard
             if (currentUserRole === 'Student') router.push('/student');
@@ -186,6 +164,8 @@ export default function UnifiedDashboardPage() {
             else if (currentUserRole === 'Parent') router.push('/parent');
             else if (currentUserRole === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
               router.push(`/school-admin/${currentUser.administered_school.id}`);
+            } else if (currentUserRole === 'Admin' && !currentUser.is_school_admin) {
+               // router.push('/admin-dashboard'); // Example
             }
         }
     }
