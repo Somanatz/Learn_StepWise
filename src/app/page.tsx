@@ -4,35 +4,35 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare, FileText, CalendarDays, ClipboardEdit, Users2, GraduationCap, Megaphone, Building, Users, ShieldCheck, MapPin, Mailbox, School } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare, FileText, CalendarDays, ClipboardEdit, Users2, GraduationCap, Megaphone, Building, Users, ShieldCheck, MapPin, Mailbox, School as SchoolIconLucide } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import ContactSalesForm from '@/components/shared/ContactSalesForm'; 
+import ContactSalesForm from '@/components/shared/ContactSalesForm';
 
 interface FeatureCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
   iconColor?: string;
-  animationDelay?: string; 
+  animationDelay?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ 
+const FeatureCard: React.FC<FeatureCardProps> = ({
   icon: Icon, title, description, iconColor = "text-primary", animationDelay
 }) => {
   return (
     <Card className={cn(
-      "shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl flex flex-col bg-card/80 backdrop-blur-sm border-border/50 h-full",
-      "opacity-0 animate-fade-in-up", 
-      animationDelay 
+      "transform-gpu shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 rounded-xl flex flex-col bg-card/80 backdrop-blur-sm border-border/50 h-full",
+      "opacity-0 animate-fade-in-up",
+      animationDelay
     )}>
-      <CardHeader className="flex-row items-center gap-4 pb-3">
-        <Icon size={32} className={iconColor} />
+      <CardHeader className="flex-row items-center gap-4 pb-3 pt-6">
+        <Icon size={32} className={cn(iconColor, "flex-shrink-0")} />
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow pb-6">
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
@@ -82,21 +82,21 @@ export default function UnifiedDashboardPage() {
 
   useEffect(() => {
     if (!isLoadingAuth && !currentUser) {
-      const timer = setTimeout(() => setIsWelcomeVisible(true), 100); 
+      const timer = setTimeout(() => setIsWelcomeVisible(true), 100);
       return () => clearTimeout(timer);
     }
   }, [isLoadingAuth, currentUser]);
 
-  if (isLoadingAuth) { 
-    return ( 
+  if (isLoadingAuth) {
+    return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo" width={280} height={77} priority className="mb-8" />
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Your Experience...</p>
+        <p className="mt-4 text-muted-foreground">Loading Your GenAI-Campus Experience...</p>
       </div>
     );
   }
-  
+
   if (!currentUser && !isLoadingAuth) {
     const animationDelayClasses = ['animation-delay-100', 'animation-delay-200', 'animation-delay-300', 'animation-delay-400', 'animation-delay-500', 'animation-delay-700'];
     return (
@@ -108,7 +108,7 @@ export default function UnifiedDashboardPage() {
             loop
             muted
             playsInline
-            poster="https://placehold.co/1920x1080.png?text=GenAI-Campus+Educational+Background"
+            poster="https://placehold.co/1920x1080.png?text=GenAI-Campus+Loading..."
             data-ai-hint="education technology"
             className="absolute top-0 left-0 w-full h-full object-cover z-0"
           >
@@ -116,7 +116,7 @@ export default function UnifiedDashboardPage() {
             Your browser does not support the video tag.
           </video>
           <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
-          
+
           {/* Welcome Text Overlay */}
           <div className={cn(
             "relative z-20 max-w-3xl mx-auto p-6 sm:p-8",
@@ -125,9 +125,9 @@ export default function UnifiedDashboardPage() {
           )}>
             <h1
               className={cn(
-                "font-extrabold mb-6 text-primary-foreground",
+                "font-extrabold mb-6 text-gray-100", // Changed to text-gray-100 for milk white
                 "text-4xl sm:text-5xl md:text-6xl",
-                "leading-tight", 
+                "leading-tight",
                 "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]",
                 "transition-opacity duration-[1400ms] ease-out delay-300",
                 isWelcomeVisible ? 'opacity-100' : 'opacity-0'
@@ -137,10 +137,10 @@ export default function UnifiedDashboardPage() {
             </h1>
             <p
               className={cn(
-                "text-base sm:text-xl text-gray-200",
+                "text-base sm:text-xl text-gray-200", // Changed to text-gray-200
                 "font-medium",
                 "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
-                "animation-delay-300", 
+                "animation-delay-300",
                 "transition-opacity duration-[1400ms] ease-out delay-600",
                 isWelcomeVisible ? 'opacity-100' : 'opacity-0'
               )}
@@ -156,10 +156,12 @@ export default function UnifiedDashboardPage() {
             <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Students</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               {studentFeatures.map((feature, index) => (
-                <FeatureCard 
-                  key={feature.title} 
-                  {...feature} 
-                  iconColor="text-emerald-400"
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon} // Ensure icon is passed correctly
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor="text-emerald-400" // Example color, can be themed
                   animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                 />
               ))}
@@ -170,10 +172,12 @@ export default function UnifiedDashboardPage() {
             <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Parents</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               {parentFeatures.map((feature, index) => (
-                <FeatureCard 
-                  key={feature.title} 
-                  {...feature} 
-                  iconColor="text-sky-400" 
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor="text-sky-400" // Example color
                   animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                 />
               ))}
@@ -184,10 +188,12 @@ export default function UnifiedDashboardPage() {
             <h2 className="text-3xl font-bold text-center mb-10 text-foreground">For Schools &amp; Teachers</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               {teacherSchoolFeatures.map((feature, index) => (
-                <FeatureCard 
-                  key={feature.title} 
-                  {...feature} 
-                  iconColor="text-amber-400" 
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  iconColor="text-amber-400" // Example color
                   animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                 />
               ))}
@@ -195,7 +201,7 @@ export default function UnifiedDashboardPage() {
           </section>
 
           {/* Contact Sales Form Section */}
-          <section className="py-12 bg-muted rounded-xl shadow-lg">
+          <section className="py-12 bg-card rounded-xl shadow-lg border border-border">
             <div className="container mx-auto px-4">
                  <ContactSalesForm />
             </div>
