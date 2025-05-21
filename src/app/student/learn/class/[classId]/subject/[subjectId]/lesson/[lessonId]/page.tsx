@@ -17,6 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
+import { FormItem, FormControl } from '@/components/ui/form'; // Added for RadioGroupItem context
+import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
 
 interface QuizAttemptPayload {
   answers: { question_id: string | number; choice_id: string | number }[];
@@ -80,10 +82,16 @@ export default function LessonPage() {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = contentElement;
+      if (scrollHeight - clientHeight <= 0) { // Avoid division by zero if content is not scrollable
+        setProgress(100);
+        return;
+      }
       const currentProgress = (scrollTop / (scrollHeight - clientHeight)) * 100;
       setProgress(Math.min(100, Math.max(0, currentProgress)));
     };
     contentElement.addEventListener('scroll', handleScroll);
+    // Call handleScroll once initially to set progress for non-scrolling content
+    handleScroll();
     return () => contentElement.removeEventListener('scroll', handleScroll);
   }, [lesson]);
 
@@ -165,7 +173,7 @@ export default function LessonPage() {
   const displayContent = showSimplified && lesson.simplified_content ? lesson.simplified_content : lesson.content;
 
   return (
-    <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto' : ''}`}>
+    <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto p-4 md:p-8' : ''}`}>
         <div className="flex justify-between items-center">
             <Button variant="outline" onClick={() => router.push(`/student/learn/class/${classId}/subject/${subjectId}`)} className="mb-2">
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back to Subject
@@ -176,64 +184,64 @@ export default function LessonPage() {
         </div>
 
       <Card className="shadow-xl rounded-xl overflow-hidden">
-        <CardHeader className="bg-primary text-primary-foreground p-6">
-            <div className="flex items-center justify-between">
+        <CardHeader className="bg-primary text-primary-foreground p-6 md:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <CardTitle className="text-3xl font-bold flex items-center">
-                        <PlayCircle className="mr-3 h-8 w-8" /> {lesson.title}
+                    <CardTitle className="text-2xl md:text-3xl font-bold flex items-center">
+                        <PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8" /> {lesson.title}
                     </CardTitle>
                     <CardDescription className="text-primary-foreground/80 mt-1">
                         Subject: {lesson.subject_name || 'N/A'}
                     </CardDescription>
                 </div>
                 {lesson.simplified_content && (
-                    <Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)}>
+                    <Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)} className="mt-2 sm:mt-0">
                         <Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}
                     </Button>
                 )}
             </div>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-6 md:p-8 space-y-6">
             <div className="relative">
                 <Progress value={progress} className="absolute top-0 left-0 w-full h-1.5 z-10" />
-                <div id="lesson-content-area" className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-200px)]' : 'max-h-[60vh]' } p-1 rounded-md border bg-muted/20`}>
+                <div id="lesson-content-area" className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-220px)]' : 'max-h-[60vh]' } p-4 md:p-6 rounded-md border bg-muted/30`}>
                   {/* Assuming content might be HTML, otherwise use <p> or Markdown renderer */}
                   <div dangerouslySetInnerHTML={{ __html: displayContent || '<p>No content available.</p>' }} />
-                  {lesson.video_url && <div className="mt-4"><h4 className="font-semibold mb-2">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow"></video></div>}
-                  {lesson.audio_url && <div className="mt-4"><h4 className="font-semibold mb-2">Audio:</h4><audio src={lesson.audio_url} controls className="w-full"></audio></div>}
-                  {lesson.image_url && <div className="mt-4"><h4 className="font-semibold mb-2">Image:</h4><img src={lesson.image_url} alt="Lesson image" className="max-w-full h-auto rounded-md shadow" data-ai-hint="lesson image"/></div>}
+                  {lesson.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}
+                  {lesson.audio_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Audio:</h4><audio src={lesson.audio_url} controls className="w-full"></audio></div>}
+                  {lesson.image_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Image:</h4><img src={lesson.image_url} alt={lesson.title || "Lesson image"} className="max-w-full h-auto rounded-md shadow-lg" data-ai-hint="lesson image"/></div>}
                 </div>
             </div>
           
           {lesson.quiz && !quizResult?.passed && ( // Show quiz if it exists and not passed yet
             <>
             <Separator className="my-8" />
-            <Card className="bg-secondary/50 border-primary/30">
-              <CardHeader>
-                <CardTitle className="text-xl text-primary flex items-center"><HelpCircle className="mr-2"/>{lesson.quiz.title}</CardTitle>
-                <CardDescription>{lesson.quiz.description || "Test your understanding of this lesson."} (Pass Mark: {lesson.quiz.pass_mark_percentage || 70}%)</CardDescription>
+            <Card className="bg-secondary/70 border-primary/30 rounded-xl shadow-lg">
+              <CardHeader className="p-6">
+                <CardTitle className="text-xl md:text-2xl text-primary flex items-center"><HelpCircle className="mr-2"/>{lesson.quiz.title}</CardTitle>
+                <CardDescription className="text-foreground/80">{lesson.quiz.description || "Test your understanding of this lesson."} (Pass Mark: {lesson.quiz.pass_mark_percentage || 70}%)</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {lesson.quiz.questions.length > 0 ? (
                   <form onSubmit={(e) => { e.preventDefault(); handleSubmitQuiz(); }} className="space-y-6">
                     {lesson.quiz.questions.map((q, qIndex) => (
-                      <fieldset key={q.id} className="p-4 border rounded-md bg-background shadow-sm">
-                        <legend className="font-semibold mb-2 text-md">Question {qIndex + 1}: {q.text}</legend>
+                      <fieldset key={q.id} className="p-4 border rounded-lg bg-background shadow-sm">
+                        <legend className="font-semibold mb-3 text-md">Question {qIndex + 1}: {q.text}</legend>
                         <RadioGroup 
                             onValueChange={(value) => handleAnswerChange(q.id, value)} 
                             value={String(selectedAnswers[q.id] || '')}
-                            className="space-y-2"
+                            className="space-y-3"
                         >
                           {q.choices.map((choice) => (
-                            <FormItem key={choice.id} className="flex items-center space-x-3 space-y-0">
+                            <FormItem key={choice.id} className="flex items-center space-x-3 space-y-0 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
                               <FormControl><RadioGroupItem value={String(choice.id)} id={`q${q.id}-c${choice.id}`} /></FormControl>
-                              <Label htmlFor={`q${q.id}-c${choice.id}`} className="font-normal cursor-pointer flex-1">{choice.text}</Label>
+                              <Label htmlFor={`q${q.id}-c${choice.id}`} className="font-normal cursor-pointer flex-1 text-sm">{choice.text}</Label>
                             </FormItem>
                           ))}
                         </RadioGroup>
                       </fieldset>
                     ))}
-                    <Button type="submit" disabled={isSubmittingQuiz || Object.keys(selectedAnswers).length < lesson.quiz.questions.length} className="w-full sm:w-auto">
+                    <Button type="submit" disabled={isSubmittingQuiz || Object.keys(selectedAnswers).length < lesson.quiz.questions.length} className="w-full sm:w-auto py-3 px-6 text-base">
                       {isSubmittingQuiz ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                       Submit Quiz
                     </Button>
@@ -245,8 +253,8 @@ export default function LessonPage() {
           )}
 
           {quizResult && (
-            <Alert variant={quizResult.passed ? "default" : "destructive"} className="mt-6">
-              <AlertTitle className="font-bold text-lg">Quiz Result: {quizResult.passed ? "Passed!" : "Failed"}</AlertTitle>
+            <Alert variant={quizResult.passed ? "default" : "destructive"} className="mt-6 rounded-lg shadow-md">
+              <AlertTitle className="font-bold text-lg">{quizResult.passed ? "Passed!" : "Failed"}</AlertTitle>
               <AlertDescription>
                 You scored {quizResult.score.toFixed(0)}% on "{quizResult.quiz_title}".
                 {!quizResult.passed && lesson.simplified_content && " Please review the simplified content or the original lesson and try the quiz again if needed."}
@@ -256,7 +264,7 @@ export default function LessonPage() {
           )}
 
         </CardContent>
-        <CardFooter className="p-6 flex justify-between items-center border-t">
+        <CardFooter className="p-6 md:p-8 flex justify-between items-center border-t">
           {/* Placeholder for Prev/Next Lesson buttons */}
           <Button variant="outline" disabled>Previous Lesson</Button>
           <Button variant="default" onClick={async () => { 
@@ -274,15 +282,15 @@ export default function LessonPage() {
           </Button>
         </CardFooter>
       </Card>
-       <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center"><BookOpen className="mr-2 h-5 w-5"/> AI Note Taker</CardTitle>
+       <Card className="rounded-xl shadow-lg">
+        <CardHeader className="p-6">
+            <CardTitle className="flex items-center text-xl md:text-2xl"><BookOpen className="mr-2 h-5 w-5 text-primary"/> AI Note Taker</CardTitle>
             <CardDescription>Enter your notes about this lesson. Our AI will help summarize them later.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
             {/* TODO: Note taking component that calls /api/ai/notes/ */}
-            <Textarea placeholder="Start typing your notes here..." rows={5} className="mb-2"/>
-            <Button onClick={() => alert("Save notes - TBI")}>Save Notes</Button>
+            <Textarea placeholder="Start typing your notes here..." rows={5} className="mb-3 text-base"/>
+            <Button onClick={() => alert("Save notes - TBI")} className="w-full sm:w-auto">Save Notes</Button>
         </CardContent>
       </Card>
     </div>
