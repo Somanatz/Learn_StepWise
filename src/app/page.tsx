@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma } from 'lucide-react'; // Added Sigma
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
@@ -55,7 +55,7 @@ const parentFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] =
   { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar." },
 ];
 
-const teacherSchoolFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
+const schoolTeacherFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
   { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students." },
   { icon: Users2, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently." },
   { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback." },
@@ -64,8 +64,8 @@ const teacherSchoolFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDela
 ];
 
 const FixedBackground = () => (
-  <div 
-    id="fixed-background-container" 
+  <div
+    id="fixed-background-container"
     className="fixed inset-0 z-[-10] overflow-hidden"
   >
     <video
@@ -80,46 +80,48 @@ const FixedBackground = () => (
       <source src="/videos/educational-bg.mp4" type="video/mp4" />
       Your browser does not support the video tag.
     </video>
-    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm"></div> {/* Overlay for readability */}
+    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm"></div>
   </div>
 );
 
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => setIsMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 100); // Small delay to ensure animation triggers
+    return () => clearTimeout(timer);
+  }, []);
+
 
   const imageBaseClasses = "absolute rounded-full overflow-hidden shadow-xl border-4 border-background/30";
   const textBaseClasses = "opacity-0 animate-fade-in-up";
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Background decorative circles/images - Repositioned */}
-      <div className="relative w-full max-w-6xl mx-auto h-full"> {/* Ensure this container allows for wide placement */}
+      <div className="relative w-full max-w-6xl mx-auto h-full">
         {isMounted && (
           <>
-            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-40 md:h-40 top-10 left-5 sm:left-10 md:left-20 opacity-80 animation-delay-200")}>
+            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-40 md:h-40 top-10 left-5 sm:left-10 md:left-20 opacity-80", textBaseClasses, "animation-delay-200")}>
               <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 bottom-10 right-5 sm:right-10 md:right-20 opacity-70 animation-delay-400")}>
+            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 bottom-10 right-5 sm:right-10 md:right-20 opacity-70", textBaseClasses, "animation-delay-400")}>
               <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden sm:block w-20 h-20 md:w-32 md:h-32 top-1/3 right-10 md:right-1/4 opacity-90 animation-delay-600")}>
+            <div className={cn(imageBaseClasses, "hidden sm:block w-20 h-20 md:w-32 md:h-32 top-1/3 right-10 md:right-1/4 opacity-90", textBaseClasses, "animation-delay-600")}>
               <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden sm:block w-24 h-24 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/4 opacity-60 animation-delay-800")}>
+            <div className={cn(imageBaseClasses, "hidden sm:block w-24 h-24 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/4 opacity-60", textBaseClasses, "animation-delay-800")}>
               <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
             </div>
           </>
         )}
       </div>
 
-      {/* Foreground Text Content - Centralized */}
       <div className={cn("absolute inset-0 flex flex-col items-center justify-center z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
         <h1
           className={cn(
-            "font-extrabold mb-10", // Increased margin-bottom
+            "font-extrabold mb-10 text-gray-100",
             "text-4xl sm:text-5xl md:text-6xl",
-            "leading-tight text-gray-100",
+            "leading-tight",
             "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]"
           )}
         >
@@ -148,15 +150,12 @@ const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function UnifiedDashboardPage() {
-  const { currentUser, isLoadingAuth } = useAuth();
+  const { currentUser, isLoadingAuth, needsProfileCompletion } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
-        // Check profile completion status from currentUser object
-        const profileIsComplete = currentUser.profile_completed ?? false;
-
-        if (!profileIsComplete) {
+        if (needsProfileCompletion) {
             if (currentUser.role === 'Student') router.push('/student/complete-profile');
             else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
             else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
@@ -172,11 +171,11 @@ export default function UnifiedDashboardPage() {
             // Add other roles like platform admin if necessary
         }
     }
-  }, [isLoadingAuth, currentUser, router]);
+  }, [isLoadingAuth, currentUser, needsProfileCompletion, router]);
 
 
-  if (isLoadingAuth) { 
-    return ( 
+  if (isLoadingAuth) {
+    return (
       <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
         <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
@@ -200,7 +199,7 @@ export default function UnifiedDashboardPage() {
       <div className="w-full">
         <FixedBackground />
         <HeroSection />
-        
+
         <ContentWrapper>
           <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
             <section>
@@ -238,7 +237,7 @@ export default function UnifiedDashboardPage() {
             <section>
               <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                {teacherSchoolFeatures.map((feature, index) => (
+                {schoolTeacherFeatures.map((feature, index) => (
                   <FeatureCard
                     key={feature.title}
                     icon={feature.icon}
@@ -262,6 +261,7 @@ export default function UnifiedDashboardPage() {
     );
   }
 
+  // Fallback for authenticated user not yet redirected (should be brief)
   return (
      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
