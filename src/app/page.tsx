@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2 } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
@@ -40,7 +40,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   );
 };
 
-const studentFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
+const studentFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
   { icon: BookOpen, title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning." },
   { icon: Lightbulb, title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently." },
   { icon: HelpCircle, title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement." },
@@ -48,14 +48,14 @@ const studentFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
   { icon: Award, title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun." },
 ];
 
-const parentFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
+const parentFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
   { icon: BarChart3, title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights." },
   { icon: MessageIcon, title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively." },
   { icon: FileText, title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible." },
   { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar." },
 ];
 
-const teacherSchoolFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
+const teacherSchoolFeatures: Omit<FeatureCardProps, 'iconColor' | 'animationDelay'>[] = [
   { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students." },
   { icon: Users2, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently." },
   { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback." },
@@ -66,16 +66,16 @@ const teacherSchoolFeatures: Omit<FeatureCardProps, 'animationDelay'>[] = [
 const FixedBackground = () => (
   <div 
     id="fixed-background-container" 
-    className="fixed inset-0 z-[-10] overflow-hidden" // Added overflow-hidden
+    className="fixed inset-0 z-[-10] overflow-hidden"
   >
     <video
       autoPlay
       loop
       muted
-      playsInline // Important for iOS autoplay
+      playsInline
       className="absolute top-0 left-0 w-full h-full object-cover"
-      poster="https://placehold.co/1920x1080.png?text=GenAI+Campus+Loading..." // Optional: poster image
-      data-ai-hint="educational abstract technology" // Added poster data-ai-hint
+      poster="https://placehold.co/1920x1080.png?text=GenAI+Campus+Loading..."
+      data-ai-hint="educational abstract technology"
     >
       <source src="/videos/educational-bg.mp4" type="video/mp4" />
       Your browser does not support the video tag.
@@ -93,41 +93,41 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Background decorative circles/images */}
-      <div className="relative w-full max-w-4xl mx-auto">
+      {/* Background decorative circles/images - Repositioned */}
+      <div className="relative w-full max-w-6xl mx-auto h-full"> {/* Ensure this container allows for wide placement */}
         {isMounted && (
           <>
-            <div className={cn(imageBaseClasses, "w-40 h-40 md:w-56 md:h-56 top-10 left-5 md:left-10 opacity-80 animation-delay-200")}>
+            <div className={cn(imageBaseClasses, "w-28 h-28 md:w-40 md:h-40 top-10 left-5 sm:left-10 md:left-20 opacity-80 animation-delay-200")}>
               <Image src="https://placehold.co/300x300.png" alt="Happy child learning 1" layout="fill" objectFit="cover" data-ai-hint="happy child learning"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-32 h-32 md:w-48 md:h-48 bottom-10 right-5 md:right-10 opacity-70 animation-delay-400")}>
+            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 bottom-10 right-5 sm:right-10 md:right-20 opacity-70 animation-delay-400")}>
               <Image src="https://placehold.co/250x250.png" alt="Students collaborating" layout="fill" objectFit="cover" data-ai-hint="students collaboration"/>
             </div>
-            <div className={cn(imageBaseClasses, "w-24 h-24 md:w-36 md:h-36 top-1/4 right-1/4 md:top-1/3 md:right-1/3 opacity-90 animation-delay-600")}>
+            <div className={cn(imageBaseClasses, "hidden sm:block w-20 h-20 md:w-32 md:h-32 top-1/3 right-10 md:right-1/4 opacity-90 animation-delay-600")}>
               <Image src="https://placehold.co/200x200.png" alt="Teacher with tablet" layout="fill" objectFit="cover" data-ai-hint="teacher tablet"/>
             </div>
-            <div className={cn(imageBaseClasses, "hidden md:block w-28 h-28 bottom-1/3 left-1/4 opacity-60 animation-delay-800")}>
+            <div className={cn(imageBaseClasses, "hidden sm:block w-24 h-24 md:w-28 md:h-28 bottom-1/4 left-10 md:left-1/4 opacity-60 animation-delay-800")}>
               <Image src="https://placehold.co/180x180.png" alt="Diverse children studying" layout="fill" objectFit="cover" data-ai-hint="diverse children study"/>
             </div>
           </>
         )}
       </div>
 
-      {/* Foreground Text Content */}
-      <div className={cn("relative z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
+      {/* Foreground Text Content - Centralized */}
+      <div className={cn("absolute inset-0 flex flex-col items-center justify-center z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
         <h1
           className={cn(
-            "font-extrabold mb-6",
+            "font-extrabold mb-10", // Increased margin-bottom
             "text-4xl sm:text-5xl md:text-6xl",
-            "leading-tight text-gray-100", // Ensures white text in dark mode
+            "leading-tight text-gray-100",
             "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]"
           )}
         >
-          Empowering Every <span className="text-accent">Learner's</span> Journey!
+          Empowering Every <span className="text-primary">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-gray-200", // Ensures light gray text
+            "text-base sm:text-xl text-gray-200",
             "font-medium",
             "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
             isMounted ? 'animation-delay-300' : ''
@@ -142,7 +142,7 @@ const HeroSection = () => {
 };
 
 const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative z-0 bg-background/80 backdrop-blur-sm"> {/* Semi-transparent background for scrolling content */}
+  <div className="relative z-0 bg-background/80 backdrop-blur-sm">
     {children}
   </div>
 );
@@ -153,22 +153,43 @@ export default function UnifiedDashboardPage() {
 
   useEffect(() => {
     if (!isLoadingAuth && currentUser) {
-        if (currentUser.role === 'Student') router.push('/student');
-        else if (currentUser.role === 'Teacher') router.push('/teacher');
-        else if (currentUser.role === 'Parent') router.push('/parent');
-        else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
-          router.push(`/school-admin/${currentUser.administered_school.id}`);
+        // Check profile completion status from currentUser object
+        const profileIsComplete = currentUser.profile_completed ?? false;
+
+        if (!profileIsComplete) {
+            if (currentUser.role === 'Student') router.push('/student/complete-profile');
+            else if (currentUser.role === 'Teacher') router.push('/teacher/complete-profile');
+            else if (currentUser.role === 'Parent') router.push('/parent/complete-profile');
+            // Add admin/school-admin profile completion if needed
+        } else {
+            // Profile is complete, redirect to role-specific dashboard
+            if (currentUser.role === 'Student') router.push('/student');
+            else if (currentUser.role === 'Teacher') router.push('/teacher');
+            else if (currentUser.role === 'Parent') router.push('/parent');
+            else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school) {
+              router.push(`/school-admin/${currentUser.administered_school.id}`);
+            }
+            // Add other roles like platform admin if necessary
         }
     }
   }, [isLoadingAuth, currentUser, router]);
 
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth) { 
     return ( 
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Image src="/images/Genai.png" alt="GenAI-Campus Logo" width={280} height={77} priority className="mb-8" />
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Preparing Your GenAI-Campus Experience...</p>
+      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+        <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
+            <Sigma className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-100")} />
+            <GraduationCap className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-200")} />
+            <SchoolIconLucide className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-300")} />
+            <Users className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-400")} />
+            <HeartHandshake className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-500")} />
+            <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-700")} />
+        </div>
+        <p className="text-lg md:text-xl text-muted-foreground">
+            Preparing Your GenAI-Campus Experience...
+        </p>
       </div>
     );
   }
@@ -230,7 +251,7 @@ export default function UnifiedDashboardPage() {
               </div>
             </section>
 
-            <section className="py-12 bg-card/80 backdrop-blur-sm rounded-xl shadow-lg border border-border/50">
+            <section className="py-12 bg-card rounded-xl shadow-lg border border-border/50">
               <div className="container mx-auto px-4">
                    <ContactSalesForm />
               </div>
@@ -241,10 +262,9 @@ export default function UnifiedDashboardPage() {
     );
   }
 
-  // Fallback for authenticated users before redirection logic fully kicks in, or if role is unrecognized by redirect logic
   return (
-     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Image src="/images/Genai.png" alt="GenAI-Campus Logo" width={280} height={77} priority className="mb-8" />
+     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Preparing Your Dashboard...</p>
     </div>
