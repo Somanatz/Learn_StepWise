@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma } from 'lucide-react'; // Added Sigma
+import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, MessageSquare as MessageIcon, FileText, CalendarDays, ClipboardEdit, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
@@ -91,12 +91,12 @@ const HeroSection = () => {
     return () => clearTimeout(timer);
   }, []);
 
-
   const imageBaseClasses = "absolute rounded-full overflow-hidden shadow-xl border-4 border-background/30";
   const textBaseClasses = "opacity-0 animate-fade-in-up";
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
+      {/* Decorative Images Container */}
       <div className="relative w-full max-w-6xl mx-auto h-full">
         {isMounted && (
           <>
@@ -116,22 +116,23 @@ const HeroSection = () => {
         )}
       </div>
 
+      {/* Central Text Content */}
       <div className={cn("absolute inset-0 flex flex-col items-center justify-center z-10 max-w-3xl mx-auto p-6 sm:p-8", isMounted ? textBaseClasses : 'opacity-0')} style={{ animationDelay: '0.1s' }}>
         <h1
           className={cn(
-            "font-extrabold mb-10 text-gray-100",
+            "font-extrabold mb-10 text-primary-foreground", // Updated color
             "text-4xl sm:text-5xl md:text-6xl",
-            "leading-tight",
-            "[text-shadow:_3px_3px_6px_rgb(0_0_0_/_0.7)]"
+            "leading-tight", // Normal leading
+            "[text-shadow:_2px_2px_5px_rgb(0_0_0_/_0.5)]" // Slightly adjusted shadow for potentially lighter text
           )}
         >
           Empowering Every <span className="text-primary">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-gray-200",
+            "text-base sm:text-xl text-primary-foreground/80", // Updated color
             "font-medium",
-            "[text-shadow:_2px_2px_4px_rgb(0_0_0_/_0.6)]",
+            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.5)]", // Slightly adjusted shadow
             isMounted ? 'animation-delay-300' : ''
           )}
           style={{ animationDelay: isMounted ? '0.3s' : undefined }}
@@ -211,7 +212,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-emerald-400"
+                    iconColor="text-emerald-400" // Consider using theme colors like text-accent
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
@@ -227,7 +228,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-sky-400"
+                    iconColor="text-sky-400" // Consider using theme colors like text-accent
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
@@ -243,7 +244,7 @@ export default function UnifiedDashboardPage() {
                     icon={feature.icon}
                     title={feature.title}
                     description={feature.description}
-                    iconColor="text-amber-400"
+                    iconColor="text-amber-400" // Consider using theme colors like text-accent
                     animationDelay={animationDelayClasses[index % animationDelayClasses.length]}
                   />
                 ))}
