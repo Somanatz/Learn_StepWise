@@ -19,7 +19,7 @@ export default function ParentSettingsPage() {
         <Settings className="mx-auto h-16 w-16 text-primary mb-4" />
         <h1 className="text-4xl font-bold">Parent Settings</h1>
         <p className="text-lg text-muted-foreground mt-2">Manage your account, notifications, and linked children.</p>
-      </هاheader>
+      </header>
 
       <Card className="shadow-xl rounded-xl">
         <CardHeader>
@@ -37,7 +37,7 @@ export default function ParentSettingsPage() {
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <Label htmlFor="app-notifications" className="font-medium">In-App Notifications</Label>
-              <p className="text-sm text-muted-foreground">Get real-time alerts within the StepWise platform.</p>
+              <p className="text-sm text-muted-foreground">Get real-time alerts within the GenAI-Campus platform.</p>
             </div>
             <Switch id="app-notifications" defaultChecked />
           </div>
