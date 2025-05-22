@@ -7,15 +7,17 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Briefcase, Users2, BarChart3, Megaphone, CalendarDays, Brain, MessageSquare, Loader2, AlertTriangle, PlusCircle, School as SchoolIcon, Settings, ListChecks, BookOpenText } from "lucide-react";
+import { Users, Briefcase, Users2, BarChart3, Megaphone, CalendarDays, Brain, MessageSquare, Loader2, AlertTriangle, PlusCircle, School as SchoolIcon, Settings, ListChecks, BookOpenText, ActivityIcon } from "lucide-react";
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { School, Event as EventInterface, CustomUser, Class } from '@/interfaces';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-interface StatCardProps { title: string; value: string | number; icon: React.ElementType; note?: string; href?: string; }
+
+interface StatCardProps { title: string; value: string | number | JSX.Element; icon: React.ElementType; note?: string; href?: string; }
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, note, href }) => {
   const content = (
     <Card className="shadow-lg rounded-xl hover:shadow-primary/20 transition-shadow h-full flex flex-col">
@@ -48,14 +50,11 @@ export default function SchoolAdminDashboard() {
 
   useEffect(() => {
     if (!schoolId || isLoadingAuth) {
-      if (isLoadingAuth) setIsLoadingPage(true); // Ensure loading page shows if auth is still loading
+      if (isLoadingAuth) setIsLoadingPage(true);
       return;
     }
     
-    // Initial check to see if currentUser is loaded
     if (!currentUser) {
-        // If auth is done but no user, could redirect or show error, for now we wait for currentUser.
-        // This case might be hit if AuthContext is slow to update immediately.
         setIsLoadingPage(true); 
         return;
     }
@@ -63,7 +62,6 @@ export default function SchoolAdminDashboard() {
     if (currentUser.role !== 'Admin' || !currentUser.is_school_admin || String(currentUser.administered_school?.id) !== schoolId) {
       setError("Access Denied: You do not have permission to view this school's admin dashboard.");
       setIsLoadingPage(false);
-      // Consider router.push('/login') or router.push('/') if access is denied.
       return;
     }
     
@@ -78,13 +76,12 @@ export default function SchoolAdminDashboard() {
     ]).then(([schoolData, studentsResponse, teachersResponse, eventsResponse]) => {
       setSchoolDetails(schoolData);
 
-      if (typeof (studentsResponse as { count: number }).count === 'number') {
-        setStudentCount((studentsResponse as { count: number }).count);
-      } else if (Array.isArray(studentsResponse)) {
-        setStudentCount((studentsResponse as CustomUser[]).length);
-      } else {
-        setStudentCount(0); // Default if format is unexpected
-      }
+      const getCount = (res: { count: number } | CustomUser[]): number => {
+        if (typeof (res as { count: number }).count === 'number') return (res as { count: number }).count;
+        if (Array.isArray(res)) return (res as CustomUser[]).length;
+        return 0;
+      };
+      setStudentCount(getCount(studentsResponse));
       
       let actualTeachers: CustomUser[];
       if (typeof (teachersResponse as { count: number, results: CustomUser[] }).count === 'number') {
@@ -119,11 +116,14 @@ export default function SchoolAdminDashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
         </div>
-        <div className="grid gap-8 md:grid-cols-2">
-          <Skeleton className="h-64 w-full rounded-xl" />
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-64 w-full rounded-xl lg:col-span-2" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
-         <Skeleton className="h-48 w-full rounded-xl" />
+         <div className="grid gap-8 md:grid-cols-2">
+            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+         </div>
       </div>
     );
   }
@@ -214,14 +214,12 @@ export default function SchoolAdminDashboard() {
             <CardTitle className="flex items-center text-xl"><Brain className="mr-2 text-primary"/>AI Management Tool</CardTitle>
             <CardDescription>Insights & suggestions for school administration.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col h-full">
-            <div className="flex-grow">
-              <Textarea placeholder="Ask the AI about student performance, resource allocation, curriculum suggestions, etc..." className="mb-3 min-h-[100px]" />
-            </div>
-            <Button variant="default" className="w-full mt-auto">
+          <CardContent className="space-y-3"> {/* Changed from flex flex-col h-full */}
+            <Textarea placeholder="Ask the AI about student performance, resource allocation, curriculum suggestions, etc..." className="min-h-[100px]" /> {/* Removed mb-3 */}
+            <Button variant="default" className="w-full"> {/* Removed mt-auto */}
                 <MessageSquare className="mr-2 h-4 w-4"/> Chat with AI Assistant
             </Button>
-             <p className="text-xs text-muted-foreground mt-2 text-center">Feature coming soon.</p>
+             <p className="text-xs text-muted-foreground text-center">Feature coming soon.</p> {/* Removed mt-2 */}
           </CardContent>
         </Card>
       </div>
@@ -270,3 +268,4 @@ export default function SchoolAdminDashboard() {
     </div>
   );
 }
+
