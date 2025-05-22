@@ -1,3 +1,4 @@
+
 // src/app/student/complete-profile/page.tsx
 'use client';
 
@@ -47,7 +48,7 @@ type StudentProfileFormValues = z.infer<typeof studentProfileSchema>;
 export default function CompleteStudentProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
   const [classes, setClasses] = useState<ClassInterface[]>([]);
@@ -73,9 +74,9 @@ export default function CompleteStudentProfilePage() {
       parent_occupation: '',
       hobbies: '',
       favorite_sports: '',
-      admission_number: '', // Added default
-      school_id: undefined, // Added default
-      enrolled_class_id: undefined, // Added default
+      admission_number: '',
+      school_id: undefined,
+      enrolled_class_id: undefined,
     },
   });
 
@@ -85,23 +86,22 @@ export default function CompleteStudentProfilePage() {
         router.push('/login');
       } else if (currentUser.role !== 'Student') {
         router.push('/');
-      } else if (currentUser.student_profile?.profile_completed === true) {
-        // If profile is already marked complete, redirect away immediately
-        router.push('/student');
       }
+      // No longer redirecting away if profile is "complete"
+      // This page now serves as "Edit Profile"
     }
   }, [isLoadingAuth, currentUser, router]);
 
   useEffect(() => {
-    // Fetch schools once
-    api.get<SchoolInterface[] | {results: SchoolInterface[]}>('/schools/').then(res => {
-      const data = Array.isArray(res) ? res : res.results || [];
-      setSchools(data);
-    }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
-  }, [toast]);
+    if (currentUser) {
+        api.get<SchoolInterface[] | {results: SchoolInterface[]}>('/schools/').then(res => {
+          const data = Array.isArray(res) ? res : res.results || [];
+          setSchools(data);
+        }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
+    }
+  }, [currentUser, toast]);
 
   useEffect(() => {
-    // Populate form with existing data if available (e.g., if user navigates back)
     if (currentUser?.student_profile) {
         const sp = currentUser.student_profile;
         form.reset({
@@ -138,7 +138,6 @@ export default function CompleteStudentProfilePage() {
             return;
         }
         try {
-            // Ensure the API endpoint returns ClassInterface[] or an object with a results property
             const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolIdValue}&page_size=100`);
             const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
@@ -151,7 +150,7 @@ export default function CompleteStudentProfilePage() {
         fetchClassesForSchool(selectedSchoolId);
     } else {
         setClasses([]);
-        if (form.getValues("enrolled_class_id")) { // Only reset if it had a value
+        if (form.getValues("enrolled_class_id")) {
           form.setValue("enrolled_class_id", undefined);
         }
     }
@@ -170,9 +169,8 @@ export default function CompleteStudentProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    // Append only fields that have values or are booleans
     (Object.keys(data) as Array<keyof StudentProfileFormValues>).forEach(key => {
-        if (key === 'profile_picture') return; // Handled separately
+        if (key === 'profile_picture') return;
         const value = data[key];
         if (value !== undefined && value !== null) {
              if (typeof value === 'boolean') {
@@ -180,32 +178,27 @@ export default function CompleteStudentProfilePage() {
              } else if (typeof value === 'string' && value.trim() !== '') {
                 formData.append(key, value.trim());
              } else if (typeof value === 'string' && value.trim() === '' && (currentUser.student_profile?.[key] !== null && currentUser.student_profile?.[key] !== undefined) ) {
-                // Allow sending empty string to clear optional fields
                 formData.append(key, '');
              }
         }
     });
     
-    // Ensure foreign key IDs are sent as strings
     if (data.school_id) formData.set('school_id', String(data.school_id));
     if (data.enrolled_class_id) formData.set('enrolled_class_id', String(data.enrolled_class_id));
-
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
+    
+    // This flag is set on backend now if required fields are met
+    // formData.append('profile_completed', 'true'); 
 
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
       setCurrentUser(updatedUserResponse); 
       
-      if (updatedUserResponse.student_profile?.profile_completed === true) {
-        setNeedsProfileCompletion(false);
-        toast({ title: "Profile Completed!", description: "Your student profile has been updated." });
-        router.push('/student');
-      } else {
-         toast({ title: "Profile Updated", description: "Your profile was saved, but some details might still be needed or an issue occurred.", variant: "warning" });
-      }
+      toast({ title: "Profile Updated!", description: "Your student profile has been successfully updated." });
+      router.push('/student'); // Redirect to student dashboard
     } catch (error: any) {
       let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -220,7 +213,7 @@ export default function CompleteStudentProfilePage() {
     }
   };
 
-  if (isLoadingAuth || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.role === 'Student' && currentUser.student_profile?.profile_completed === true) ) {
+  if (isLoadingAuth || (!isLoadingAuth && !currentUser)) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -230,8 +223,8 @@ export default function CompleteStudentProfilePage() {
     <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-8">
       <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Complete Your Student Profile</CardTitle>
-          <CardDescription className="text-center">Tell us a bit more about yourself to personalize your learning experience.</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Student Profile Information</CardTitle>
+          <CardDescription className="text-center">Complete or update your student details.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -265,7 +258,7 @@ export default function CompleteStudentProfilePage() {
                         <FormLabel><SchoolIcon className="inline mr-1 h-4 w-4"/>School</FormLabel>
                         <Select onValueChange={(value) => { field.onChange(value); setSelectedSchoolId(value); form.setValue('enrolled_class_id', undefined); }} value={field.value ?? undefined}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select your school" /></SelectTrigger></FormControl>
-                            <SelectContent>{Array.isArray(schools) && schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{ Array.isArray(schools) && schools.map(school => <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>)}</SelectContent>
                         </Select><FormMessage />
                     </FormItem>
                 )} />
@@ -349,7 +342,7 @@ export default function CompleteStudentProfilePage() {
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                Save Profile & Continue
+                Save Profile
               </Button>
             </form>
           </Form>

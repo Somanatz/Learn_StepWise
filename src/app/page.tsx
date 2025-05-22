@@ -1,10 +1,11 @@
+
 // src/app/page.tsx
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, HelpCircle, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
@@ -92,14 +93,11 @@ const HeroSection = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const textBaseClasses = "opacity-0 animate-fade-in-up";
-
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-      {/* Central Text Content */}
+    <section className="relative min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)] flex flex-col items-center justify-center text-center p-4 overflow-hidden">
        <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8",
-          isMounted ? textBaseClasses : 'opacity-0'
+          isMounted ? "opacity-0 animate-fade-in-up" : 'opacity-0'
         )} style={{ animationDelay: isMounted ? '0.1s' : undefined }}
       >
         <div className="mb-8">
@@ -141,7 +139,7 @@ export default function UnifiedDashboardPage() {
   const { currentUser, isLoadingAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isRedirecting, setIsRedirecting] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(true); // Assume redirecting initially
 
   useEffect(() => {
     if (isLoadingAuth) {
@@ -151,24 +149,22 @@ export default function UnifiedDashboardPage() {
 
     if (currentUser) {
       let targetPath: string | null = null;
-      const profileIncomplete = currentUser.profile_completed === false;
 
-      if (profileIncomplete) {
-        if (currentUser.role === 'Student') targetPath = '/student/complete-profile';
-        else if (currentUser.role === 'Teacher') targetPath = '/teacher/complete-profile';
-        else if (currentUser.role === 'Parent') targetPath = '/parent/complete-profile';
-      } else { // Profile is complete or not applicable for separate completion step
-        if (currentUser.role === 'Student') targetPath = '/student';
-        else if (currentUser.role === 'Teacher') targetPath = '/teacher';
-        else if (currentUser.role === 'Parent') targetPath = '/parent';
-        else if (currentUser.role === 'Admin' && currentUser.is_school_admin && currentUser.administered_school?.id) {
+      // Direct redirection to role-based dashboard
+      if (currentUser.role === 'Student') targetPath = '/student';
+      else if (currentUser.role === 'Teacher') targetPath = '/teacher';
+      else if (currentUser.role === 'Parent') targetPath = '/parent';
+      else if (currentUser.role === 'Admin') {
+        if (currentUser.is_school_admin && currentUser.administered_school?.id) {
           targetPath = `/school-admin/${currentUser.administered_school.id}`;
+        } else {
+          // Platform Admin stays on '/'
+          targetPath = null; 
         }
-        // If user is Platform Admin and profile is complete, targetPath remains null, they stay on '/'
       }
 
       if (targetPath && pathname !== targetPath) {
-        setIsRedirecting(true);
+        setIsRedirecting(true); // Set redirecting true before pushing
         router.push(targetPath);
       } else {
         setIsRedirecting(false); // No redirection needed or already on target path
@@ -184,12 +180,12 @@ export default function UnifiedDashboardPage() {
       <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
         <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
         <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
-            <Sigma className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-100")} />
-            <GraduationCap className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-200")} />
-            <SchoolIconLucide className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-300")} />
-            <Users className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-400")} />
-            <HeartHandshake className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-500")} />
-            <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary animation-delay-700")} />
+            <Sigma className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-100")} />
+            <GraduationCap className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-200")} />
+            <SchoolIconLucide className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-300")} />
+            <Users className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-400")} />
+            <HeartHandshake className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-500")} />
+            <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-700")} />
         </div>
         <p className="text-lg md:text-xl text-muted-foreground">
             Loading Your GenAI-Campus Experience...

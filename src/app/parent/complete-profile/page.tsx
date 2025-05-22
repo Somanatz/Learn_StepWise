@@ -33,7 +33,7 @@ type ParentProfileFormValues = z.infer<typeof parentProfileSchema>;
 export default function CompleteParentProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser } = useAuth();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [previewProfilePicture, setPreviewProfilePicture] = useState<string | null>(null);
   const [selectedProfilePictureFile, setSelectedProfilePictureFile] = useState<File | null>(null);
@@ -53,10 +53,8 @@ export default function CompleteParentProfilePage() {
         router.push('/login');
       } else if (currentUser.role !== 'Parent') {
         router.push('/');
-      } else if (currentUser.parent_profile?.profile_completed === true) {
-        // If profile is already marked complete, redirect away
-        router.push('/parent');
       }
+       // No longer redirecting away if profile is "complete"
     }
   }, [isLoadingAuth, currentUser, router]);
 
@@ -71,7 +69,7 @@ export default function CompleteParentProfilePage() {
             setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
         }
     } else if (currentUser && !currentUser.parent_profile) { 
-         form.reset({ // Reset to empty if no profile object exists yet
+         form.reset({ 
             full_name: '',
             mobile_number: '',
             address: '',
@@ -94,7 +92,6 @@ export default function CompleteParentProfilePage() {
     const formData = new FormData();
 
     let hasUpdates = false;
-    // Append fields only if they have changed or are being set for the first time
     if (data.full_name !== (currentUser.parent_profile?.full_name || '')) {
         formData.append('full_name', data.full_name);
         hasUpdates = true;
@@ -113,30 +110,15 @@ export default function CompleteParentProfilePage() {
       hasUpdates = true;
     }
     
-    if (!hasUpdates && !form.formState.isDirty) {
-        toast({ title: "No Changes", description: "No changes detected in your profile information."});
-        // If profile was already considered complete by context, allow redirect, otherwise user must make a change
-        if(currentUser.parent_profile?.profile_completed && !setNeedsProfileCompletion) {
-            router.push('/parent');
-        }
-        setIsSubmittingProfile(false);
-        return;
-    }
-    
-    formData.append('profile_completed', 'true'); // Explicitly tell backend this step completes the profile
+    // Backend will set profile_completed=true
+    // formData.append('profile_completed', 'true'); 
 
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
       setCurrentUser(updatedUserResponse); 
       
-      if (updatedUserResponse.parent_profile?.profile_completed === true) {
-        setNeedsProfileCompletion(false);
-        toast({ title: "Profile Saved!", description: "Your parent profile has been saved." });
-        router.push('/parent'); // Redirect to parent dashboard
-      } else {
-        // This case should ideally not happen if backend correctly sets profile_completed=true
-        toast({ title: "Profile Updated", description: "Profile saved, but completion status might need review.", variant: "warning" });
-      }
+      toast({ title: "Profile Updated!", description: "Your parent profile has been successfully updated." });
+      router.push('/parent'); // Redirect to parent dashboard
     } catch (error: any) {
        let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -151,7 +133,7 @@ export default function CompleteParentProfilePage() {
     }
   };
 
-  if (isLoadingAuth || (!currentUser && !isLoadingAuth) || (currentUser && currentUser.role === 'Parent' && currentUser.parent_profile?.profile_completed === true)) {
+  if (isLoadingAuth || (!currentUser && !isLoadingAuth)) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -161,8 +143,8 @@ export default function CompleteParentProfilePage() {
     <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-8">
       <Card className="w-full max-w-xl shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Complete Your Parent Profile</CardTitle>
-          <CardDescription className="text-center">Please provide your details. You can link your children from your dashboard.</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Parent Profile Information</CardTitle>
+          <CardDescription className="text-center">Complete or update your details. You can link children from your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -194,7 +176,7 @@ export default function CompleteParentProfilePage() {
               )} />
               <Button type="submit" className="w-full" disabled={isSubmittingProfile}>
                 {isSubmittingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                Save Profile & Continue to Dashboard
+                Save Profile
               </Button>
             </form>
           </Form>

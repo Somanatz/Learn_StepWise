@@ -37,7 +37,7 @@ type TeacherProfileFormValues = z.infer<typeof teacherProfileSchema>;
 export default function CompleteTeacherProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
+  const { currentUser, isLoadingAuth, setCurrentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
   const [classes, setClasses] = useState<ClassInterface[]>([]);
@@ -65,10 +65,8 @@ export default function CompleteTeacherProfilePage() {
         router.push('/login');
       } else if (currentUser.role !== 'Teacher') {
         router.push('/');
-      } else if (currentUser.teacher_profile?.profile_completed === true) {
-        // If profile is already marked complete, redirect away
-        router.push('/teacher');
       }
+      // No longer redirecting away if profile is "complete"
     }
   }, [isLoadingAuth, currentUser, router]);
 
@@ -79,7 +77,7 @@ export default function CompleteTeacherProfilePage() {
             setSchools(data);
         }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
 
-        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => {
+        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => { // Fetch all subjects initially
             const data = Array.isArray(res) ? res : res.results || [];
             setSubjects(data);
         }).catch(err => toast({ title: "Error", description: "Could not load subjects.", variant: "destructive" }));
@@ -149,25 +147,22 @@ export default function CompleteTeacherProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    // Append fields that have values or are booleans, or if they are being cleared
     (Object.keys(data) as Array<keyof TeacherProfileFormValues>).forEach(key => {
-        if (key === 'profile_picture') return; // Handled separately
+        if (key === 'profile_picture') return;
         const value = data[key];
         const originalValue = currentUser.teacher_profile ? currentUser.teacher_profile[key as keyof typeof currentUser.teacher_profile] : undefined;
 
         if (key === 'assigned_classes_ids' || key === 'subject_expertise_ids') {
-            // For array fields, always send the current state of the array
             (value as string[] | undefined)?.forEach(id => formData.append(key, id));
         } else if (value !== undefined && value !== null) {
             if (typeof value === 'boolean') {
                 formData.append(key, String(value));
-            } else if (typeof value === 'string') { // Handles empty strings too
+            } else if (typeof value === 'string') { 
                 formData.append(key, value);
             } else if (typeof value === 'number') {
                  formData.append(key, String(value));
             }
         } else if (value === null && originalValue !== undefined && originalValue !== null){
-            // Field explicitly cleared to null, send empty string for backend to handle
             formData.append(key, '');
         }
     });
@@ -176,18 +171,15 @@ export default function CompleteTeacherProfilePage() {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
     
-    formData.append('profile_completed', 'true'); // Explicitly tell backend this step completes the profile
+    // Backend will set profile_completed=true on successful update with required fields
+    // formData.append('profile_completed', 'true'); 
 
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
       setCurrentUser(updatedUserResponse); 
-      if (updatedUserResponse.teacher_profile?.profile_completed === true) {
-        setNeedsProfileCompletion(false);
-        toast({ title: "Profile Completed!", description: "Your teacher profile has been updated." });
-        router.push('/teacher');
-      } else {
-        toast({ title: "Profile Updated", description: "Profile saved, but completion status might need review.", variant: "warning" });
-      }
+      
+      toast({ title: "Profile Updated!", description: "Your teacher profile has been successfully updated." });
+      router.push('/teacher'); // Redirect to teacher dashboard
     } catch (error: any) {
       let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -202,7 +194,7 @@ export default function CompleteTeacherProfilePage() {
     }
   };
 
-  if (isLoadingAuth || (!currentUser && !isLoadingAuth) || (currentUser && currentUser.role === 'Teacher' && currentUser.teacher_profile?.profile_completed === true) ) {
+  if (isLoadingAuth || (!isLoadingAuth && !currentUser)) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -212,8 +204,8 @@ export default function CompleteTeacherProfilePage() {
     <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-8">
       <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Complete Your Teacher Profile</CardTitle>
-          <CardDescription className="text-center">Set up your teaching preferences and details.</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Teacher Profile Information</CardTitle>
+          <CardDescription className="text-center">Complete or update your teaching details.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -319,7 +311,7 @@ export default function CompleteTeacherProfilePage() {
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                Save Profile & Continue
+                Save Profile
               </Button>
             </form>
           </Form>

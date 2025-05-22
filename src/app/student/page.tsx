@@ -1,75 +1,66 @@
+
 // src/app/student/page.tsx
 'use client';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation'; // Added usePathname
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image'; // For loading screen
+import { Sigma, GraduationCap, School as SchoolIconLucide, Users, HeartHandshake, ClipboardEdit } from 'lucide-react'; // For loading screen
+import { cn } from '@/lib/utils'; // For loading screen
 
 export default function StudentPortalPage() {
-  const { currentUser, isLoadingAuth } = useAuth(); // Removed needsProfileCompletion as we'll use direct profile check
+  const { currentUser, isLoadingAuth } = useAuth();
   const router = useRouter();
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoadingAuth) {
-      return; // Wait until auth status is known
+      return; 
     }
 
     if (!currentUser) {
-      if (pathname !== '/login') router.push('/login'); // Not logged in
+      if (pathname !== '/login') router.push('/login');
       return;
     }
 
     if (currentUser.role !== 'Student') {
-      if (pathname !== '/') router.push('/'); // Wrong role for this dashboard
+      if (pathname !== '/') router.push('/'); 
       return;
     }
-
-    // At this point, currentUser exists and has the 'Student' role.
-    // Check the specific student_profile's completion status.
-    const isProfileActuallyIncomplete = !currentUser.student_profile || currentUser.student_profile.profile_completed === false;
-
-    if (isProfileActuallyIncomplete) {
-      const completeProfilePath = '/student/complete-profile';
-      if (pathname !== completeProfilePath) {
-        router.push(completeProfilePath);
-      }
-    }
-    // If profile is complete, no redirect needed from here, page will render dashboard.
+    // If user is Student, no further redirection needed from here, render dashboard.
   }, [isLoadingAuth, currentUser, router, pathname]);
 
-  // Loading state while auth is being checked or redirection is pending
+
   if (isLoadingAuth || !currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Student Portal...</p>
-      </div>
-    );
-  }
-
-  // If current user is a student but their profile is incomplete, show loader
-  // as the useEffect above should be redirecting them.
-  if (currentUser.role === 'Student' && (!currentUser.student_profile || currentUser.student_profile.profile_completed === false)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Checking profile status...</p>
+      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+        <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
+            <Sigma className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-100")} />
+            <GraduationCap className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-200")} />
+            <SchoolIconLucide className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-300")} />
+            <Users className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-400")} />
+            <HeartHandshake className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-500")} />
+            <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-700")} />
+        </div>
+        <p className="text-lg md:text-xl text-muted-foreground">
+            Loading Student Portal...
+        </p>
       </div>
     );
   }
   
-  // If user is Student and profile is complete
-  if (currentUser.role === 'Student' && currentUser.student_profile?.profile_completed === true) {
+  if (currentUser.role === 'Student') {
     return <StudentDashboard />;
   }
 
-  // Fallback, should ideally not be reached if logic above is correct
+  // Fallback for unexpected state, should ideally not be reached
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Verifying access...</p>
-    </div>
+     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+        <p className="text-lg md:text-xl text-muted-foreground">Verifying access...</p>
+      </div>
   );
 }

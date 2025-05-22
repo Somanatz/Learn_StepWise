@@ -6,6 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image'; // For loading screen
+import { Sigma, GraduationCap, School as SchoolIconLucide, Users, HeartHandshake, ClipboardEdit } from 'lucide-react'; // For loading screen
+import { cn } from '@/lib/utils'; // For loading screen
 
 export default function TeacherDashboardPage() {
   const { currentUser, isLoadingAuth } = useAuth();
@@ -14,73 +17,48 @@ export default function TeacherDashboardPage() {
 
   useEffect(() => {
     if (isLoadingAuth) {
-      return; // Wait until auth status is known
+      return; 
     }
 
     if (!currentUser) {
-      if (pathname !== '/login') router.push('/login'); // Not logged in
+      if (pathname !== '/login') router.push('/login');
       return;
     }
 
     if (currentUser.role !== 'Teacher') {
-      if (pathname !== '/') router.push('/'); // Wrong role for this dashboard
+      if (pathname !== '/') router.push('/');
       return;
     }
-
-    // At this point, currentUser is loaded and has the 'Teacher' role.
-    // Check the specific teacher_profile's completion status.
-    // The profile object should exist if user signed up (empty profile created by backend UserSignupSerializer)
-    // Its profile_completed flag should be false initially.
-    const isProfileActuallyIncomplete = !currentUser.teacher_profile || currentUser.teacher_profile.profile_completed === false;
-
-    if (isProfileActuallyIncomplete) {
-      const completeProfilePath = '/teacher/complete-profile';
-      if (pathname !== completeProfilePath) {
-        router.push(completeProfilePath);
-      }
-    }
-    // If isProfileActuallyIncomplete is false, then the profile is considered complete, and no redirect happens.
-    // The page will proceed to render the dashboard content.
-
+    // If user is Teacher, no further redirection needed from here, render dashboard.
   }, [isLoadingAuth, currentUser, router, pathname]);
 
-  // Guard at the top of the component function
   if (isLoadingAuth || !currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Teacher Portal...</p>
-      </div>
-    );
-  }
-
-  // If currentUser exists, but their role-specific profile indicates incomplete,
-  // show loader while useEffect handles redirection.
-  let isProfileStillMarkedIncomplete = false;
-  if (currentUser.role === 'Teacher') {
-    isProfileStillMarkedIncomplete = !currentUser.teacher_profile || currentUser.teacher_profile.profile_completed === false;
-  }
-
-  if (isProfileStillMarkedIncomplete && currentUser.role === 'Teacher') {
-    // The useEffect above should be redirecting. Show a loader in the meantime.
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Checking profile status...</p>
+      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+        <div className="flex space-x-3 sm:space-x-4 md:space-x-6 mb-8">
+            <Sigma className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-100")} />
+            <GraduationCap className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-200")} />
+            <SchoolIconLucide className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-300")} />
+            <Users className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-400")} />
+            <HeartHandshake className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-500")} />
+            <ClipboardEdit className={cn("h-10 w-10 md:h-12 md:w-12 text-primary", "animation-delay-700")} />
+        </div>
+        <p className="text-lg md:text-xl text-muted-foreground">
+            Loading Teacher Portal...
+        </p>
       </div>
     );
   }
   
-  // If all checks pass (correct role, profile is complete), render the dashboard
-  if (currentUser.role === 'Teacher' && currentUser.teacher_profile?.profile_completed === true) {
+  if (currentUser.role === 'Teacher') {
     return <TeacherDashboard />;
   }
 
-  // Fallback, should ideally not be reached if logic above is correct
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Verifying access...</p>
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
+        <Image src="/images/Genai.png" alt="GenAI-Campus Logo Loading" width={280} height={77} priority className="mb-8" />
+        <p className="text-lg md:text-xl text-muted-foreground">Verifying access...</p>
     </div>
   );
 }

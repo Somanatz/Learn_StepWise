@@ -2,7 +2,7 @@
 // src/context/AuthContext.tsx
 'use client';
 
-import type { UserRole, StudentProfileData, TeacherProfileData, ParentProfileData, User } from '@/interfaces';
+import type { User } from '@/interfaces';
 import type { Dispatch, ReactNode, SetStateAction} from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { fetchCurrentUser, logoutUser as apiLogout } from '@/lib/api';
@@ -13,8 +13,7 @@ interface AuthContextType {
   isLoadingAuth: boolean;
   login: (token: string) => Promise<void>;
   logout: () => void;
-  needsProfileCompletion: boolean;
-  setNeedsProfileCompletion: Dispatch<SetStateAction<boolean>>;
+  // needsProfileCompletion and setNeedsProfileCompletion are removed
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,7 +21,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   const processUserData = (userData: User | null): User | null => {
     if (!userData) return null;
@@ -35,12 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (userData.role === 'Parent' && userData.parent_profile) {
       profileActuallyCompleted = userData.parent_profile.profile_completed ?? false;
     } else if (userData.role === 'Admin') {
-      profileActuallyCompleted = true; // Admins (platform or school) usually don't have a separate "profile completion" step
+      profileActuallyCompleted = true;
     }
     
     const userWithCompletionFlag = { ...userData, profile_completed: profileActuallyCompleted };
-    console.log("AuthContext: processUserData - User with completion flag:", userWithCompletionFlag); // DEBUG
-    setNeedsProfileCompletion(!profileActuallyCompleted);
+    console.log("AuthContext: processUserData - User with completion flag:", userWithCompletionFlag);
     return userWithCompletionFlag;
   };
 
@@ -52,17 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           const rawUserData = await fetchCurrentUser();
-          console.log("AuthContext: initializeAuth - Raw user data from API:", rawUserData); // DEBUG
+          console.log("AuthContext: initializeAuth - Raw user data from API:", rawUserData);
           const processedUser = processUserData(rawUserData);
           setCurrentUser(processedUser);
         } catch (error) {
           console.error("Initialization auth error:", error);
           apiLogout();
           setCurrentUser(null);
-          setNeedsProfileCompletion(false);
         }
-      } else {
-        setNeedsProfileCompletion(false); // No token, so no profile completion needed
       }
       setIsLoadingAuth(false);
     };
@@ -75,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('authToken', token);
     try {
       const rawUserData = await fetchCurrentUser();
-      console.log("AuthContext: login - Raw user data from API:", rawUserData); // DEBUG
+      console.log("AuthContext: login - Raw user data from API:", rawUserData);
       const processedUser = processUserData(rawUserData);
       setCurrentUser(processedUser);
        if (!processedUser) {
@@ -85,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Login error:", error);
         apiLogout(); 
         setCurrentUser(null);
-        setNeedsProfileCompletion(false);
         throw error; 
     } finally {
         setIsLoadingAuth(false);
@@ -95,7 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     apiLogout(); 
     setCurrentUser(null);
-    setNeedsProfileCompletion(false);
     window.location.href = '/login'; 
   };
 
@@ -107,8 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoadingAuth,
       login,
       logout,
-      needsProfileCompletion,
-      setNeedsProfileCompletion
     }}>
       {children}
     </AuthContext.Provider>
