@@ -62,13 +62,19 @@ export default function CreateLessonPage() {
   });
 
   useEffect(() => {
-    api.get<School[]>('/schools/').then(setSchools).catch(err => toast({ title: "Error", description: "Failed to load schools", variant: "destructive"}));
+    api.get<School[] | {results: School[]}>('/schools/').then(res => {
+      const data = Array.isArray(res) ? res : res.results || [];
+      setSchools(data);
+    }).catch(err => toast({ title: "Error", description: "Failed to load schools", variant: "destructive"}));
   }, [toast]);
 
   useEffect(() => {
     if (selectedSchool) {
-      api.get<ClassInterface[]>(`/classes/?school=${selectedSchool}`)
-        .then(setClasses)
+      api.get<ClassInterface[] | {results: ClassInterface[]}>(`/classes/?school=${selectedSchool}`)
+        .then(res => {
+          const data = Array.isArray(res) ? res : res.results || [];
+          setClasses(data);
+        })
         .catch(err => toast({ title: "Error", description: "Failed to load classes for school", variant: "destructive"}));
       setSubjects([]); // Reset subjects when school changes
       form.resetField("class_id");
@@ -81,8 +87,11 @@ export default function CreateLessonPage() {
 
   useEffect(() => {
     if (selectedClass) {
-      api.get<SubjectInterface[]>(`/subjects/?class_obj=${selectedClass}`)
-        .then(setSubjects)
+      api.get<SubjectInterface[] | {results: SubjectInterface[]}>(`/subjects/?class_obj=${selectedClass}`)
+        .then(res => {
+          const data = Array.isArray(res) ? res : res.results || [];
+          setSubjects(data);
+        })
         .catch(err => toast({ title: "Error", description: "Failed to load subjects for class", variant: "destructive"}));
       form.resetField("subject_id");
     } else {
@@ -96,7 +105,7 @@ export default function CreateLessonPage() {
     try {
       const payload = {
         ...data,
-        subject: data.subject_id, // Backend expects 'subject' not 'subject_id'
+        subject: data.subject_id, // API expects 'subject' not 'subject_id'
       };
       // delete payload.subject_id; // Not needed as serializer uses source='subject'
       delete payload.class_id; // Not part of Lesson model
@@ -114,7 +123,7 @@ export default function CreateLessonPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Card className="shadow-xl">
+      <Card className="shadow-xl rounded-xl">
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center"><BookOpen className="mr-2 text-primary" /> Create New Lesson</CardTitle>
           <CardDescription>Fill in the details to add a new lesson to your curriculum.</CardDescription>
@@ -124,7 +133,7 @@ export default function CreateLessonPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField control={form.control} name="school_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>School (for filtering classes)</FormLabel>
+                  <FormLabel>School for this Lesson</FormLabel>
                   <Select onValueChange={(value) => { field.onChange(value); setSelectedSchool(value);}} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger></FormControl>
                     <SelectContent>{schools.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
@@ -133,7 +142,7 @@ export default function CreateLessonPage() {
               
               <FormField control={form.control} name="class_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Class (for filtering subjects)</FormLabel>
+                  <FormLabel>Class for this Lesson</FormLabel>
                   <Select onValueChange={(value) => { field.onChange(value); setSelectedClass(value);}} value={field.value} disabled={!selectedSchool || classes.length === 0}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger></FormControl>
                     <SelectContent>{classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
@@ -142,7 +151,7 @@ export default function CreateLessonPage() {
 
               <FormField control={form.control} name="subject_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Subject</FormLabel>
+                  <FormLabel>Subject for this Lesson</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedClass || subjects.length === 0}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger></FormControl>
                     <SelectContent>{subjects.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
