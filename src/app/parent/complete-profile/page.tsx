@@ -1,3 +1,4 @@
+
 // src/app/parent/complete-profile/page.tsx
 'use client';
 
@@ -17,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2, UserCheck, Link2, Upload, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { User, StudentProfileData } from '@/interfaces';
+
 
 const parentProfileSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
@@ -30,21 +33,9 @@ const parentProfileSchema = z.object({
 type ParentProfileFormValues = z.infer<typeof parentProfileSchema>;
 
 interface StudentForConfirmation {
-    student_id: string;
-    student_username: string;
-    student_full_name?: string; // Make optional as it might not always be there
-    student_email?: string; // Make optional
-    enrolled_class_name?: string; // Make optional
-    link_id?: string; // Make optional
-    message?: string; // Make optional
-    // Add student_details as it seems to be part of the successful response
-    student_details?: {
-      full_name?: string;
-      admission_number?: string;
-      school_name?: string;
-      enrolled_class_name?: string;
-      profile_picture_url?: string;
-    }
+    link_id: string | number;
+    message: string;
+    student_details: StudentProfileData;
 }
 
 
@@ -81,7 +72,7 @@ export default function CompleteParentProfilePage() {
         setIsRedirecting(true);
         router.push('/');
       } else if (currentUser.profile_completed) {
-        setIsRedirecting(true); // Already completed, go to dashboard
+        setIsRedirecting(true); 
         router.push('/parent');
       }
     }
@@ -93,14 +84,22 @@ export default function CompleteParentProfilePage() {
             full_name: currentUser.parent_profile.full_name || '',
             mobile_number: currentUser.parent_profile.mobile_number || '',
             address: currentUser.parent_profile.address || '',
-            student_admission_number: '', // Keep these clear for new link attempts
+            student_admission_number: '', 
             student_school_id_code: '',
         });
         if (currentUser.parent_profile.profile_picture_url) {
             setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
         }
+    } else if (currentUser) { // If parent_profile is null (e.g., after fresh signup)
+         form.reset({
+            full_name: '',
+            student_admission_number: '',
+            student_school_id_code: '',
+            mobile_number: '',
+            address: '',
+        });
     }
-  }, [currentUser, form]);
+  }, [currentUser, form, isLoadingAuth]);
 
   const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -121,12 +120,11 @@ export default function CompleteParentProfilePage() {
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
-    formData.append('profile_completed', 'true');
-
+    // formData.append('profile_completed', 'true'); // Backend to handle this based on endpoint
 
     try {
-      const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, parent_profile: updatedUser.parent_profile || prev.parent_profile, profile_completed: true } : null);
+      const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
+      setCurrentUser(updatedUserResponse);
       setNeedsProfileCompletion(false);
       toast({ title: "Profile Updated!", description: "Your parent profile has been saved." });
 
@@ -164,7 +162,7 @@ export default function CompleteParentProfilePage() {
         };
         const response = await api.post<StudentForConfirmation>('/parent-student-links/link-child-by-admission/', linkData);
         setStudentToConfirm(response);
-        toast({ title: "Child Linked Successfully!", description: `${response.student_details?.full_name || response.student_username || 'Child'} is now linked.` });
+        toast({ title: "Child Linked Successfully!", description: `${response.student_details?.full_name || 'Child'} is now linked. ${response.message}` });
         form.resetField("student_admission_number");
         form.resetField("student_school_id_code");
 
@@ -258,7 +256,7 @@ export default function CompleteParentProfilePage() {
                         <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
                         <AlertTitle className="text-green-700 dark:text-green-300">Child Linked Successfully!</AlertTitle>
                         <AlertDescription className="text-green-600 dark:text-green-400 space-y-1">
-                            <p><strong>Name:</strong> {studentToConfirm.student_details.full_name || studentToConfirm.student_username}</p>
+                            <p><strong>Name:</strong> {studentToConfirm.student_details.full_name || 'N/A'}</p>
                             {studentToConfirm.student_details.school_name && <p><strong>School:</strong> {studentToConfirm.student_details.school_name}</p>}
                             {studentToConfirm.student_details.enrolled_class_name && <p><strong>Class:</strong> {studentToConfirm.student_details.enrolled_class_name}</p>}
                             {studentToConfirm.message && <p className="mt-1">{studentToConfirm.message}</p>}
@@ -267,7 +265,18 @@ export default function CompleteParentProfilePage() {
                 )}
                 <p className="text-xs text-muted-foreground mt-2">You can link more children from your dashboard settings later.</p>
             </div>
-            <Button onClick={() => router.push('/parent')} className="mt-6 w-full" variant="secondary" disabled={isSubmittingProfile || isLinkingChild}>
+            <Button onClick={() => {
+                // Ensure profile is saved before going to dashboard if changes were made
+                // Or rely on user clicking "Save Profile Information" first
+                 if (form.formState.isDirty && !isSubmittingProfile) {
+                    toast({title: "Unsaved Changes", description: "Please save your profile information before proceeding.", variant: "default"});
+                 } else if (!studentToConfirm && (form.getValues("student_admission_number") || form.getValues("student_school_id_code"))) {
+                     toast({title: "Link Child", description: "Please verify and link your child if you've entered their details.", variant: "default"});
+                 }
+                 else {
+                    router.push('/parent');
+                 }
+            }} className="mt-6 w-full" variant="secondary" disabled={isSubmittingProfile || isLinkingChild}>
                 Go to Parent Dashboard
             </Button>
           </Form>

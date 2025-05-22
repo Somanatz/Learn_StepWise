@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle, Link2 } from "lucide-react";
 import Link from "next/link";
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ParentStudentLinkAPI, StudentProfileData, User } from '@/interfaces';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added Alert imports
 
 
 interface DisplayChild {
@@ -27,7 +28,7 @@ interface DisplayChild {
   studentId: string;
   name: string;
   avatarUrl?: string;
-  classLevel: number | string; // Can be string like "Class 5" or number
+  classLevel: string; // Can be string like "Class 5" or number converted to string
   overallProgress: number;
   lastActivity?: string;
   studentProfile?: StudentProfileData;
@@ -40,6 +41,13 @@ const linkChildSchema = z.object({
 
 type LinkChildFormValues = z.infer<typeof linkChildSchema>;
 
+interface StudentForConfirmation { // Re-defined here for consistency with parent/complete-profile
+    link_id: string | number;
+    message: string;
+    student_details: StudentProfileData;
+}
+
+
 export default function MyChildrenPage() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -48,6 +56,9 @@ export default function MyChildrenPage() {
   const [isLinking, setIsLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLinkChildDialogOpen, setIsLinkChildDialogOpen] = useState(false);
+  const [studentToConfirm, setStudentToConfirm] = useState<StudentForConfirmation | null>(null);
+  const [linkingError, setLinkingError] = useState<string | null>(null);
+
 
   const form = useForm<LinkChildFormValues>({
     resolver: zodResolver(linkChildSchema),
@@ -77,8 +88,8 @@ export default function MyChildrenPage() {
         name: link.student_details?.full_name || link.student_username || "Unknown Student",
         avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_details?.full_name || link.student_username || "U").charAt(0).toUpperCase()}`,
         classLevel: link.student_details?.enrolled_class_name || (link.student_details?.enrolled_class ? `Class ${link.student_details.enrolled_class}` : 'N/A'),
-        overallProgress: Math.floor(Math.random() * 50) + 50, // TODO: Replace with actual progress data from API if available
-        lastActivity: "Mocked: Logged In", // TODO: Replace with actual last activity data
+        overallProgress: Math.floor(Math.random() * 50) + 50, 
+        lastActivity: "Mocked: Logged In", 
         studentProfile: link.student_details,
       }));
       setLinkedChildren(displayChildren);
@@ -91,10 +102,10 @@ export default function MyChildrenPage() {
   };
 
   useEffect(() => {
-    if (currentUser) { // Only fetch if currentUser is available
+    if (currentUser) { 
         fetchLinkedChildren();
     } else {
-        setIsLoading(false); // Not logged in or role mismatch
+        setIsLoading(false); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
@@ -102,21 +113,23 @@ export default function MyChildrenPage() {
   const onLinkChildSubmit = async (data: LinkChildFormValues) => {
     if (!currentUser) return;
     setIsLinking(true);
+    setLinkingError(null);
+    setStudentToConfirm(null);
     try {
-      const linkedStudentData = await api.post<{link_id: number; message: string; student_details: StudentProfileData}>(
+      const linkedStudentData = await api.post<StudentForConfirmation>(
         '/parent-student-links/link-child-by-admission/', 
         {
           admission_number: data.student_admission_number,
           school_id_code: data.student_school_id_code,
         }
       );
-
+      setStudentToConfirm(linkedStudentData);
       toast({ 
         title: "Child Linked Successfully!", 
         description: `${linkedStudentData.student_details?.full_name || 'The student'} is now linked. ${linkedStudentData.message || ''}` 
       });
-      fetchLinkedChildren(); // Re-fetch the list to include the new child
-      setIsLinkChildDialogOpen(false);
+      fetchLinkedChildren(); 
+      // setIsLinkChildDialogOpen(false); // Keep dialog open to show confirmation, or close if preferred
       form.reset();
     } catch (err: any) {
       let errMsg = "Linking Failed. Ensure the admission number and school ID are correct, and your email matches the student's parent contact email.";
@@ -127,6 +140,7 @@ export default function MyChildrenPage() {
       } else if (err.message) {
         errMsg = err.message;
       }
+      setLinkingError(errMsg);
       toast({ title: "Linking Failed", description: errMsg, variant: "destructive" });
     } finally {
       setIsLinking(false);
@@ -168,9 +182,16 @@ export default function MyChildrenPage() {
           <h1 className="text-3xl font-bold flex items-center"><Users className="mr-3 text-primary" /> My Children</h1>
           <p className="text-muted-foreground">Manage your children's profiles and access their learning information.</p>
         </div>
-        <Dialog open={isLinkChildDialogOpen} onOpenChange={setIsLinkChildDialogOpen}>
+        <Dialog open={isLinkChildDialogOpen} onOpenChange={(open) => {
+            setIsLinkChildDialogOpen(open);
+            if (!open) { // Reset states when dialog closes
+                setStudentToConfirm(null);
+                setLinkingError(null);
+                form.reset();
+            }
+        }}>
             <DialogTrigger asChild>
-                <Button size="lg" onClick={() => { form.reset(); setIsLinkChildDialogOpen(true); }}>
+                <Button size="lg" onClick={() => { form.reset(); setStudentToConfirm(null); setLinkingError(null); setIsLinkChildDialogOpen(true); }}>
                     <PlusCircle className="mr-2 h-5 w-5" /> Link Another Child
                 </Button>
             </DialogTrigger>
@@ -207,12 +228,33 @@ export default function MyChildrenPage() {
                                 </FormItem>
                             )}
                         />
+                         {linkingError && (
+                            <Alert variant="destructive" className="mt-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Linking Error</AlertTitle>
+                                <AlertDescription>{linkingError}</AlertDescription>
+                            </Alert>
+                        )}
+                        {studentToConfirm && studentToConfirm.student_details && (
+                            <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700">
+                                <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <AlertTitle className="text-green-700 dark:text-green-300">Child Linked Successfully!</AlertTitle>
+                                <AlertDescription className="text-green-600 dark:text-green-400 space-y-1">
+                                    <p><strong>Name:</strong> {studentToConfirm.student_details.full_name || 'N/A'}</p>
+                                    {studentToConfirm.student_details.school_name && <p><strong>School:</strong> {studentToConfirm.student_details.school_name}</p>}
+                                    {studentToConfirm.student_details.enrolled_class_name && <p><strong>Class:</strong> {studentToConfirm.student_details.enrolled_class_name}</p>}
+                                    {studentToConfirm.message && <p className="mt-1">{studentToConfirm.message}</p>}
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsLinkChildDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={isLinking}>
-                                {isLinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Link Child
-                            </Button>
+                            <Button type="button" variant="outline" onClick={() => { setIsLinkChildDialogOpen(false); setStudentToConfirm(null); setLinkingError(null); form.reset();}}>Close</Button>
+                            {!studentToConfirm && (
+                                <Button type="submit" disabled={isLinking}>
+                                    {isLinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Link2 className="mr-2 h-4 w-4" /> Verify & Link Child
+                                </Button>
+                            )}
                         </DialogFooter>
                     </form>
                 </Form>
@@ -268,7 +310,7 @@ export default function MyChildrenPage() {
             <CardDescription>It looks like you haven't linked any children to your account yet.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button size="lg" onClick={() => { form.reset(); setIsLinkChildDialogOpen(true);}}>
+            <Button size="lg" onClick={() => { form.reset(); setStudentToConfirm(null); setLinkingError(null); setIsLinkChildDialogOpen(true);}}>
               <PlusCircle className="mr-2 h-5 w-5" /> Link Your First Child
             </Button>
           </CardContent>
@@ -277,4 +319,3 @@ export default function MyChildrenPage() {
     </div>
   );
 }
-

@@ -27,10 +27,9 @@ class SchoolViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             self.permission_classes = [permissions.AllowAny]
         elif self.action in ['update', 'partial_update']:
-            # Uses IsAdminOfThisSchoolOrPlatformStaff for object-level permission
             self.permission_classes = [permissions.IsAuthenticated, IsAdminOfThisSchoolOrPlatformStaff]
         elif self.action == 'destroy':
-            self.permission_classes = [permissions.IsAdminUser] # Only platform staff/superusers can delete
+            self.permission_classes = [permissions.IsAdminUser] 
         else: # list, retrieve
             self.permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         return super().get_permissions()
@@ -56,7 +55,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         elif self.action == 'list' or self.action == 'retrieve':
              self.permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
         else: 
-            self.permission_classes = [IsAdminUser] # Default to admin for other actions like destroy
+            self.permission_classes = [IsAdminUser] 
         return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='me', permission_classes=[IsAuthenticated])
@@ -91,7 +90,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             user_serializer = CustomUserSerializer(user, data=custom_user_update_data, partial=True, context=self.get_serializer_context())
             if user_serializer.is_valid():
                 user_serializer.save()
-                user.refresh_from_db() 
             else:
                 print(f"DEBUG: CustomUserSerializer errors: {user_serializer.errors}") # DEBUG
                 return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -99,6 +97,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         profile_serializer_class = None
         profile_instance = None
         
+        # Use all remaining data for profile, including IDs for FKs/M2Ms
         profile_specific_data = profile_data_from_request 
         if 'profile_picture' in request.FILES:
             profile_specific_data['profile_picture'] = request.FILES['profile_picture']
@@ -106,23 +105,41 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.role == 'Student':
             profile_serializer_class = StudentProfileCompletionSerializer
             profile_instance, _ = StudentProfile.objects.get_or_create(user=user)
+            if 'school_id' in profile_specific_data and profile_specific_data['school_id']:
+                try:
+                    user.school = School.objects.get(pk=profile_specific_data['school_id'])
+                    user.save(update_fields=['school'])
+                except School.DoesNotExist:
+                    pass # Serializer will catch invalid school_id
         elif user.role == 'Teacher':
             profile_serializer_class = TeacherProfileCompletionSerializer
             profile_instance, _ = TeacherProfile.objects.get_or_create(user=user)
+            if 'school_id' in profile_specific_data and profile_specific_data['school_id']:
+                try:
+                    user.school = School.objects.get(pk=profile_specific_data['school_id'])
+                    user.save(update_fields=['school'])
+                except School.DoesNotExist:
+                    pass
         elif user.role == 'Parent':
             profile_serializer_class = ParentProfileCompletionSerializer
             profile_instance, _ = ParentProfile.objects.get_or_create(user=user)
         
         if profile_serializer_class and profile_instance:
-            if 'profile_completed' not in profile_specific_data: # Ensure profile_completed is set if it's a completion flow
-                profile_specific_data['profile_completed'] = True
-            
+            # For profile completion flows, ensure profile_completed is set to True
+            # This key should be present in the data if it's a completion form submission
+            # and the serializer should handle setting it on the profile_instance.
+            # If 'profile_completed' is not in profile_specific_data, it won't be updated unless serializer handles it
+            # For explicit setting from a completion page:
+            if request.path.endswith('/complete-profile/'): # Check if it's a completion endpoint
+                 profile_specific_data['profile_completed'] = True
+
             profile_serializer = profile_serializer_class(profile_instance, data=profile_specific_data, partial=True, context=self.get_serializer_context())
             if profile_serializer.is_valid():
                 profile_serializer.save()
             else:
                 return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        user.refresh_from_db() # Crucial to get updated related profile info for the response
         final_user_serializer = CustomUserSerializer(user, context=self.get_serializer_context())
         return Response(final_user_serializer.data, status=status.HTTP_200_OK)
 
@@ -186,7 +203,7 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
                 school__school_id_code=student_school_id_code 
             )
             if student_profile.parent_email_for_linking != parent_user.email:
-                 return Response({"error": "Parent email on student record does not match your email. Verification failed."}, status=status.HTTP_403_FORBIDDEN)
+                 return Response({"error": "Parent email on student record does not match your email. Verification failed. Ensure the student has your email listed for linking."}, status=status.HTTP_403_FORBIDDEN)
 
             student_user = student_profile.user
         except StudentProfile.DoesNotExist:
@@ -194,7 +211,6 @@ class ParentStudentLinkViewSet(viewsets.ModelViewSet):
         
         link, created = ParentStudentLink.objects.get_or_create(parent=parent_user, student=student_user)
         
-        # Pass request context to StudentProfileSerializer if it uses SerializerMethodField for URLs
         serialized_student_profile = StudentProfileSerializer(student_profile, context={'request': request}).data
 
         response_data = {
@@ -213,6 +229,7 @@ class TeacherActionsViewSet(viewsets.ViewSet):
         teacher_profile = getattr(request.user, 'teacher_profile', None)
         if teacher_profile:
             classes = teacher_profile.assigned_classes.all()
+            # Assuming ClassSerializer is available or using simple dict
             return Response([{'id': c.id, 'name': c.name} for c in classes])
         return Response([])
 
@@ -221,4 +238,6 @@ class TeacherActionsViewSet(viewsets.ViewSet):
 @dec_permission_classes([IsAuthenticated, IsAdminUser]) 
 @parser_classes([MultiPartParser, FormParser])
 def bulk_upload_users(request):
+    # Placeholder for bulk user upload logic
+    # This would typically involve parsing a CSV/Excel file
     return Response({"message": "Bulk user upload received (placeholder)."}, status=status.HTTP_200_OK)

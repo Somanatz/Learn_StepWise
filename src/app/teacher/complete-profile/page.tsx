@@ -1,3 +1,4 @@
+
 // src/app/teacher/complete-profile/page.tsx
 'use client';
 
@@ -18,7 +19,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2, UserCheck, Upload, School as SchoolIcon } from 'lucide-react';
-import type { School as SchoolInterface, Class as ClassInterface, Subject as SubjectInterface } from '@/interfaces';
+import type { School as SchoolInterface, Class as ClassInterface, Subject as SubjectInterface, User } from '@/interfaces';
 
 const teacherProfileSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
@@ -67,7 +68,7 @@ export default function CompleteTeacherProfilePage() {
         setIsRedirecting(true);
         router.push('/');
       } else if (currentUser.profile_completed) {
-        setIsRedirecting(true); // Already completed, go to dashboard
+        setIsRedirecting(true); 
         router.push('/teacher');
       }
     }
@@ -80,7 +81,7 @@ export default function CompleteTeacherProfilePage() {
             setSchools(data);
         }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
 
-        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => {
+        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => { // Fetch all subjects initially
             const data = Array.isArray(res) ? res : res.results || [];
             setSubjects(data);
         }).catch(err => toast({ title: "Error", description: "Could not load subjects.", variant: "destructive" }));
@@ -98,19 +99,29 @@ export default function CompleteTeacherProfilePage() {
             });
             if (tp.school) setSelectedSchoolId(String(tp.school));
             if (tp.profile_picture_url) setPreviewProfilePicture(tp.profile_picture_url);
+        } else {
+             form.reset({
+                full_name: '',
+                interested_in_tuition: false,
+                assigned_classes_ids: [],
+                subject_expertise_ids: [],
+                mobile_number: '',
+                address: '',
+                school_id: undefined,
+            });
         }
     }
-  }, [currentUser, form, toast]);
+  }, [currentUser, form, toast, isLoadingAuth]);
 
   useEffect(() => {
-    const fetchClassesForSchool = async (schoolId: string) => {
-        if (!schoolId) {
+    const fetchClassesForSchool = async (schoolIdValue: string) => {
+        if (!schoolIdValue) {
             setClasses([]);
             form.setValue("assigned_classes_ids", []);
             return;
         }
         try {
-            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolId}`);
+            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolIdValue}`);
             const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
         } catch (error) {
@@ -157,15 +168,15 @@ export default function CompleteTeacherProfilePage() {
             }
         }
     });
-    formData.append('profile_completed', 'true');
+    // formData.append('profile_completed', 'true'); // Backend should handle this based on endpoint
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
 
     try {
-      const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, teacher_profile: updatedUser.teacher_profile || prev.teacher_profile, profile_completed: true } : null);
+      const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
+      setCurrentUser(updatedUserResponse);
       setNeedsProfileCompletion(false);
       toast({ title: "Profile Completed!", description: "Your teacher profile has been updated." });
       router.push('/teacher');
@@ -232,25 +243,27 @@ export default function CompleteTeacherProfilePage() {
               <FormField control={form.control} name="assigned_classes_ids" render={() => (
                   <FormItem>
                       <FormLabel>Classes You Teach (Optional)</FormLabel>
-                      { Array.isArray(classes) && classes.length > 0 ? classes.map(cls => (
-                          <FormField key={cls.id} control={form.control} name="assigned_classes_ids"
-                              render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                      <FormControl>
-                                          <Checkbox
-                                              checked={field.value?.includes(String(cls.id))}
-                                              onCheckedChange={(checked) => {
-                                                  const currentValues = field.value || [];
-                                                  return checked
-                                                      ? field.onChange([...currentValues, String(cls.id)])
-                                                      : field.onChange(currentValues.filter( (value) => value !== String(cls.id) ) );
-                                              }} />
-                                      </FormControl>
-                                      <FormLabel className="font-normal">{cls.name}</FormLabel>
-                                  </FormItem>
-                              )}
-                          />
-                      )) : <p className="text-xs text-muted-foreground">Select a school to see available classes.</p>}
+                        <div className="max-h-40 overflow-y-auto border p-3 rounded-md space-y-2">
+                            { Array.isArray(classes) && classes.length > 0 ? classes.map(cls => (
+                            <FormField key={cls.id} control={form.control} name="assigned_classes_ids"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(String(cls.id))}
+                                                onCheckedChange={(checked) => {
+                                                    const currentValues = field.value || [];
+                                                    return checked
+                                                        ? field.onChange([...currentValues, String(cls.id)])
+                                                        : field.onChange(currentValues.filter( (value) => value !== String(cls.id) ) );
+                                                }} />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">{cls.name}</FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                            )) : <p className="text-xs text-muted-foreground">{selectedSchoolId ? "No classes found for this school." : "Select a school to see available classes."}</p>}
+                        </div>
                       <FormMessage />
                   </FormItem>
               )} />
@@ -258,25 +271,27 @@ export default function CompleteTeacherProfilePage() {
                <FormField control={form.control} name="subject_expertise_ids" render={() => (
                   <FormItem>
                       <FormLabel>Subjects You Specialize In (Optional)</FormLabel>
-                       { Array.isArray(subjects) && subjects.length > 0 ? subjects.map(sub => (
-                          <FormField key={sub.id} control={form.control} name="subject_expertise_ids"
-                              render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                      <FormControl>
-                                          <Checkbox
-                                              checked={field.value?.includes(String(sub.id))}
-                                              onCheckedChange={(checked) => {
-                                                  const currentValues = field.value || [];
-                                                  return checked
-                                                      ? field.onChange([...currentValues, String(sub.id)])
-                                                      : field.onChange(currentValues.filter( (value) => value !== String(sub.id) ) );
-                                              }} />
-                                      </FormControl>
-                                      <FormLabel className="font-normal">{sub.name} {sub.class_obj_name ? `(${sub.class_obj_name})` : ''}</FormLabel>
-                                  </FormItem>
-                              )}
-                          />
-                      )) : <p className="text-xs text-muted-foreground">Loading subjects...</p>}
+                       <div className="max-h-40 overflow-y-auto border p-3 rounded-md space-y-2">
+                            { Array.isArray(subjects) && subjects.length > 0 ? subjects.map(sub => (
+                            <FormField key={sub.id} control={form.control} name="subject_expertise_ids"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(String(sub.id))}
+                                                onCheckedChange={(checked) => {
+                                                    const currentValues = field.value || [];
+                                                    return checked
+                                                        ? field.onChange([...currentValues, String(sub.id)])
+                                                        : field.onChange(currentValues.filter( (value) => value !== String(sub.id) ) );
+                                                }} />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">{sub.name} {sub.class_obj_name ? `(${sub.class_obj_name})` : ''}</FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                            )) : <p className="text-xs text-muted-foreground">Loading subjects...</p>}
+                        </div>
                       <FormMessage />
                   </FormItem>
               )} />

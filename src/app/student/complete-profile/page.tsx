@@ -1,3 +1,4 @@
+
 // src/app/student/complete-profile/page.tsx
 'use client';
 
@@ -18,7 +19,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2, UserCheck, Upload, School as SchoolIcon, CalendarClock, Droplets, HeartPulse, Gamepad2, Leaf } from 'lucide-react';
-import type { Class as ClassInterface, School as SchoolInterface } from '@/interfaces';
+import type { Class as ClassInterface, School as SchoolInterface, User } from '@/interfaces';
 
 const studentProfileSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
@@ -64,10 +65,20 @@ export default function CompleteStudentProfilePage() {
       needs_assistant_teacher: false,
       interested_in_gardening_farming: false,
       date_of_birth: '',
+      nickname: '',
+      father_name: '',
+      mother_name: '',
+      place_of_birth: '',
+      blood_group: '',
+      parent_email_for_linking: '',
+      parent_mobile_for_linking: '',
+      parent_occupation: '',
+      hobbies: '',
+      favorite_sports: '',
     },
   });
 
-  useEffect(() => {
+ useEffect(() => {
     if (!isLoadingAuth) {
       if (!currentUser) {
         setIsRedirecting(true);
@@ -76,7 +87,7 @@ export default function CompleteStudentProfilePage() {
         setIsRedirecting(true);
         router.push('/');
       } else if (currentUser.profile_completed) {
-        setIsRedirecting(true); // Already completed, go to dashboard
+        setIsRedirecting(true); 
         router.push('/student');
       }
     }
@@ -90,7 +101,7 @@ export default function CompleteStudentProfilePage() {
         }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
 
         const sp = currentUser.student_profile;
-        if (sp) {
+        if (sp) { // Check if student_profile exists
             form.reset({
                 full_name: sp.full_name || '',
                 school_id: sp.school ? String(sp.school) : undefined,
@@ -113,19 +124,41 @@ export default function CompleteStudentProfilePage() {
             });
             if (sp.school) setSelectedSchoolId(String(sp.school));
             if (sp.profile_picture_url) setPreviewProfilePicture(sp.profile_picture_url);
+        } else {
+            // If student_profile is null (e.g., after fresh signup), reset with defaults
+             form.reset({
+                full_name: '',
+                preferred_language: 'en',
+                needs_assistant_teacher: false,
+                interested_in_gardening_farming: false,
+                date_of_birth: '',
+                nickname: '',
+                father_name: '',
+                mother_name: '',
+                place_of_birth: '',
+                blood_group: '',
+                parent_email_for_linking: '',
+                parent_mobile_for_linking: '',
+                parent_occupation: '',
+                hobbies: '',
+                favorite_sports: '',
+                admission_number: '',
+                school_id: undefined,
+                enrolled_class_id: undefined,
+            });
         }
     }
-  }, [currentUser, form, toast]);
+  }, [currentUser, form, toast, isLoadingAuth]);
 
   useEffect(() => {
-    const fetchClassesForSchool = async (schoolId: string) => {
-        if (!schoolId) {
+    const fetchClassesForSchool = async (schoolIdValue: string) => {
+        if (!schoolIdValue) {
             setClasses([]);
             form.setValue("enrolled_class_id", undefined);
             return;
         }
         try {
-            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolId}`);
+            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolIdValue}`);
             const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
         } catch (error) {
@@ -163,22 +196,24 @@ export default function CompleteStudentProfilePage() {
                  formData.append(key, String(value));
              } else if (typeof value === 'string' && value.trim() !== '') {
                 formData.append(key, value);
-             } else if (typeof value === 'number') {
+             } else if (typeof value === 'number') { // Though numbers are coerced to string by Zod here
                  formData.append(key, String(value));
              }
         }
     });
 
-    formData.append('profile_completed', 'true');
+    // No need to append profile_completed=true here, backend view_profile will handle it if path matches
+    // Or, the StudentProfileCompletionSerializer should have profile_completed as a field.
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
 
     try {
-      const updatedUser = await api.patch<any>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(prev => prev ? { ...prev, ...updatedUser, student_profile: updatedUser.student_profile || prev.student_profile, profile_completed: true } : null);
-      setNeedsProfileCompletion(false);
+      // The API endpoint should be the user's profile update endpoint
+      const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
+      setCurrentUser(updatedUserResponse); // Update context with the full response
+      setNeedsProfileCompletion(false); // Explicitly set this
       toast({ title: "Profile Completed!", description: "Your student profile has been updated." });
       router.push('/student');
     } catch (error: any) {
