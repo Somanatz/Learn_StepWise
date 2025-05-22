@@ -1,4 +1,3 @@
-
 // src/app/student/complete-profile/page.tsx
 'use client';
 
@@ -50,7 +49,6 @@ export default function CompleteStudentProfilePage() {
   const { toast } = useToast();
   const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
   const [classes, setClasses] = useState<ClassInterface[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>(undefined);
@@ -75,80 +73,62 @@ export default function CompleteStudentProfilePage() {
       parent_occupation: '',
       hobbies: '',
       favorite_sports: '',
+      admission_number: '', // Added default
+      school_id: undefined, // Added default
+      enrolled_class_id: undefined, // Added default
     },
   });
 
  useEffect(() => {
     if (!isLoadingAuth) {
       if (!currentUser) {
-        setIsRedirecting(true);
         router.push('/login');
       } else if (currentUser.role !== 'Student') {
-        setIsRedirecting(true);
         router.push('/');
-      } else if (currentUser.profile_completed) {
-        setIsRedirecting(true); 
+      } else if (currentUser.student_profile?.profile_completed === true) {
+        // If profile is already marked complete, redirect away immediately
         router.push('/student');
       }
     }
   }, [isLoadingAuth, currentUser, router]);
 
   useEffect(() => {
-    if (currentUser && currentUser.role === 'Student') {
-        api.get<SchoolInterface[] | {results: SchoolInterface[]}>('/schools/').then(res => {
-          const data = Array.isArray(res) ? res : res.results || [];
-          setSchools(data);
-        }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
+    // Fetch schools once
+    api.get<SchoolInterface[] | {results: SchoolInterface[]}>('/schools/').then(res => {
+      const data = Array.isArray(res) ? res : res.results || [];
+      setSchools(data);
+    }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive"}));
+  }, [toast]);
 
+  useEffect(() => {
+    // Populate form with existing data if available (e.g., if user navigates back)
+    if (currentUser?.student_profile) {
         const sp = currentUser.student_profile;
-        if (sp) { // Check if student_profile exists
-            form.reset({
-                full_name: sp.full_name || '',
-                school_id: sp.school ? String(sp.school) : undefined,
-                enrolled_class_id: sp.enrolled_class ? String(sp.enrolled_class) : undefined,
-                admission_number: sp.admission_number || '',
-                nickname: sp.nickname || '',
-                preferred_language: sp.preferred_language || 'en',
-                father_name: sp.father_name || '',
-                mother_name: sp.mother_name || '',
-                place_of_birth: sp.place_of_birth || '',
-                date_of_birth: sp.date_of_birth ? sp.date_of_birth.split('T')[0] : '',
-                blood_group: sp.blood_group || '',
-                needs_assistant_teacher: sp.needs_assistant_teacher || false,
-                parent_email_for_linking: sp.parent_email_for_linking || '',
-                parent_mobile_for_linking: sp.parent_mobile_for_linking || '',
-                parent_occupation: sp.parent_occupation || '',
-                hobbies: sp.hobbies || '',
-                favorite_sports: sp.favorite_sports || '',
-                interested_in_gardening_farming: sp.interested_in_gardening_farming || false,
-            });
-            if (sp.school) setSelectedSchoolId(String(sp.school));
-            if (sp.profile_picture_url) setPreviewProfilePicture(sp.profile_picture_url);
-        } else {
-            // If student_profile is null (e.g., after fresh signup), reset with defaults
-             form.reset({
-                full_name: '',
-                preferred_language: 'en',
-                needs_assistant_teacher: false,
-                interested_in_gardening_farming: false,
-                date_of_birth: '',
-                nickname: '',
-                father_name: '',
-                mother_name: '',
-                place_of_birth: '',
-                blood_group: '',
-                parent_email_for_linking: '',
-                parent_mobile_for_linking: '',
-                parent_occupation: '',
-                hobbies: '',
-                favorite_sports: '',
-                admission_number: '',
-                school_id: undefined,
-                enrolled_class_id: undefined,
-            });
-        }
+        form.reset({
+            full_name: sp.full_name || '',
+            school_id: sp.school ? String(sp.school) : undefined,
+            enrolled_class_id: sp.enrolled_class ? String(sp.enrolled_class) : undefined,
+            admission_number: sp.admission_number || '',
+            nickname: sp.nickname || '',
+            preferred_language: sp.preferred_language || 'en',
+            father_name: sp.father_name || '',
+            mother_name: sp.mother_name || '',
+            place_of_birth: sp.place_of_birth || '',
+            date_of_birth: sp.date_of_birth ? sp.date_of_birth.split('T')[0] : '',
+            blood_group: sp.blood_group || '',
+            needs_assistant_teacher: sp.needs_assistant_teacher || false,
+            parent_email_for_linking: sp.parent_email_for_linking || '',
+            parent_mobile_for_linking: sp.parent_mobile_for_linking || '',
+            parent_occupation: sp.parent_occupation || '',
+            hobbies: sp.hobbies || '',
+            favorite_sports: sp.favorite_sports || '',
+            interested_in_gardening_farming: sp.interested_in_gardening_farming || false,
+        });
+        if (sp.school) setSelectedSchoolId(String(sp.school));
+        if (sp.profile_picture_url) setPreviewProfilePicture(sp.profile_picture_url);
     }
-  }, [currentUser, form, toast, isLoadingAuth]);
+  }, [currentUser, form]);
+
 
   useEffect(() => {
     const fetchClassesForSchool = async (schoolIdValue: string) => {
@@ -158,7 +138,8 @@ export default function CompleteStudentProfilePage() {
             return;
         }
         try {
-            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolIdValue}`);
+            // Ensure the API endpoint returns ClassInterface[] or an object with a results property
+            const classResponse = await api.get<{ results: ClassInterface[] } | ClassInterface[]>(`/classes/?school=${schoolIdValue}&page_size=100`);
             const classData = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
             setClasses(classData);
         } catch (error) {
@@ -170,7 +151,9 @@ export default function CompleteStudentProfilePage() {
         fetchClassesForSchool(selectedSchoolId);
     } else {
         setClasses([]);
-        form.setValue("enrolled_class_id", undefined);
+        if (form.getValues("enrolled_class_id")) { // Only reset if it had a value
+          form.setValue("enrolled_class_id", undefined);
+        }
     }
   }, [selectedSchoolId, toast, form]);
 
@@ -187,35 +170,42 @@ export default function CompleteStudentProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    Object.keys(data).forEach(key => {
-        const K = key as keyof StudentProfileFormValues;
-        if (K === 'profile_picture') return;
-        const value = data[K];
+    // Append only fields that have values or are booleans
+    (Object.keys(data) as Array<keyof StudentProfileFormValues>).forEach(key => {
+        if (key === 'profile_picture') return; // Handled separately
+        const value = data[key];
         if (value !== undefined && value !== null) {
              if (typeof value === 'boolean') {
                  formData.append(key, String(value));
              } else if (typeof value === 'string' && value.trim() !== '') {
-                formData.append(key, value);
-             } else if (typeof value === 'number') { // Though numbers are coerced to string by Zod here
-                 formData.append(key, String(value));
+                formData.append(key, value.trim());
+             } else if (typeof value === 'string' && value.trim() === '' && (currentUser.student_profile?.[key] !== null && currentUser.student_profile?.[key] !== undefined) ) {
+                // Allow sending empty string to clear optional fields
+                formData.append(key, '');
              }
         }
     });
+    
+    // Ensure foreign key IDs are sent as strings
+    if (data.school_id) formData.set('school_id', String(data.school_id));
+    if (data.enrolled_class_id) formData.set('enrolled_class_id', String(data.enrolled_class_id));
 
-    // No need to append profile_completed=true here, backend view_profile will handle it if path matches
-    // Or, the StudentProfileCompletionSerializer should have profile_completed as a field.
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
 
     try {
-      // The API endpoint should be the user's profile update endpoint
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(updatedUserResponse); // Update context with the full response
-      setNeedsProfileCompletion(false); // Explicitly set this
-      toast({ title: "Profile Completed!", description: "Your student profile has been updated." });
-      router.push('/student');
+      setCurrentUser(updatedUserResponse); 
+      
+      if (updatedUserResponse.student_profile?.profile_completed === true) {
+        setNeedsProfileCompletion(false);
+        toast({ title: "Profile Completed!", description: "Your student profile has been updated." });
+        router.push('/student');
+      } else {
+         toast({ title: "Profile Updated", description: "Your profile was saved, but some details might still be needed or an issue occurred.", variant: "warning" });
+      }
     } catch (error: any) {
       let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -230,7 +220,7 @@ export default function CompleteStudentProfilePage() {
     }
   };
 
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.profile_completed && currentUser.role === 'Student')) {
+  if (isLoadingAuth || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.role === 'Student' && currentUser.student_profile?.profile_completed === true) ) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
