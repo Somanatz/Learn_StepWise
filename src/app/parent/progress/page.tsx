@@ -13,6 +13,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { ParentStudentLinkAPI, StudentProfileData } from '@/interfaces';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added import
 
 interface ChildProgressSummary {
   studentId: string; // Student User ID
