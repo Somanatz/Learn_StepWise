@@ -39,7 +39,6 @@ export default function CompleteTeacherProfilePage() {
   const { toast } = useToast();
   const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [schools, setSchools] = useState<SchoolInterface[]>([]);
   const [classes, setClasses] = useState<ClassInterface[]>([]);
   const [subjects, setSubjects] = useState<SubjectInterface[]>([]);
@@ -56,19 +55,18 @@ export default function CompleteTeacherProfilePage() {
       subject_expertise_ids: [],
       mobile_number: '',
       address: '',
+      school_id: undefined,
     },
   });
 
   useEffect(() => {
     if (!isLoadingAuth) {
       if (!currentUser) {
-        setIsRedirecting(true);
         router.push('/login');
       } else if (currentUser.role !== 'Teacher') {
-        setIsRedirecting(true);
         router.push('/');
-      } else if (currentUser.profile_completed) {
-        setIsRedirecting(true); 
+      } else if (currentUser.teacher_profile?.profile_completed === true) {
+        // If profile is already marked complete, redirect away
         router.push('/teacher');
       }
     }
@@ -81,7 +79,7 @@ export default function CompleteTeacherProfilePage() {
             setSchools(data);
         }).catch(err => toast({ title: "Error", description: "Could not load schools.", variant: "destructive" }));
 
-        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => { // Fetch all subjects initially
+        api.get<SubjectInterface[]|{results: SubjectInterface[]}>('/subjects/').then(res => {
             const data = Array.isArray(res) ? res : res.results || [];
             setSubjects(data);
         }).catch(err => toast({ title: "Error", description: "Could not load subjects.", variant: "destructive" }));
@@ -151,35 +149,45 @@ export default function CompleteTeacherProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    Object.keys(data).forEach(key => {
-        const K = key as keyof TeacherProfileFormValues;
-        if (K === 'profile_picture') return;
+    // Append fields that have values or are booleans, or if they are being cleared
+    (Object.keys(data) as Array<keyof TeacherProfileFormValues>).forEach(key => {
+        if (key === 'profile_picture') return; // Handled separately
+        const value = data[key];
+        const originalValue = currentUser.teacher_profile ? currentUser.teacher_profile[key as keyof typeof currentUser.teacher_profile] : undefined;
 
-        const value = data[K];
-        if (K === 'assigned_classes_ids' || K === 'subject_expertise_ids') {
-            (value as string[] | undefined)?.forEach(id => formData.append(K, id));
+        if (key === 'assigned_classes_ids' || key === 'subject_expertise_ids') {
+            // For array fields, always send the current state of the array
+            (value as string[] | undefined)?.forEach(id => formData.append(key, id));
         } else if (value !== undefined && value !== null) {
             if (typeof value === 'boolean') {
                 formData.append(key, String(value));
-            } else if (typeof value === 'string' && value.trim() !== '') {
-                 formData.append(key, value);
+            } else if (typeof value === 'string') { // Handles empty strings too
+                formData.append(key, value);
             } else if (typeof value === 'number') {
-                formData.append(key, String(value));
+                 formData.append(key, String(value));
             }
+        } else if (value === null && originalValue !== undefined && originalValue !== null){
+            // Field explicitly cleared to null, send empty string for backend to handle
+            formData.append(key, '');
         }
     });
-    // formData.append('profile_completed', 'true'); // Backend should handle this based on endpoint
-
+    
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
+    
+    formData.append('profile_completed', 'true'); // Explicitly tell backend this step completes the profile
 
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
-      setCurrentUser(updatedUserResponse);
-      setNeedsProfileCompletion(false);
-      toast({ title: "Profile Completed!", description: "Your teacher profile has been updated." });
-      router.push('/teacher');
+      setCurrentUser(updatedUserResponse); 
+      if (updatedUserResponse.teacher_profile?.profile_completed === true) {
+        setNeedsProfileCompletion(false);
+        toast({ title: "Profile Completed!", description: "Your teacher profile has been updated." });
+        router.push('/teacher');
+      } else {
+        toast({ title: "Profile Updated", description: "Profile saved, but completion status might need review.", variant: "warning" });
+      }
     } catch (error: any) {
       let errorMessage = "Could not update profile.";
         if (error.response && error.response.data) {
@@ -194,7 +202,7 @@ export default function CompleteTeacherProfilePage() {
     }
   };
 
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser) || (currentUser && currentUser.profile_completed && currentUser.role === 'Teacher')) {
+  if (isLoadingAuth || (!currentUser && !isLoadingAuth) || (currentUser && currentUser.role === 'Teacher' && currentUser.teacher_profile?.profile_completed === true) ) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -212,7 +220,7 @@ export default function CompleteTeacherProfilePage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex flex-col items-center space-y-3 mb-6">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username} data-ai-hint="profile teacher"/>
+                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username || 'Teacher'} data-ai-hint="profile teacher"/>
                   <AvatarFallback>{defaultAvatarText}</AvatarFallback>
                 </Avatar>
                 <FormField control={form.control} name="profile_picture" render={({ field }) => (

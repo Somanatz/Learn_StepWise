@@ -1,3 +1,4 @@
+
 // src/app/parent/complete-profile/page.tsx
 'use client';
 
@@ -34,7 +35,6 @@ export default function CompleteParentProfilePage() {
   const { toast } = useToast();
   const { currentUser, isLoadingAuth, setCurrentUser, setNeedsProfileCompletion } = useAuth();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false); // Added for robust redirect
   const [previewProfilePicture, setPreviewProfilePicture] = useState<string | null>(null);
   const [selectedProfilePictureFile, setSelectedProfilePictureFile] = useState<File | null>(null);
 
@@ -50,19 +50,15 @@ export default function CompleteParentProfilePage() {
    useEffect(() => {
     if (!isLoadingAuth) {
       if (!currentUser) {
-        setIsRedirecting(true);
         router.push('/login');
       } else if (currentUser.role !== 'Parent') {
-        setIsRedirecting(true);
         router.push('/');
       } else if (currentUser.parent_profile?.profile_completed === true) {
         // If profile is already marked complete, redirect away
-        setIsRedirecting(true);
-        setNeedsProfileCompletion(false); // Ensure context flag is also false
         router.push('/parent');
       }
     }
-  }, [isLoadingAuth, currentUser, router, setNeedsProfileCompletion]);
+  }, [isLoadingAuth, currentUser, router]);
 
    useEffect(() => {
     if (currentUser?.parent_profile) {
@@ -74,12 +70,13 @@ export default function CompleteParentProfilePage() {
         if (currentUser.parent_profile.profile_picture_url) {
             setPreviewProfilePicture(currentUser.parent_profile.profile_picture_url);
         }
-    } else if (currentUser) { // User exists but no profile object yet
-         form.reset({
+    } else if (currentUser && !currentUser.parent_profile) { 
+         form.reset({ // Reset to empty if no profile object exists yet
             full_name: '',
             mobile_number: '',
             address: '',
         });
+        setPreviewProfilePicture(null);
     }
   }, [currentUser, form, isLoadingAuth]);
 
@@ -96,36 +93,37 @@ export default function CompleteParentProfilePage() {
     setIsSubmittingProfile(true);
     const formData = new FormData();
 
+    let hasUpdates = false;
     // Append fields only if they have changed or are being set for the first time
-    if (data.full_name && data.full_name !== currentUser.parent_profile?.full_name) formData.append('full_name', data.full_name);
-    if (data.mobile_number !== undefined && data.mobile_number !== currentUser.parent_profile?.mobile_number) formData.append('mobile_number', data.mobile_number || '');
-    if (data.address !== undefined && data.address !== currentUser.parent_profile?.address) formData.append('address', data.address || '');
+    if (data.full_name !== (currentUser.parent_profile?.full_name || '')) {
+        formData.append('full_name', data.full_name);
+        hasUpdates = true;
+    }
+    if (data.mobile_number !== (currentUser.parent_profile?.mobile_number || '')) {
+        formData.append('mobile_number', data.mobile_number || '');
+        hasUpdates = true;
+    }
+    if (data.address !== (currentUser.parent_profile?.address || '')) {
+        formData.append('address', data.address || '');
+        hasUpdates = true;
+    }
     
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
+      hasUpdates = true;
     }
     
-    // Check if any data is actually being sent to avoid empty PATCH requests
-    let hasUpdates = false;
-    for (const _ of formData.keys()) {
-        hasUpdates = true;
-        break;
-    }
-    if (!hasUpdates && !selectedProfilePictureFile) { // Check if form values are same as initial and no new pic
-        const isFormDirty = form.formState.isDirty; // Check if react-hook-form considers it dirty
-        if(!isFormDirty) { // If form truly unchanged
-            toast({ title: "No Changes", description: "No changes detected in your profile information."});
-            // If profile was already complete, allow redirect, otherwise user must make a change or be stuck
-            if(currentUser.parent_profile?.profile_completed) {
-                router.push('/parent');
-            }
-            setIsSubmittingProfile(false);
-            return;
+    if (!hasUpdates && !form.formState.isDirty) {
+        toast({ title: "No Changes", description: "No changes detected in your profile information."});
+        // If profile was already considered complete by context, allow redirect, otherwise user must make a change
+        if(currentUser.parent_profile?.profile_completed && !setNeedsProfileCompletion) {
+            router.push('/parent');
         }
-        // If dirty but no formData, it means fields were cleared but were previously null, so append empty strings.
-        // This case is less likely with current logic but good to be aware.
+        setIsSubmittingProfile(false);
+        return;
     }
-
+    
+    formData.append('profile_completed', 'true'); // Explicitly tell backend this step completes the profile
 
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true);
@@ -136,7 +134,8 @@ export default function CompleteParentProfilePage() {
         toast({ title: "Profile Saved!", description: "Your parent profile has been saved." });
         router.push('/parent'); // Redirect to parent dashboard
       } else {
-        toast({ title: "Profile Updated", description: "Your parent profile has been saved, but might still be incomplete." });
+        // This case should ideally not happen if backend correctly sets profile_completed=true
+        toast({ title: "Profile Updated", description: "Profile saved, but completion status might need review.", variant: "warning" });
       }
     } catch (error: any) {
        let errorMessage = "Could not update profile.";
@@ -152,7 +151,7 @@ export default function CompleteParentProfilePage() {
     }
   };
 
-  if (isLoadingAuth || isRedirecting || (!isLoadingAuth && !currentUser)) {
+  if (isLoadingAuth || (!currentUser && !isLoadingAuth) || (currentUser && currentUser.role === 'Parent' && currentUser.parent_profile?.profile_completed === true)) {
      return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -163,14 +162,14 @@ export default function CompleteParentProfilePage() {
       <Card className="w-full max-w-xl shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">Complete Your Parent Profile</CardTitle>
-          <CardDescription className="text-center">Please provide your details. You can link your children from your dashboard later.</CardDescription>
+          <CardDescription className="text-center">Please provide your details. You can link your children from your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmitProfile)} className="space-y-6">
              <div className="flex flex-col items-center space-y-3 mb-6">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username} data-ai-hint="profile parent"/>
+                  <AvatarImage src={previewProfilePicture || `https://placehold.co/150x150.png?text=${defaultAvatarText}`} alt={currentUser?.username || 'Parent'} data-ai-hint="profile parent"/>
                   <AvatarFallback>{defaultAvatarText}</AvatarFallback>
                 </Avatar>
                 <FormField control={form.control} name="profile_picture" render={({ field }) => (
