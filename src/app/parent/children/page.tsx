@@ -1,4 +1,3 @@
-
 // src/app/parent/children/page.tsx
 'use client';
 
@@ -10,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle, Link2, UserCheck, AlertCircle as AlertCircleIcon } from "lucide-react"; // Added UserCheck and AlertCircleIcon
+import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle, Link2, UserCheck, AlertCircle as AlertCircleIcon } from "lucide-react"; 
 import Link from "next/link";
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -87,7 +86,11 @@ export default function MyChildrenPage() {
         studentId: String(link.student),
         name: link.student_details?.full_name || link.student_username || "Unknown Student",
         avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_details?.full_name || link.student_username || "U").charAt(0).toUpperCase()}`,
-        classLevel: typeof link.student_details?.enrolled_class_name === 'string' && link.student_details.enrolled_class_name.trim() !== '' ? link.student_details.enrolled_class_name : (typeof link.student_details?.enrolled_class === 'number' || typeof link.student_details?.enrolled_class === 'string' ? `Class ${link.student_details.enrolled_class}` : 'N/A'),
+        classLevel: typeof link.student_details?.enrolled_class_name === 'string' && link.student_details.enrolled_class_name.trim() !== '' 
+            ? link.student_details.enrolled_class_name 
+            : (typeof link.student_details?.enrolled_class === 'number' || typeof link.student_details?.enrolled_class === 'string' 
+                ? `Class ${link.student_details.enrolled_class}` 
+                : 'N/A'),
         overallProgress: Math.floor(Math.random() * 50) + 50, 
         lastActivity: "Mocked: Logged In", 
         studentProfile: link.student_details,
@@ -129,7 +132,6 @@ export default function MyChildrenPage() {
         description: `${linkedStudentData.student_details?.full_name || 'The student'} is now linked. ${linkedStudentData.message || ''}` 
       });
       fetchLinkedChildren(); 
-      // setIsLinkChildDialogOpen(false); // Keep dialog open to show confirmation, or close if preferred
       form.reset();
     } catch (err: any) {
       let errMsg = "Linking Failed. Ensure the admission number and school ID are correct, and your email matches the student's parent contact email.";
@@ -180,11 +182,11 @@ export default function MyChildrenPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center"><Users className="mr-3 text-primary" /> My Children</h1>
-          <p className="text-muted-foreground">Manage your children's profiles and access their learning information.</p>
+          <p className="text-muted-foreground">Manage your children's profiles, link new children, and access their learning information.</p>
         </div>
         <Dialog open={isLinkChildDialogOpen} onOpenChange={(open) => {
             setIsLinkChildDialogOpen(open);
-            if (!open) { // Reset states when dialog closes
+            if (!open) { 
                 setStudentToConfirm(null);
                 setLinkingError(null);
                 form.reset();
@@ -192,7 +194,7 @@ export default function MyChildrenPage() {
         }}>
             <DialogTrigger asChild>
                 <Button size="lg" onClick={() => { form.reset(); setStudentToConfirm(null); setLinkingError(null); setIsLinkChildDialogOpen(true); }}>
-                    <PlusCircle className="mr-2 h-5 w-5" /> Link Another Child
+                    <PlusCircle className="mr-2 h-5 w-5" /> Link New Child
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -207,7 +209,7 @@ export default function MyChildrenPage() {
                             name="student_admission_number"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Student's Admission Number</FormLabel>
+                                <FormLabel>Child's Admission Number</FormLabel>
                                 <FormControl>
                                     <Input placeholder="e.g., ADM12345" {...field} />
                                 </FormControl>
@@ -220,7 +222,7 @@ export default function MyChildrenPage() {
                             name="student_school_id_code"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Student's School ID Code</FormLabel>
+                                <FormLabel>Child's School ID Code</FormLabel>
                                 <FormControl>
                                     <Input placeholder="e.g., SCH001" {...field} />
                                 </FormControl>
