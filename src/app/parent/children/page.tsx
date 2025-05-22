@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle, Link2 } from "lucide-react";
+import { Users, TrendingUp, FileText, PlusCircle, MessageSquare, Loader2, Trash2, AlertTriangle, Link2, UserCheck, AlertCircle as AlertCircleIcon } from "lucide-react"; // Added UserCheck and AlertCircleIcon
 import Link from "next/link";
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -20,7 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ParentStudentLinkAPI, StudentProfileData, User } from '@/interfaces';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added Alert imports
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 interface DisplayChild {
@@ -41,7 +41,7 @@ const linkChildSchema = z.object({
 
 type LinkChildFormValues = z.infer<typeof linkChildSchema>;
 
-interface StudentForConfirmation { // Re-defined here for consistency with parent/complete-profile
+interface StudentForConfirmation {
     link_id: string | number;
     message: string;
     student_details: StudentProfileData;
@@ -87,7 +87,7 @@ export default function MyChildrenPage() {
         studentId: String(link.student),
         name: link.student_details?.full_name || link.student_username || "Unknown Student",
         avatarUrl: link.student_details?.profile_picture_url || `https://placehold.co/100x100.png?text=${(link.student_details?.full_name || link.student_username || "U").charAt(0).toUpperCase()}`,
-        classLevel: link.student_details?.enrolled_class_name || (link.student_details?.enrolled_class ? `Class ${link.student_details.enrolled_class}` : 'N/A'),
+        classLevel: typeof link.student_details?.enrolled_class_name === 'string' && link.student_details.enrolled_class_name.trim() !== '' ? link.student_details.enrolled_class_name : (typeof link.student_details?.enrolled_class === 'number' || typeof link.student_details?.enrolled_class === 'string' ? `Class ${link.student_details.enrolled_class}` : 'N/A'),
         overallProgress: Math.floor(Math.random() * 50) + 50, 
         lastActivity: "Mocked: Logged In", 
         studentProfile: link.student_details,
@@ -230,7 +230,7 @@ export default function MyChildrenPage() {
                         />
                          {linkingError && (
                             <Alert variant="destructive" className="mt-4">
-                                <AlertCircle className="h-4 w-4" />
+                                <AlertCircleIcon className="h-4 w-4" />
                                 <AlertTitle>Linking Error</AlertTitle>
                                 <AlertDescription>{linkingError}</AlertDescription>
                             </Alert>
@@ -273,7 +273,7 @@ export default function MyChildrenPage() {
                 </Avatar>
                 <div>
                   <CardTitle className="text-2xl">{child.name}</CardTitle>
-                  <CardDescription>{typeof child.classLevel === 'number' && child.classLevel > 0 ? `Class ${child.classLevel}` : child.classLevel || 'N/A'}</CardDescription>
+                  <CardDescription>{child.classLevel || 'N/A'}</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 flex-grow">
