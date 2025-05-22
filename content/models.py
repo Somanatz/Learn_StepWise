@@ -23,7 +23,10 @@ class Subject(models.Model):
         ordering = ['name'] # Added default ordering
 
     def __str__(self):
-        return f"{self.name} ({self.class_obj.name})"
+        school_name_part = ""
+        if self.class_obj and self.class_obj.school:
+            school_name_part = f" - {self.class_obj.school.name}"
+        return f"{self.name} ({self.class_obj.name}{school_name_part})"
 
 class Lesson(models.Model):
     subject = models.ForeignKey(Subject, related_name='lessons', on_delete=models.CASCADE)
@@ -156,3 +159,4 @@ class UserReward(models.Model):
 
     def __str__(self):
         return f"{self.user.username} achieved {self.reward.title}"
+
