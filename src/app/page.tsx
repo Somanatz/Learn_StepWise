@@ -5,7 +5,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe } from 'lucide-react';
+import { Loader2, BookOpen, Lightbulb, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe, HelpCircle } from 'lucide-react'; // Added HelpCircle
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
@@ -64,7 +64,6 @@ const schoolTeacherFeatures: FeatureCardProps[] = [
   { icon: Building, title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", iconColor:"text-amber-400", animationDelay:"animation-delay-500" },
 ];
 
-
 const FixedBackground = () => (
   <div
     id="fixed-background-container"
@@ -89,7 +88,7 @@ const FixedBackground = () => (
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 100); // Small delay for transition
+    const timer = setTimeout(() => setIsMounted(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -139,18 +138,17 @@ export default function UnifiedDashboardPage() {
   const { currentUser, isLoadingAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isRedirecting, setIsRedirecting] = useState(true); // Assume redirecting initially
+  const [isRedirecting, setIsRedirecting] = useState(true);
 
   useEffect(() => {
     if (isLoadingAuth) {
-      setIsRedirecting(true); // Keep showing loader if auth is loading
+      setIsRedirecting(true);
       return;
     }
 
     if (currentUser) {
       let targetPath: string | null = null;
 
-      // Direct redirection to role-based dashboard
       if (currentUser.role === 'Student') targetPath = '/student';
       else if (currentUser.role === 'Teacher') targetPath = '/teacher';
       else if (currentUser.role === 'Parent') targetPath = '/parent';
@@ -158,19 +156,19 @@ export default function UnifiedDashboardPage() {
         if (currentUser.is_school_admin && currentUser.administered_school?.id) {
           targetPath = `/school-admin/${currentUser.administered_school.id}`;
         } else {
-          // Platform Admin stays on '/'
-          targetPath = null; 
+          // Platform Admin stays on '/', no redirect
+          targetPath = null;
         }
       }
 
       if (targetPath && pathname !== targetPath) {
-        setIsRedirecting(true); // Set redirecting true before pushing
+        setIsRedirecting(true);
         router.push(targetPath);
       } else {
-        setIsRedirecting(false); // No redirection needed or already on target path
+        setIsRedirecting(false);
       }
-    } else { // No current user (and auth is not loading)
-      setIsRedirecting(false); // Will show public page
+    } else {
+      setIsRedirecting(false); // No current user, show public page
     }
   }, [isLoadingAuth, currentUser, router, pathname]);
 
@@ -194,8 +192,6 @@ export default function UnifiedDashboardPage() {
     );
   }
 
-  // If not loading and not redirecting, show public welcome content
-  // This applies to unauthenticated users, or authenticated users (like platform admin) who should see the root page.
   return (
     <div className="w-full">
       <FixedBackground />
