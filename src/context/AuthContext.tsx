@@ -24,39 +24,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
+  const processUserData = (userData: User | null): User | null => {
+    if (!userData) return null;
+
+    let profileActuallyCompleted = false;
+    if (userData.role === 'Student' && userData.student_profile) {
+      profileActuallyCompleted = userData.student_profile.profile_completed ?? false;
+    } else if (userData.role === 'Teacher' && userData.teacher_profile) {
+      profileActuallyCompleted = userData.teacher_profile.profile_completed ?? false;
+    } else if (userData.role === 'Parent' && userData.parent_profile) {
+      profileActuallyCompleted = userData.parent_profile.profile_completed ?? false;
+    } else if (userData.role === 'Admin') {
+      profileActuallyCompleted = true; // Admins (platform or school) usually don't have a separate "profile completion" step
+    }
+    
+    const userWithCompletionFlag = { ...userData, profile_completed: profileActuallyCompleted };
+    console.log("AuthContext: processUserData - User with completion flag:", userWithCompletionFlag); // DEBUG
+    setNeedsProfileCompletion(!profileActuallyCompleted);
+    return userWithCompletionFlag;
+  };
+
+
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoadingAuth(true);
-      setNeedsProfileCompletion(false);
       const token = localStorage.getItem('authToken');
       if (token) {
         try {
-          const userData = await fetchCurrentUser();
-          if (userData) {
-            let profileCompleted = true;
-            if (userData.role === 'Student' && userData.student_profile) {
-              profileCompleted = userData.student_profile.profile_completed ?? false;
-            } else if (userData.role === 'Teacher' && userData.teacher_profile) {
-              profileCompleted = userData.teacher_profile.profile_completed ?? false;
-            } else if (userData.role === 'Parent' && userData.parent_profile) {
-              profileCompleted = userData.parent_profile.profile_completed ?? false;
-            }
-            // For Admin users, profile_completed can be considered true if not explicitly tracked
-            else if (userData.role === 'Admin') {
-              profileCompleted = true; 
-            }
-            
-            setCurrentUser({ ...userData, profile_completed: profileCompleted });
-            setNeedsProfileCompletion(!profileCompleted);
-          } else {
-            apiLogout();
-            setCurrentUser(null);
-          }
+          const rawUserData = await fetchCurrentUser();
+          console.log("AuthContext: initializeAuth - Raw user data from API:", rawUserData); // DEBUG
+          const processedUser = processUserData(rawUserData);
+          setCurrentUser(processedUser);
         } catch (error) {
           console.error("Initialization auth error:", error);
           apiLogout();
           setCurrentUser(null);
+          setNeedsProfileCompletion(false);
         }
+      } else {
+        setNeedsProfileCompletion(false); // No token, so no profile completion needed
       }
       setIsLoadingAuth(false);
     };
@@ -66,34 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (token: string) => {
     setIsLoadingAuth(true);
-    setNeedsProfileCompletion(false);
     localStorage.setItem('authToken', token);
     try {
-      const userData = await fetchCurrentUser();
-      if (userData) {
-        let profileCompleted = true;
-        if (userData.role === 'Student' && userData.student_profile) {
-          profileCompleted = userData.student_profile.profile_completed ?? false;
-        } else if (userData.role === 'Teacher' && userData.teacher_profile) {
-          profileCompleted = userData.teacher_profile.profile_completed ?? false;
-        } else if (userData.role === 'Parent' && userData.parent_profile) {
-          profileCompleted = userData.parent_profile.profile_completed ?? false;
-        } 
-        // For Admin users, profile_completed can be considered true
-        else if (userData.role === 'Admin') {
-            profileCompleted = true;
-        }
-
-        setCurrentUser({ ...userData, profile_completed: profileCompleted });
-        setNeedsProfileCompletion(!profileCompleted);
-      } else {
-        throw new Error("Failed to fetch user data after login.");
+      const rawUserData = await fetchCurrentUser();
+      console.log("AuthContext: login - Raw user data from API:", rawUserData); // DEBUG
+      const processedUser = processUserData(rawUserData);
+      setCurrentUser(processedUser);
+       if (!processedUser) {
+        throw new Error("Failed to process user data after login.");
       }
     } catch (error) {
         console.error("Login error:", error);
         apiLogout(); 
         setCurrentUser(null);
-        // Re-throw or handle error appropriately for login page
+        setNeedsProfileCompletion(false);
         throw error; 
     } finally {
         setIsLoadingAuth(false);
@@ -101,10 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    apiLogout(); // Clears localStorage token
+    apiLogout(); 
     setCurrentUser(null);
     setNeedsProfileCompletion(false);
-    // Force a hard redirect to login to ensure clean state
     window.location.href = '/login'; 
   };
 
