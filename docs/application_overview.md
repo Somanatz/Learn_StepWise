@@ -1,6 +1,8 @@
 
 # GenAI-Campus: Application Overview & Feature Documentation
 
+**Scope of this Document:** This document provides a high-level architectural overview and detailed textual descriptions of key user flows and features within the GenAI-Campus application. It aims to help team members understand the interaction between frontend (Next.js/React) and backend (Django) components. While it describes the sequence of operations, it does not include auto-generated visual diagrams (like UML, flowcharts, or detailed function call graphs for every single function), which are typically produced using specialized tools as part of an extensive, ongoing documentation effort.
+
 ## I. General Application Architecture
 
 *   **Frontend**: Built with **Next.js** (a React framework).
@@ -8,11 +10,11 @@
     *   **ShadCN UI** for pre-built, customizable UI components.
     *   **Tailwind CSS** for styling.
     *   Client-side routing and page structure are managed by Next.js's App Router (files within the `src/app` directory).
-    *   State management for authentication and theme is handled via React Context (`src/context/`).
+    *   State management for authentication and theme is handled via React Context (`src/context/AuthContext.tsx`, `src/context/ThemeContext.tsx`).
     *   API interactions with the backend are done using `fetch` via a helper module (`src/lib/api.ts`).
 *   **Backend**: Built with **Django** (a Python web framework).
-    *   Uses **Django REST Framework (DRF)** to create API endpoints.
-    *   Handles user authentication (token-based), data storage (using models and a database like SQLite), and business logic.
+    *   Uses **Django REST Framework (DRF)** to create API endpoints (primarily in `views.py` files of each app).
+    *   Handles user authentication (token-based), data storage (using models defined in `models.py` and a database like SQLite), and business logic.
     *   Organized into Django apps: `accounts`, `content`, `notifications`.
 *   **AI Integration**: Uses **Genkit** for AI-powered features.
     *   Flows defined in `src/ai/flows/`.
@@ -20,296 +22,272 @@
 
 ---
 
-## II. Key User Flows & Features
+## II. Key User Flows & Features - Detailed Breakdown
 
 #### A. Landing Page & Unauthenticated User Experience
 
 1.  **Entry Point / Welcome Page:**
-    *   **File:** `src/app/page.tsx` (renders `UnifiedDashboardPage` component)
-    *   **Functionality:** Displays a dynamic hero section with a video background and the application logo. Showcases features for Students, Parents, and Schools/Teachers through `FeatureCard` components. Includes a "Contact Sales" form.
-    *   **Connected Files:**
-        *   `src/components/shared/Logo.tsx` (for app logo)
-        *   `src/components/shared/ContactSalesForm.tsx` (for sales inquiries)
-        *   `tailwind.config.ts` (for animations)
-        *   `public/videos/educational-bg.mp4` (background video)
-        *   `public/images/Genai.png` (logo image)
+    *   **Primary Frontend File:** `src/app/page.tsx` (renders the `UnifiedDashboardPage` component).
+    *   **Functionality:**
+        *   If user is unauthenticated: Displays a dynamic hero section with a video background (`FixedBackground` component using `public/videos/educational-bg.mp4`) and the application logo (`src/components/shared/Logo.tsx`).
+        *   Showcases features for Students, Parents, and Schools/Teachers using `FeatureCard` components (defined within `page.tsx`). These cards have entrance animations.
+        *   Includes a "Contact Sales" form (`src/components/shared/ContactSalesForm.tsx`) at the bottom.
+        *   If user is authenticated, this page handles redirection to the appropriate role-based dashboard.
+    *   **Styling & Animation:** `tailwind.config.ts` (for animations like `fade-in-up`, `text-pulse`), `src/app/globals.css` (for overall theme).
 
 2.  **Header (Unauthenticated):**
-    *   **File:** `src/components/layout/Header.tsx`
-    *   **Functionality:** Displays the application logo. Provides navigation links to "Login", "Sign Up", and "Register School".
-    *   **Connected Files:**
-        *   `src/components/shared/Logo.tsx`
-        *   `src/context/AuthContext.tsx` (to check authentication state)
-        *   Next.js `Link` for navigation.
+    *   **Primary Frontend File:** `src/components/layout/Header.tsx`.
+    *   **Functionality:**
+        *   Displays the application logo (`Logo.tsx`).
+        *   Conditionally shows navigation links: "Login", "Sign Up", "Register School" based on the current `pathname` to avoid redundant links. (e.g., "Login" button is hidden on the `/login` page).
+        *   Theme toggle button (Sun/Moon icons).
+        *   Mobile menu (`Sheet` component) with similar conditional links.
+    *   **State Management:** Uses `useAuth()` from `src/context/AuthContext.tsx` to check authentication state and `useTheme()` from `src/context/ThemeContext.tsx`.
 
 3.  **Footer:**
-    *   **File:** `src/app/layout.tsx` (within `RootLayout`)
-    *   **Functionality:** Displays copyright information and decorative educational icons.
-    *   **Connected Files:** `lucide-react` (for icons)
+    *   **Primary Frontend File:** `src/app/layout.tsx` (within `RootLayout`).
+    *   **Functionality:** Displays copyright information and decorative educational icons (`lucide-react`). The "Contact Sales" form was moved from here to `page.tsx`.
 
 #### B. Authentication System
 
-1.  **User Signup:**
-    *   **Frontend Page:** `src/app/signup/page.tsx`
-    *   **Functionality:** Provides a dynamic form. Based on the selected role (Student, Teacher, Parent), it collects necessary base user information (username, email, password) and detailed profile information (full name, school, class, profile picture, etc.) in a single step.
+1.  **User Signup (Single Step, Role-Based Comprehensive):**
+    *   **Primary Frontend File:** `src/app/signup/page.tsx`.
     *   **Workflow:**
-        1.  User selects role.
-        2.  Relevant form fields appear. Dropdowns for School, Class, Subject are populated via API calls to backend.
-        3.  User fills form, uploads optional profile picture.
-        4.  On submit, `FormData` is created and sent to the backend.
-        5.  Redirects to `/login` on success.
-    *   **Connected Frontend Files:** `src/lib/api.ts` (for `api.post('/signup/')`).
-    *   **Backend:**
-        *   **File:** `accounts/serializers.py` (contains `UserSignupSerializer`)
-        *   **File:** `accounts/views.py` (contains `UserSignupView` which uses `UserSignupSerializer`)
-        *   **Functionality:** `UserSignupSerializer.create()` handles creating the `CustomUser` and the associated role-specific profile (`StudentProfile`, `TeacherProfile`, `ParentProfile`) including image uploads and linking related models.
+        1.  User selects role (Student, Teacher, Parent) from a dropdown.
+        2.  Based on selected role, relevant form fields for both base user info (username, email, password) and detailed profile info (full name, school, class, profile picture, role-specific details) appear dynamically.
+        3.  Dropdowns for School, Class (filtered by selected school), and Subject (for teachers) are populated by API calls (e.g., to `/api/schools/`, `/api/classes/?school={id}`, `/api/subjects/`).
+        4.  User fills the comprehensive form and can upload an optional profile picture.
+        5.  On submit, `FormData` (to handle file upload) is created.
+        6.  The `onSubmit` function calls `api.post('/signup/', formData, true)` from `src/lib/api.ts`.
+        7.  Redirects to `/login` page on success.
+    *   **Backend Processing:**
+        *   **Django View:** `accounts/views.py` - `UserSignupView` (a `CreateAPIView`).
+        *   **Django Serializer:** `accounts/serializers.py` - `UserSignupSerializer`.
+            *   This serializer is designed to accept all base user fields and all potential profile fields for all roles.
+            *   The `create()` method first creates the `CustomUser`.
+            *   Then, based on the `role` in `validated_data`, it extracts profile-specific data, creates the corresponding profile model (`StudentProfile`, `TeacherProfile`, or `ParentProfile`), links it to the user, and saves it. Handles `profile_picture` upload and linking ForeignKeys/M2M fields.
 
 2.  **User Login:**
-    *   **Frontend Page:** `src/app/login/page.tsx`
-    *   **Functionality:** Form for username and password. On successful login, an auth token is stored, user data is fetched, and the user is redirected to the main page (`/`), which then routes to their specific dashboard.
+    *   **Primary Frontend File:** `src/app/login/page.tsx`.
     *   **Workflow:**
-        1.  User enters credentials.
-        2.  `onSubmit` calls `loginUser` (which uses `AuthContext`).
-        3.  `loginUser` calls `api.post` to `/api/token-auth/` (backend).
-        4.  If successful, token is stored in `localStorage`. `fetchCurrentUser` is called to get user details.
-        5.  `AuthContext` is updated with `currentUser`.
-        6.  Redirects to `/`.
-    *   **Connected Frontend Files:** `src/lib/api.ts` (for `api.post`), `src/context/AuthContext.tsx`.
-    *   **Backend:**
-        *   **URL:** `/api/token-auth/` (uses Django REST Framework's `obtain_auth_token` view)
-        *   **File:** `stepwise_backend/urls.py`
+        1.  User enters username and password into the form.
+        2.  `onSubmit` function is triggered.
+        3.  Calls `loginUser(credentials)` which internally calls `AuthContext.login(token)`.
+        4.  `AuthContext.login()` makes a POST request via `api.post('/token-auth/', credentials)` from `src/lib/api.ts` to the Django backend.
+        5.  **Backend Processing (Django):**
+            *   The URL `/api/token-auth/` maps to `rest_framework.authtoken.views.obtain_auth_token` (defined in `stepwise_backend/urls.py`).
+            *   This view validates credentials. If valid, it returns an authentication token.
+        6.  **Frontend (Post-Success):**
+            *   The token is stored in `localStorage`.
+            *   `AuthContext.fetchCurrentUser()` is called, which makes a GET request to `/api/users/me/` to get full user details (including role and profiles).
+            *   The `currentUser` state in `AuthContext` is updated.
+            *   `login/page.tsx` then calls `router.push('/')` to redirect to the homepage.
+            *   `src/app/page.tsx` (`UnifiedDashboardPage`) then handles redirection to the appropriate role-based dashboard.
 
-3.  **Authentication Context (Frontend State Management):**
-    *   **File:** `src/context/AuthContext.tsx`
-    *   **Functionality:**
-        *   Manages `currentUser` state (user object or null).
-        *   Manages `isLoadingAuth` state.
-        *   Provides `login` and `logout` functions.
-        *   `processUserData` helper to determine `profile_completed` status.
-        *   On initial app load, attempts to fetch current user if a token exists in `localStorage`.
+3.  **Authentication Context & State Management:**
+    *   **Primary Frontend File:** `src/context/AuthContext.tsx`.
+    *   **Key Functions:**
+        *   `AuthProvider`: Wraps the application, provides context.
+        *   `useAuth`: Hook to access context values (`currentUser`, `isLoadingAuth`, `login`, `logout`).
+        *   `useEffect` (on mount): Attempts to load token from `localStorage` and call `fetchCurrentUser`.
+        *   `login(token)`: Stores token, calls `fetchCurrentUser`, updates `currentUser`.
+        *   `logout()`: Removes token, sets `currentUser` to null, forces redirect to `/login`.
+        *   `processUserData()`: Helper to derive `profile_completed` flag from nested profile data.
 
 4.  **Logout:**
-    *   **Trigger:** Usually from a "Logout" button in the `Header.tsx` or sidebar footers.
-    *   **Functionality:** Calls the `logout` function from `AuthContext`.
-    *   **Workflow:**
-        1.  `AuthContext.logout()` clears the auth token from `localStorage`.
-        2.  Sets `currentUser` in context to `null`.
-        3.  Forces a redirect to `/login` via `window.location.href`.
+    *   **Trigger:** "Logout" button in `Header.tsx` or sidebar footers.
+    *   **Action:** Calls `logout()` from `AuthContext`.
+    *   **Workflow:** `AuthContext.logout()` clears token, user state, and forces a redirect to `/login` via `window.location.href`.
 
 #### C. School Registration
 
-1.  **Registration Form:**
-    *   **Frontend Page:** `src/app/register-school/page.tsx`
-    *   **Functionality:** Collects school details (name, ID code, license, email, phone, address, principal info) and initial admin account details (username, email, password).
+1.  **Registration Form & Process:**
+    *   **Primary Frontend File:** `src/app/register-school/page.tsx`.
     *   **Workflow:**
-        1.  User fills the form.
-        2.  On submit, data is sent to the backend.
+        1.  User fills form with school details (name, ID code, license, email, phone, address, principal info) and initial admin account details (username, email, password).
+        2.  On submit, form data is sent via `api.post('/schools/', payload)` from `src/lib/api.ts`.
         3.  Redirects to `/login` on success.
-    *   **Connected Frontend Files:** `src/lib/api.ts` (for `api.post('/schools/')`).
-    *   **Backend:**
-        *   **File:** `accounts/serializers.py` (contains `SchoolSerializer`)
-        *   **File:** `accounts/views.py` (contains `SchoolViewSet`, specifically the `create` action with `AllowAny` permission)
-        *   **Functionality:** `SchoolSerializer.create()` creates the initial `CustomUser` (as school admin, `is_staff=False`, `is_school_admin=True`) and the `School` record, linking them.
+    *   **Backend Processing:**
+        *   **Django View:** `accounts/views.py` - `SchoolViewSet` (`create` action, permission `AllowAny`).
+        *   **Django Serializer:** `accounts/serializers.py` - `SchoolSerializer`.
+            *   The `create()` method creates the initial `CustomUser` for the school admin (with `role='Admin'`, `is_school_admin=True`, `is_staff=False`).
+            *   It then creates the `School` record, linking the new admin user via `admin_user` field and also setting the `school` field on the admin `CustomUser` instance.
 
-#### D. User Profile Management (All Roles)
+#### D. User Profile Management (Editing Existing Profiles)
 
-1.  **Central Profile Page (Editing):**
-    *   **Frontend Page:** `src/app/profile/page.tsx`
-    *   **Functionality:** Allows authenticated users to view and edit their base information (username, email, password) and their role-specific detailed profile information (full name, school, class, profile picture, etc.).
+1.  **Central Profile Editing Page:**
+    *   **Primary Frontend File:** `src/app/profile/page.tsx`.
+    *   **Functionality:** Allows authenticated users to view and edit their base `CustomUser` info (username, email, password) and their role-specific detailed profile information (`StudentProfile`, `TeacherProfile`, or `ParentProfile`).
     *   **Workflow:**
-        1.  Loads current user data from `AuthContext`.
-        2.  Populates form with existing data. Dropdowns for School, Class, Subject are fetched from API.
+        1.  Loads current user data from `AuthContext.currentUser`.
+        2.  Populates form fields. Dropdowns for School, Class (filtered by School), Subjects are fetched via API calls if applicable to the user's role.
         3.  User makes changes, optionally uploads a new profile picture.
-        4.  On submit, `FormData` is created and sent via `api.patch` to `/api/users/{userId}/profile/`.
-        5.  `AuthContext` is updated with the response.
-    *   **Connected Frontend Files:** `src/lib/api.ts`, `src/context/AuthContext.tsx`.
-    *   **Backend:**
-        *   **File:** `accounts/views.py` (contains `CustomUserViewSet.update_profile` action)
-        *   **File:** `accounts/serializers.py` (uses `CustomUserSerializer` which nests `StudentProfileCompletionSerializer`, `TeacherProfileCompletionSerializer`, `ParentProfileCompletionSerializer` based on role)
-        *   **Functionality:** `update_profile` handles partial updates for `CustomUser` and the associated role-specific profile, including image uploads. Marks profile as complete if applicable.
+        4.  On submit, `FormData` is created.
+        5.  `api.patch(`/users/${currentUser.id}/profile/`, formData, true)` is called.
+        6.  **Backend Processing:**
+            *   **Django View:** `accounts/views.py` - `CustomUserViewSet.update_profile` action. This action expects `PATCH` requests.
+            *   **Django Serializer:** Uses `CustomUserSerializer` which can handle partial updates. Internally, based on the data provided, it may also use `StudentProfileCompletionSerializer`, `TeacherProfileCompletionSerializer`, or `ParentProfileCompletionSerializer` (or the main profile serializers) to update nested profile data.
+            *   The `update_profile` action handles updating `CustomUser` fields, and finding/updating the related profile model (Student, Teacher, or Parent), including profile picture uploads and linking M2M/FK fields. It ensures `profile_completed` is set to `true` on the specific profile upon successful update of required fields. `user.refresh_from_db()` is called before returning the response.
+        7.  **Frontend (Post-Success):** The `AuthContext.setCurrentUser()` is called with the updated user object returned from the API, refreshing the application's user state.
 
 #### E. Student Specific Flow
 
 1.  **Student Dashboard:**
-    *   **Entry Point:** `/student` (redirects from `/` if student is logged in and profile is complete).
-    *   **File:** `src/app/student/page.tsx` (renders `StudentDashboard` if profile is complete).
-    *   **Main Component:** `src/components/dashboard/StudentDashboard.tsx`
-    *   **Functionality:**
-        *   Displays a welcome message.
-        *   Shows sections for "Enrolled Class & Subjects" (fetched from `/api/classes/` filtered by student's school/class). Subjects are displayed as `SubjectCard`s.
-        *   "Resource Library" section (fetches books from `/api/books/`).
-        *   "Upcoming Events" section (fetches events from `/api/events/`).
-        *   Quick action links to Rewards, AI Suggestions, Reports, Forum.
-    *   **Connected Files:** `src/components/dashboard/ClassSection.tsx`, `src/components/dashboard/SubjectCard.tsx`, `src/lib/api.ts`.
+    *   **Entry Point:** `/student`. (Redirection from `/` is handled by `src/app/page.tsx`).
+    *   **Primary Frontend File:** `src/app/student/page.tsx`. This page verifies auth and role, then renders `<StudentDashboard />`.
+    *   **Main Component:** `src/components/dashboard/StudentDashboard.tsx`.
+    *   **Data Fetching:**
+        *   Fetches enrolled class and subject data via `/api/classes/?school={studentSchoolId}` (or a more specific endpoint if student is enrolled in a single class). The `ClassSerializer` on the backend nests `SubjectSerializer` which nests `LessonSerializer`.
+        *   Fetches books from `/api/books/` (potentially filtered by student's school/class).
+        *   Fetches upcoming events from `/api/events/` (filtered for relevance).
+    *   **Display:** Uses `ClassSection.tsx` and `SubjectCard.tsx` to display content. Links to Rewards, AI Suggestions, Reports, Forum.
 
-2.  **Learning Content Viewing:**
-    *   **Subjects Overview:** `src/app/student/subjects/page.tsx` (Lists all subjects student is enrolled in).
-    *   **Subject Detail (Lessons List):** `src/app/student/learn/class/[classId]/subject/[subjectId]/page.tsx`
-        *   Fetches subject details and its lessons from `/api/subjects/{subjectId}/`.
-        *   Displays lessons, respecting `is_locked` status.
-    *   **Lesson Detail & Quiz:** `src/app/student/learn/class/[classId]/subject/[subjectId]/lesson/[lessonId]/page.tsx`
-        *   Fetches lesson details from `/api/lessons/{lessonId}/` (includes lesson content, media URLs, and nested quiz data).
+2.  **Viewing Learning Content (Lessons & Quizzes):**
+    *   **Subject Detail Page:** `src/app/student/learn/class/[classId]/subject/[subjectId]/page.tsx`.
+        *   Fetches subject details (including its lessons) via `/api/subjects/{subjectId}/`.
+        *   Displays lessons, visually indicating `is_locked` status (derived from `LessonSerializer.get_is_locked` on backend).
+    *   **Lesson Detail Page:** `src/app/student/learn/class/[classId]/subject/[subjectId]/lesson/[lessonId]/page.tsx`.
+        *   Fetches lesson details via `/api/lessons/{lessonId}/`. The `LessonSerializer` nests `QuizSerializer` which nests `QuestionSerializer` etc.
         *   Displays lesson content (text, video, audio, image).
-        *   Allows taking the quiz:
+        *   **Quiz Interaction:**
+            *   If `lesson.quiz` exists, renders the quiz form.
             *   User selects answers.
-            *   On submit, posts to `/api/quizzes/{quizId}/submit_quiz/`.
-            *   Backend `QuizViewSet.submit_quiz` calculates score, creates `UserQuizAttempt`.
-            *   Displays result.
-        *   AI Note Taker section (placeholder).
-    *   **Backend for Content:** `content/views.py` (`ClassViewSet`, `SubjectViewSet`, `LessonViewSet`, `QuizViewSet`, `UserQuizAttemptViewSet`).
+            *   On submit, calls `api.post(`/quizzes/{quizId}/submit_quiz/`, { answers: [...] })`.
+            *   **Backend Quiz Submission:** `content/views.py` - `QuizViewSet.submit_quiz` action. Calculates score, checks against `quiz.pass_mark_percentage`, creates `UserQuizAttempt` record (sets `passed=True/False`), and returns result.
+            *   Frontend displays quiz result. If failed and `lesson.simplified_content` exists, `showSimplified` state might be triggered.
+            *   If quiz passed, `UserLessonProgress` might be updated (e.g., by calling `/api/userprogress/` to mark lesson complete).
+        *   **AI Note Taker:** Placeholder UI. Would call an AI endpoint (e.g., `/api/ai/notes/`).
 
-3.  **Rewards:**
-    *   **Frontend Page:** `src/app/student/rewards/page.tsx`
-    *   **Functionality:** Fetches all available rewards (`/api/rewards/`) and user's achieved rewards (`/api/user-rewards/?user={userId}`). Displays unlocked and locked badges.
-    *   **Backend:** `content/views.py` (`RewardViewSet`, `UserRewardViewSet`).
+3.  **Student Rewards:**
+    *   **Frontend Page:** `src/app/student/rewards/page.tsx`.
+    *   **Data Fetching:**
+        *   `/api/rewards/` (fetches all available `Reward` objects - `RewardViewSet`).
+        *   `/api/user-rewards/?user={currentUser.id}` (fetches `UserReward` objects specific to the student - `UserRewardViewSet`).
+    *   **Display:** Merges data to show unlocked and locked badges.
 
 4.  **AI Learning Suggestions:**
-    *   **Frontend Page:** `src/app/student/recommendations/page.tsx` (renders `LearningSuggestions` component).
-    *   **Component:** `src/components/recommendations/LearningSuggestions.tsx`
-    *   **Functionality:**
-        *   Gathers student performance data (currently mocked/placeholder), available lessons, videos, quizzes.
-        *   Calls the Genkit flow `personalizedLearningSuggestions`.
-        *   Displays suggestions.
-    *   **AI Flow:** `src/ai/flows/personalized-learning-suggestions.ts`.
-
-5.  **Student Calendar:**
-    *   **Frontend Page:** `src/app/student/calendar/page.tsx`
-    *   **Functionality:** Displays ShadCN calendar. Fetches and shows events relevant to the student (school-wide, class-specific).
-    *   **Backend:** `notifications/views.py` (`EventViewSet`).
+    *   **Frontend Page:** `src/app/student/recommendations/page.tsx` (renders `LearningSuggestions` component from `src/components/recommendations/LearningSuggestions.tsx`).
+    *   **Workflow:**
+        *   Component attempts to fetch prerequisite data (student performance summary, available lessons/videos/quizzes - currently placeholders or needs specific API endpoints).
+        *   Calls Genkit flow `personalizedLearningSuggestions` (defined in `src/ai/flows/personalized-learning-suggestions.ts`) with this input.
+        *   Displays formatted suggestions.
 
 #### F. Teacher Specific Flow
 
 1.  **Teacher Dashboard:**
-    *   **Entry Point:** `/teacher`
-    *   **File:** `src/app/teacher/page.tsx` (renders `TeacherDashboard`).
-    *   **Main Component:** `src/components/dashboard/TeacherDashboard.tsx`
-    *   **Functionality:** Welcome message, stat cards (student count from `/api/users/?role=Student&school={teacherSchoolId}`). Placeholders for active courses, pending reviews, overall performance. Recent activity (placeholder API). Upcoming events. Quick links.
-    *   **Connected Files:** `src/lib/api.ts`.
+    *   **Entry Point:** `/teacher`.
+    *   **Primary Frontend File:** `src/app/teacher/page.tsx` (renders `<TeacherDashboard />`).
+    *   **Main Component:** `src/components/dashboard/TeacherDashboard.tsx`.
+    *   **Data Fetching:**
+        *   Student count: `/api/users/?role=Student&school={teacherSchoolId}`.
+        *   Upcoming events: `/api/events/?school={teacherSchoolId}`.
+        *   Other stats (Active Courses, Pending Reviews) are currently placeholders ("N/A - Needs API").
+        *   Recent activity: Placeholder ("API integration needed").
 
-2.  **Content Management:**
-    *   **Overview Page:** `src/app/teacher/content/page.tsx`
-        *   Fetches recent lessons, quizzes, books.
-        *   Links to pages for creating lessons and quizzes.
-    *   **Lesson Creation:** `src/app/teacher/content/lessons/create/page.tsx`
-        *   Form to create lessons (title, content, media URLs, order, locking).
-        *   Cascading dropdowns: School -> Class -> Subject.
-        *   POSTS to `/api/lessons/`.
-    *   **Quiz Creation:** `src/app/teacher/content/quizzes/create/page.tsx`
-        *   Form to create quizzes (title, description, pass mark, questions with choices).
-        *   Cascading dropdowns to link quiz to a lesson.
-        *   POSTS to `/api/quizzes/`.
-    *   **Manage Books:** `src/app/teacher/content/books/page.tsx`
-        *   Lists books from `/api/books/`. Placeholder for upload/edit.
-    *   **Backend for Content CRUD:** `content/views.py` (`LessonViewSet`, `QuizViewSet`, `QuestionViewSet`, `ChoiceViewSet`, `BookViewSet`) with permissions for teachers to create content for their school.
+2.  **Content Management (Lessons, Quizzes, Books):**
+    *   **Overview Page:** `src/app/teacher/content/page.tsx`.
+        *   Fetches recent lessons from `/api/lessons/`, quizzes from `/api/quizzes/`, books from `/api/books/` (all should be filtered by teacher's school on backend or frontend).
+        *   Links to creation pages.
+    *   **Lesson Creation:** `src/app/teacher/content/lessons/create/page.tsx`.
+        *   Form with fields for title, content, media URLs, order, `requires_previous_quiz`.
+        *   Cascading dropdowns: School (auto-filled from teacher's profile) -> Class -> Subject.
+        *   On submit, calls `api.post('/lessons/', payload)`.
+        *   **Backend:** `content/views.py` - `LessonViewSet.perform_create` handles associating with correct school/subject.
+    *   **Quiz Creation:** `src/app/teacher/content/quizzes/create/page.tsx`.
+        *   Form with fields for title, description, pass mark, and dynamic fields for questions and choices.
+        *   Cascading dropdowns to select School -> Class -> Subject -> Lesson to associate quiz with.
+        *   On submit, calls `api.post('/quizzes/', payload)`.
+        *   **Backend:** `content/views.py` - `QuizViewSet.perform_create` handles associating with correct lesson and saving questions/choices.
+    *   **Manage Books:** `src/app/teacher/content/books/page.tsx`.
+        *   Lists books from `/api/books/` (filtered by teacher's school).
+        *   Placeholder for upload/edit functionality.
+        *   **Backend:** `content/views.py` - `BookViewSet`.
 
-3.  **Report Card Generation:**
-    *   **Frontend Page:** `src/app/teacher/report-card/page.tsx` (renders `ReportCardGenerator`).
-    *   **Component:** `src/components/report-card/ReportCardGenerator.tsx`
-    *   **Functionality:** Form to input student name, class level, test scores. Calls Genkit flow `generateFinalReportCard`. Displays generated report.
-    *   **AI Flow:** `src/ai/flows/final-report-card.ts`.
-
-4.  **Other Teacher Pages (Placeholders):**
-    *   `src/app/teacher/students/page.tsx` (for student roster management)
-    *   `src/app/teacher/reports/page.tsx` (for viewing "legacy" generated reports)
-    *   `src/app/teacher/analytics/page.tsx`
-    *   `src/app/teacher/calendar/page.tsx`
-    *   `src/app/teacher/communication/page.tsx` (for sending announcements, current uses Event API)
+3.  **Report Card Generation (AI):**
+    *   **Frontend Page:** `src/app/teacher/report-card/page.tsx` (renders `ReportCardGenerator` from `src/components/report-card/ReportCardGenerator.tsx`).
+    *   **Workflow:**
+        *   Teacher fills form with student name, class level, test scores.
+        *   Frontend calls Genkit flow `generateFinalReportCard` (defined in `src/ai/flows/final-report-card.ts`).
+        *   Displays generated report card text. (Note: Saving this report to backend is not yet implemented).
 
 #### G. Parent Specific Flow
 
 1.  **Parent Dashboard:**
-    *   **Entry Point:** `/parent`
-    *   **File:** `src/app/parent/page.tsx` (renders `ParentDashboard`).
-    *   **Main Component:** `src/components/dashboard/ParentDashboard.tsx`
-    *   **Functionality:** Welcome. Lists linked children (fetched from `/api/parent-student-links/?parent={parentId}`). Upcoming events. Links to communication and settings.
+    *   **Entry Point:** `/parent`.
+    *   **Primary Frontend File:** `src/app/parent/page.tsx` (renders `<ParentDashboard />`).
+    *   **Main Component:** `src/components/dashboard/ParentDashboard.tsx`.
+    *   **Data Fetching:**
+        *   Linked children: `/api/parent-student-links/?parent={currentUser.id}` (Backend: `ParentStudentLinkViewSet`).
+        *   Upcoming events: `/api/events/` (filtered for relevance, e.g., school-wide for children's schools).
 
-2.  **Child Management:**
-    *   **Frontend Page:** `src/app/parent/children/page.tsx`
+2.  **Child Linking & Management:**
+    *   **Primary Frontend File:** `src/app/parent/children/page.tsx`.
     *   **Functionality:**
-        *   Lists linked children.
+        *   Lists already linked children.
         *   "Link New Child" dialog: Parent enters child's admission number and school ID code.
-        *   Calls `api.post('/parent-student-links/link-child-by-admission/')`.
-        *   Backend `ParentStudentLinkViewSet.link_child_by_admission` action verifies student details (admission number, school ID code, and parent's email against `student_profile.parent_email_for_linking`). If successful, creates the link and returns student details for confirmation.
-    *   **Backend:** `accounts/views.py` (`ParentStudentLinkViewSet`).
-
-3.  **Viewing Child Progress & Reports (Placeholders):**
-    *   `src/app/parent/child/[childId]/progress/page.tsx`
-    *   `src/app/parent/reports/[childId]/page.tsx`
-    *   These pages currently fetch placeholder data and indicate that full API integration is needed to show actual progress/reports for the specific child.
-
-4.  **Other Parent Pages (Placeholders):**
-    *   `src/app/parent/progress/page.tsx` (overview of all children's progress)
-    *   `src/app/parent/communication/page.tsx`
-    *   `src/app/parent/calendar/page.tsx`
+        *   On submit, calls `api.post('/parent-student-links/link-child-by-admission/', payload)`.
+        *   **Backend Processing:** `accounts/views.py` - `ParentStudentLinkViewSet.link_child_by_admission` action.
+            *   Verifies student exists with `admission_number` and `school.school_id_code`.
+            *   Crucially, checks if `student_profile.parent_email_for_linking` matches the requesting parent's email (`request.user.email`).
+            *   If all checks pass, creates the `ParentStudentLink`.
+            *   Returns student details for confirmation on the frontend.
+        *   Frontend updates list of children upon successful linking.
 
 #### H. School Admin Specific Flow
 
 1.  **School Admin Dashboard:**
-    *   **Entry Point:** `/school-admin/[schoolId]`
-    *   **File:** `src/app/school-admin/[schoolId]/page.tsx`
-    *   **Functionality:**
-        *   Displays school name. Stat cards for student/staff count (fetched from `/api/users/` filtered by school and role).
-        *   Upcoming events for the school (fetched from `/api/events/` filtered by school).
-        *   Lists a few teachers from the school.
-        *   Placeholders for School Performance, AI Management Tool.
-        *   Links to other admin sections.
+    *   **Entry Point:** `/school-admin/[schoolId]`.
+    *   **Primary Frontend File:** `src/app/school-admin/[schoolId]/page.tsx`.
+    *   **Data Fetching:**
+        *   School details: `/api/schools/{schoolId}/`.
+        *   Student/Staff count: `/api/users/?school={schoolId}&role=Student` and `/api/users/?school={schoolId}&role=Teacher`.
+        *   Featured Teachers: `/api/users/?school={schoolId}&role=Teacher&page_size=5`.
+        *   Upcoming Events: `/api/events/?school={schoolId}`.
+    *   **Display:** Stat cards, event list, teacher list, placeholders for performance charts and AI tool.
 
 2.  **School Calendar Management:**
-    *   **Frontend Page:** `src/app/school-admin/[schoolId]/calendar/page.tsx`
-    *   **Functionality:** Displays calendar. Allows creating new school-specific events (or class-specific within that school) via a dialog form. Posts to `/api/events/`.
-    *   **Backend:** `notifications/views.py` (`EventViewSet` - create action requires admin/staff or correct school admin).
+    *   **Frontend Page:** `src/app/school-admin/[schoolId]/calendar/page.tsx`.
+    *   **Functionality:**
+        *   Displays ShadCN calendar.
+        *   "Add New Event" dialog with form (title, description, date, type, optional target class).
+        *   On submit, calls `api.post('/events/', payload)` with `school: schoolId` automatically included.
+        *   Fetches and displays events specific to `schoolId`.
+    *   **Backend:** `notifications/views.py` - `EventViewSet`. `perform_create` ensures event is linked to the correct school by school admin.
 
 3.  **School Communication (Announcements):**
-    *   **Frontend Page:** `src/app/school-admin/[schoolId]/communication/page.tsx`
-    *   **Functionality:** Form to create announcements (currently posts as 'General' type events). Can target entire school or specific classes within the school. Lists recent announcements.
-    *   **Backend:** `notifications/views.py` (`EventViewSet`).
+    *   **Frontend Page:** `src/app/school-admin/[schoolId]/communication/page.tsx`.
+    *   **Functionality:**
+        *   "New Announcement" dialog/form (title, message, optional target class).
+        *   On submit, calls `api.post('/events/', payload)` (treating announcements as 'General' type events, linked to `schoolId`).
+        *   Lists recent 'General' type events for the school.
+    *   **Backend:** `notifications/views.py` - `EventViewSet`.
 
-4.  **Other School Admin Pages (Placeholders):**
-    *   `students/page.tsx`, `teachers/page.tsx`, `content/page.tsx`, `reports/page.tsx`, `analytics/page.tsx`, `settings/page.tsx` within the `/school-admin/[schoolId]/` directory.
-
-#### I. Shared Features
+#### I. Shared Features / System-wide Components
 
 1.  **Layout & Navigation System:**
-    *   **Main Layout:** `src/app/layout.tsx` (includes `ThemeProvider`, `AuthProvider`, `MainAppShell`).
-    *   **App Shell:** `src/components/layout/MainAppShell.tsx` (conditionally renders Header, role-specific Sidebar, and page content).
-    *   **Header:** `src/components/layout/Header.tsx` (Logo, main navigation links based on auth/role, user profile dropdown/auth buttons, Dashboard link).
-    *   **Sidebars:**
-        *   `src/components/layout/StudentSidebarNav.tsx`
-        *   `src/components/layout/TeacherSidebarNav.tsx`
-        *   `src/components/layout/ParentSidebarNav.tsx`
-        *   `src/components/layout/SchoolAdminSidebarNav.tsx`
-        *   All use the collapsible `Sidebar` components from `src/components/ui/sidebar.tsx`.
-    *   **Custom Sidebar Toggle:** `src/components/layout/CustomSidebarToggle.tsx` (Chevron icons for expand/collapse, positioned mid-sidebar).
+    *   **Main Layout:** `src/app/layout.tsx` (contains `RootLayout` which includes `ThemeProvider`, `AuthProvider`).
+    *   **App Shell:** `src/components/layout/MainAppShell.tsx`. This is a crucial client component that:
+        *   Wraps the main page content for authenticated users.
+        *   Uses `useAuth()` and `usePathname()`.
+        *   Conditionally renders the appropriate role-specific sidebar (`StudentSidebarNav`, `TeacherSidebarNav`, `ParentSidebarNav`, `SchoolAdminSidebarNav`) based on `currentUser.role`.
+        *   Manages the `SidebarProvider` from `src/components/ui/sidebar.tsx` to enable collapsible sidebar functionality.
+        *   Renders the main `Header`.
+    *   **Header:** `src/components/layout/Header.tsx`.
+        *   Displays `Logo`.
+        *   Conditional navigation links (Dashboard, Rewards, Forum, etc.) based on auth status and role.
+        *   User profile dropdown (Profile, Logout) or Login/Signup/Register School buttons.
+        *   Mobile menu (`Sheet` component).
+    *   **Role-Specific Sidebars:** (e.g., `src/components/layout/StudentSidebarNav.tsx`)
+        *   Contain navigation links specific to that user role's section of the application.
+        *   Use `SidebarMenu`, `SidebarMenuItem`, `SidebarMenuButton` from `src/components/ui/sidebar.tsx`.
+    *   **Custom Sidebar Toggle:** `src/components/layout/CustomSidebarToggle.tsx`.
+        *   Provides `<` and `>` icons for collapsing/expanding the sidebar, positioned mid-sidebar.
 
 2.  **Theme Management:**
-    *   **Context:** `src/context/ThemeContext.tsx` (manages light/dark/system theme, persists to localStorage, defaults to light).
-    *   **Global Styles:** `src/app/globals.css` (defines CSS variables for light and dark themes inspired by app logo colors).
-    *   **Toggle UI:** Theme selection `Select` component now in role-specific settings pages (e.g., `src/app/student/settings/page.tsx`).
-
-3.  **Forum (Placeholder):**
-    *   **Frontend Page:** `src/app/forum/page.tsx`
-    *   **Functionality:** Basic UI for a forum. Currently tries to fetch threads from a placeholder API endpoint. Full backend for forum (threads, posts, replies, categories) is not implemented.
+    *   **Context:** `src/context/ThemeContext.tsx`. Manages `theme` state ('light', 'dark', 'system'), persists to `localStorage`, provides `setTheme` function.
+    *   **Global Styles:** `src/app/globals.css`. Defines CSS variables for light and dark themes (e.g., `--background`, `--primary`, `--card`).
+    *   **Toggle UI:** Theme selection `Select` components are located in individual role settings pages (e.g., `src/app/student/settings/page.tsx`).
 
 ---
 
-### III. Conceptual Data Flow (Example: Student Logs In & Views a Lesson)
-
-1.  **User Action (Login):** Student enters credentials on `src/app/login/page.tsx`.
-2.  **API Call:** `loginUser` function in `src/lib/api.ts` sends a POST request to Django's `/api/token-auth/`.
-3.  **Backend Auth:** Django authenticates, returns auth token.
-4.  **Frontend State Update:** Token stored in `localStorage`. `fetchCurrentUser` called (GET to `/api/users/me/`). `AuthContext` updates `currentUser`.
-5.  **Redirection:**
-    *   `login/page.tsx` redirects to `/`.
-    *   `src/app/page.tsx` (`UnifiedDashboardPage`) sees authenticated student, redirects to `/student`.
-6.  **Student Dashboard Load:** `src/app/student/page.tsx` mounts.
-    *   It checks if the student's profile is complete (as per the new logic of directly going to dashboard).
-    *   It fetches class/subject data from `/api/classes/` (backend: `ClassViewSet`).
-    *   Displays subjects.
-7.  **User Action (Clicks Subject):** Navigates to `/student/learn/class/.../subject/...`.
-8.  **Subject Page Load:** Fetches subject details (including lesson list) from `/api/subjects/{id}/`.
-9.  **User Action (Clicks Lesson):** Navigates to `/student/learn/class/.../subject/.../lesson/...`.
-10. **Lesson Page Load:** Fetches lesson details (content, quiz) from `/api/lessons/{id}/`. Displays content.
-
----
-
-This document provides a high-level overview. For detailed function maps, graphs, or specific code snippets for *every* function, you would need to use code analysis tools, generate diagrams (e.g., UML, sequence diagrams), and write more granular developer documentation as the project evolves.
+This enhanced document provides a more detailed narrative of how key features are structured and interact. For truly exhaustive diagrams and function-level mapping, you would typically use specialized modeling tools and maintain that as separate, living documentation alongside the codebase. This Markdown document serves as a strong conceptual guide.
