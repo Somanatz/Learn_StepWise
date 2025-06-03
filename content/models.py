@@ -1,5 +1,6 @@
 
-from django.db import models, JSONField
+from django.db import models
+from django.db.models import JSONField # Corrected import
 from django.conf import settings
 from accounts.models import School 
 
@@ -85,7 +86,7 @@ class UserQuizAttempt(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_attempts')
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='user_attempts')
     score = models.FloatField(default=0.0, help_text="Score as a percentage (0-100).")
-    answers = models.JSONField(blank=True, null=True, help_text="Stores the user's answers for each question.") # E.g. [{"question_id": 1, "choice_id": 3}, ...]
+    answers = JSONField(blank=True, null=True, help_text="Stores the user's answers for each question.") # E.g. [{"question_id": 1, "choice_id": 3}, ...]
     completed_at = models.DateTimeField(auto_now_add=True)
     passed = models.BooleanField(default=False)
 
@@ -99,7 +100,7 @@ class UserLessonProgress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='lesson_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_progress')
     completed = models.BooleanField(default=False)
-    progress_data = models.JSONField(blank=True, null=True, help_text="Stores specific progress within a lesson, e.g., last video timestamp, scroll position.")
+    progress_data = JSONField(blank=True, null=True, help_text="Stores specific progress within a lesson, e.g., last video timestamp, scroll position.")
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
