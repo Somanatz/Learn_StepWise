@@ -3,9 +3,9 @@ from rest_framework import viewsets, status, generics, serializers as drf_serial
 from rest_framework.generics import CreateAPIView
 from .models import CustomUser, ParentStudentLink, School, StudentProfile, TeacherProfile, ParentProfile
 from content.models import Class as ContentClass, Subject as ContentSubject, models as content_models # Import models
-from rest_framework.decorators import action, api_view, permission_classes as dec_permission_classes
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import action, api_view, permission_classes as dec_permission_classes, parser_classes
 import django_filters.rest_framework
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from .serializers import (
@@ -241,3 +241,4 @@ def bulk_upload_users(request):
     # Placeholder for bulk user upload logic
     # This would typically involve parsing a CSV/Excel file
     return Response({"message": "Bulk user upload received (placeholder)."}, status=status.HTTP_200_OK)
+
