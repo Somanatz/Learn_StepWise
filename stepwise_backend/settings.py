@@ -112,21 +112,14 @@ REST_FRAMEWORK = {
 
 
 # CORS Settings for Frontend Integration
+# CORS
 CORS_ALLOWED_ORIGINS = [
     "https://9000-firebase-studio-1747064035747.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev",
-    "http://localhost:3000", # Common local dev default for Next.js
 ]
-# Using CORS_ORIGIN_ALLOW_ALL for simplicity in a development environment
-CORS_ORIGIN_ALLOW_ALL = False # Set to False when using CORS_ALLOWED_ORIGINS
+
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-]
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -137,6 +130,11 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+]
+
+# CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://9000-firebase-studio-1747064035747.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev",
 ]
 
 

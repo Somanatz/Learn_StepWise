@@ -52,15 +52,17 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const formData = new FormData();
-
-    formData.append('username', data.username);
-    formData.append('email', data.email);
-    formData.append('password', data.password);
-    formData.append('role', data.role);
-
+    
     try {
-      await api.post('/signup/', formData, true);
+      const payload = {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+      };
+      
+      await api.post('/signup/', payload); // Changed from FormData to JSON payload
+      
       toast({
         title: "Signup Successful!",
         description: "Your account has been created. Please log in to complete your profile.",
