@@ -169,28 +169,25 @@ export default function CompleteStudentProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    (Object.keys(data) as Array<keyof StudentProfileFormValues>).forEach(key => {
-        if (key === 'profile_picture') return;
-        const value = data[key];
-        if (value !== undefined && value !== null) {
-             if (typeof value === 'boolean') {
-                 formData.append(key, String(value));
-             } else if (typeof value === 'string' && value.trim() !== '') {
-                formData.append(key, value.trim());
-             } else if (typeof value === 'string' && value.trim() === '' && (currentUser.student_profile?.[key] !== null && currentUser.student_profile?.[key] !== undefined) ) {
-                formData.append(key, '');
-             }
-        }
-    });
     
-    if (data.school_id) formData.set('school_id', String(data.school_id));
-    if (data.enrolled_class_id) formData.set('enrolled_class_id', String(data.enrolled_class_id));
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'profile_picture' || value === undefined) {
+        return;
+      }
+      if (value === null) {
+        formData.append(key, '');
+      } else if (typeof value === 'boolean') {
+        formData.append(key, String(value));
+      } else {
+        formData.append(key, String(value));
+      }
+    });
 
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
     
-    // This flag is set on backend now if required fields are met
+    // Backend will set profile_completed=true on successful update with required fields
     // formData.append('profile_completed', 'true'); 
 
     try {

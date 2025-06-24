@@ -89,25 +89,22 @@ export default function CompleteParentProfilePage() {
   const onSubmitProfile = async (data: ParentProfileFormValues) => {
     if (!currentUser || currentUser.role !== 'Parent') return;
     setIsSubmittingProfile(true);
+    
     const formData = new FormData();
 
-    let hasUpdates = false;
-    if (data.full_name !== (currentUser.parent_profile?.full_name || '')) {
-        formData.append('full_name', data.full_name);
-        hasUpdates = true;
-    }
-    if (data.mobile_number !== (currentUser.parent_profile?.mobile_number || '')) {
-        formData.append('mobile_number', data.mobile_number || '');
-        hasUpdates = true;
-    }
-    if (data.address !== (currentUser.parent_profile?.address || '')) {
-        formData.append('address', data.address || '');
-        hasUpdates = true;
-    }
-    
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'profile_picture' || value === undefined) {
+        return;
+      }
+      if (value === null) {
+        formData.append(key, '');
+      } else {
+        formData.append(key, String(value));
+      }
+    });
+
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
-      hasUpdates = true;
     }
     
     // Backend will set profile_completed=true
