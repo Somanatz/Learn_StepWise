@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import ClassSection from '@/components/dashboard/ClassSection';
-import type { Class as ClassInterfaceFull, Subject as SubjectInterfaceFull, Book as BookInterface, Event as EventInterface } from '@/interfaces'; // Renamed for clarity
+import type { Class as ClassInterfaceFull, Subject as SubjectInterfaceFull, Book as BookInterface, Event as EventInterface, UserLessonProgress, Subject as SubjectDisplay } from '@/interfaces'; // Renamed for clarity
 import { BookOpen, Calculator, FlaskConical, Globe, Library, CalendarDays, Loader2, AlertTriangle, FileText, Music, Palette, Brain, Users, Award, Lightbulb, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,20 +30,10 @@ const getIconForSubject = (subjectName: string): LucideIcon => {
 
 // Interface for the transformed ClassLevel data structure used by ClassSection
 interface ClassLevelDisplay {
+  id: string | number;
   level: number;
   title: string;
   subjects: SubjectDisplay[];
-}
-interface SubjectDisplay {
-    id: string;
-    name: string;
-    icon: LucideIcon;
-    description: string;
-    lessonsCount: number;
-    href: string;
-    is_locked?: boolean;
-    bgColor?: string;
-    textColor?: string;
 }
 
 
@@ -64,6 +54,9 @@ export default function StudentDashboard() {
   const [classData, setClassData] = useState<ClassLevelDisplay[]>([]);
   const [books, setBooks] = useState<BookInterface[]>([]);
   const [events, setEvents] = useState<EventInterface[]>([]);
+  const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([]);
+  const [totalSubjects, setTotalSubjects] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
@@ -74,118 +67,105 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setIsLoading(true);
-      setIsLoadingBooks(true);
-      setIsLoadingEvents(true);
-      setError(null);
-      setEventsError(null);
-      setBooksError(null);
-      
-      let classesUrl = '/classes/';
-      if (currentUser?.student_profile?.enrolled_class) {
-        if (currentUser.student_profile.school) {
-          classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
-        }
-      } else if (currentUser?.student_profile?.school) {
-        classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
+      if (!currentUser) {
+        setIsLoading(false);
+        setIsLoadingBooks(false);
+        setIsLoadingEvents(false);
+        return;
       }
 
-
+      setIsLoading(true);
+      setError(null);
+      
       try {
-        // Fetch classes
-        const classResponse = await api.get<ApiClass[] | { results: ApiClass[] }>(classesUrl);
-        
-        let actualApiClasses: ApiClass[];
-        if (Array.isArray(classResponse)) {
-          actualApiClasses = classResponse;
-        } else if (classResponse && Array.isArray(classResponse.results)) {
-          actualApiClasses = classResponse.results;
-        } else {
-          console.error("Unexpected class data format:", classResponse);
-          actualApiClasses = []; 
+        let classesUrl = '/classes/';
+        if (currentUser.student_profile?.school) {
+          classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
         }
+        
+        const [classResponse, progressResponse] = await Promise.all([
+           api.get<ApiClass[] | { results: ApiClass[] }>(classesUrl),
+           api.get<UserLessonProgress[] | { results: UserLessonProgress[] }>(`/userprogress/?user=${currentUser.id}&page_size=1000`)
+        ]);
+
+        const actualApiClasses: ApiClass[] = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
+        const actualProgress: UserLessonProgress[] = Array.isArray(progressResponse) ? progressResponse : progressResponse.results || [];
+        setLessonProgress(actualProgress);
 
         const transformedClassData: ClassLevelDisplay[] = actualApiClasses
-        .filter(apiClass => {
-            if (currentUser?.student_profile?.enrolled_class) {
-                return String(apiClass.id) === String(currentUser.student_profile.enrolled_class);
-            }
-            return true; 
-        })
+        .filter(apiClass => currentUser.student_profile?.enrolled_class ? String(apiClass.id) === String(currentUser.student_profile.enrolled_class) : true)
         .map(apiClass => {
           const levelMatch = apiClass.name.match(/\d+/);
           const level = levelMatch ? parseInt(levelMatch[0], 10) : 0; 
-          const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => ({
-            id: String(apiSub.id), name: apiSub.name, icon: getIconForSubject(apiSub.name),
-            description: apiSub.description, 
-            lessonsCount: apiSub.lessons?.length || 0,
-            href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`,
-            is_locked: apiSub.lessons?.some(l => l.is_locked), 
-            bgColor: "bg-primary", textColor: "text-primary-foreground",
-          }));
+          
+          const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => {
+             const lessonsInSubject = apiSub.lessons || [];
+             const completedLessonsCount = lessonsInSubject.filter(lesson => 
+                actualProgress.some(p => String(p.lesson) === String(lesson.id) && p.completed)
+             ).length;
+             const progressPercentage = lessonsInSubject.length > 0 ? (completedLessonsCount / lessonsInSubject.length) * 100 : 0;
+
+            return {
+              id: String(apiSub.id), name: apiSub.name, icon: getIconForSubject(apiSub.name),
+              description: apiSub.description, 
+              lessonsCount: lessonsInSubject.length,
+              progress: progressPercentage,
+              href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`,
+              is_locked: apiSub.lessons?.some(l => l.is_locked), 
+              bgColor: "bg-primary", textColor: "text-primary-foreground",
+              classId: apiClass.id,
+            }
+          });
           return { 
+            id: apiClass.id,
             level: level, 
             title: `${apiClass.name} ${apiClass.school_name ? '('+apiClass.school_name+')' : ''}`, 
             subjects: subjects 
           };
         });
         setClassData(transformedClassData);
-        setIsLoading(false);
-
-        // Fetch books
-        try {
-            const bookResponse = await api.get<BookInterface[] | { results: BookInterface[] }>('/books/');
-            let actualApiBooks: BookInterface[];
-            if (Array.isArray(bookResponse)) {
-              actualApiBooks = bookResponse;
-            } else if (bookResponse && Array.isArray(bookResponse.results)) {
-              actualApiBooks = bookResponse.results;
-            } else {
-              console.error("Unexpected book data format:", bookResponse);
-              actualApiBooks = [];
-            }
-            setBooks(actualApiBooks.slice(0, 3)); 
-        } catch (bookErr) {
-            console.error("Failed to fetch books:", bookErr);
-            setBooksError(bookErr instanceof Error ? bookErr.message : "Failed to load books");
-        } finally {
-            setIsLoadingBooks(false);
-        }
-
-        // Fetch events
-        try {
-            const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
-            let actualApiEvents: EventInterface[];
-            if (Array.isArray(eventResponse)) {
-              actualApiEvents = eventResponse;
-            } else if (eventResponse && Array.isArray(eventResponse.results)) {
-              actualApiEvents = eventResponse.results;
-            } else {
-              console.error("Unexpected event data format:", eventResponse);
-              actualApiEvents = [];
-            }
-            setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
-        } catch (eventErr) {
-            console.error("Failed to fetch events:", eventErr);
-            setEventsError(eventErr instanceof Error ? eventErr.message : "Failed to load events");
-        } finally {
-            setIsLoadingEvents(false);
-        }
+        setTotalSubjects(transformedClassData.reduce((acc, curr) => acc + curr.subjects.length, 0));
 
       } catch (err) { 
         console.error("Failed to fetch student dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
-        setIsLoading(false); 
-        setIsLoadingBooks(false); 
-        setIsLoadingEvents(false);
+      } finally {
+        setIsLoading(false);
+      }
+
+      // Fetch books and events separately
+      setIsLoadingBooks(true);
+      setBooksError(null);
+      try {
+          const bookResponse = await api.get<BookInterface[] | { results: BookInterface[] }>('/books/');
+          const actualApiBooks: BookInterface[] = Array.isArray(bookResponse) ? bookResponse : bookResponse.results || [];
+          setBooks(actualApiBooks.slice(0, 3)); 
+      } catch (bookErr) {
+          console.error("Failed to fetch books:", bookErr);
+          setBooksError(bookErr instanceof Error ? bookErr.message : "Failed to load books");
+      } finally {
+          setIsLoadingBooks(false);
+      }
+
+      setIsLoadingEvents(true);
+      setEventsError(null);
+      try {
+          const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
+          const actualApiEvents: EventInterface[] = Array.isArray(eventResponse) ? eventResponse : eventResponse.results || [];
+          setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
+      } catch (eventErr) {
+          console.error("Failed to fetch events:", eventErr);
+          setEventsError(eventErr instanceof Error ? eventErr.message : "Failed to load events");
+      } finally {
+          setIsLoadingEvents(false);
       }
     };
-    if (currentUser) fetchDashboardData(); else {
+
+    if (currentUser) {
+      fetchDashboardData();
+    } else {
       setIsLoading(false);
-      setIsLoadingBooks(false);
-      setIsLoadingEvents(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   if (isLoading && !error && !currentUser) { 
@@ -230,27 +210,32 @@ export default function StudentDashboard() {
         </p>
       </section>
 
-      {isLoading && classData.length === 0 && ( 
+      {isLoading && classData.length === 0 ? ( 
          <div className="space-y-12 p-4">
-            <Skeleton className="h-10 w-1/3 mb-6 rounded" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map(j => <Skeleton key={j} className="h-64 w-full rounded-xl" />)}
             </div>
          </div>
-      )}
-
-      {!isLoading && classData.length === 0 && (
+      ) : !isLoading && classData.length === 0 ? (
          <Card className="text-center py-10 shadow-md rounded-lg">
             <CardHeader><CardTitle>No Classes Found</CardTitle></CardHeader>
             <CardContent><p className="text-muted-foreground">You are not enrolled in any classes yet, or no classes are available. Please complete your profile or contact your school.</p>
             <Button asChild className="mt-4"><Link href="/profile">Complete Your Profile</Link></Button>
             </CardContent>
          </Card>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>My Subjects Overview</CardTitle>
+              <CardDescription>You are enrolled in {totalSubjects} subjects.</CardDescription>
+            </CardHeader>
+          </Card>
+          {classData.map((classLevel) => (
+            <ClassSection key={classLevel.id} classLevelData={classLevel} />
+          ))}
+        </>
       )}
-
-      {classData.map((classLevel) => (
-        <ClassSection key={`${classLevel.level}-${classLevel.title}`} classLevelData={classLevel} />
-      ))}
       
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="rounded-xl shadow-lg">

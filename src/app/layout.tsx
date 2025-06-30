@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import { AuthProvider } from '@/context/AuthContext';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
+import { ThemeProvider } from '@/context/ThemeContext'; // Import ThemeProvider
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -37,22 +38,29 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${openSans.variable} ${poppins.variable} font-sans antialiased flex flex-col min-h-screen`}>
-        <AuthProvider>
-          <Header />
-          <main className="flex-grow container mx-auto px-4 py-8">
-            {children}
-          </main>
-          <Toaster />
-          <footer className="bg-secondary text-secondary-foreground py-10 border-t">
-            <div className="container mx-auto px-4 text-center">
-              <h3 className="text-xl font-semibold mb-2 text-secondary-foreground">GenAI-Campus</h3>
-              <p className="text-sm text-secondary-foreground/80 mb-4 max-w-md mx-auto">
-                Empowering students, supporting teachers, and engaging parents with our innovative learning platform.
-              </p>
-              <p className="text-sm text-secondary-foreground/80">&copy; {new Date().getFullYear()} GenAI-Campus. All rights reserved.</p>
-            </div>
-          </footer>
-        </AuthProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+        >
+          <AuthProvider>
+            <Header />
+            <main className="flex-grow container mx-auto px-4 py-8">
+              {children}
+            </main>
+            <Toaster />
+            <footer className="bg-secondary text-secondary-foreground py-10 border-t">
+              <div className="container mx-auto px-4 text-center">
+                <h3 className="text-xl font-semibold mb-2 text-secondary-foreground">GenAI-Campus</h3>
+                <p className="text-sm text-secondary-foreground/80 mb-4 max-w-md mx-auto">
+                  Empowering students, supporting teachers, and engaging parents with our innovative learning platform.
+                </p>
+                <p className="text-sm text-secondary-foreground/80">&copy; {new Date().getFullYear()} GenAI-Campus. All rights reserved.</p>
+              </div>
+            </footer>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
