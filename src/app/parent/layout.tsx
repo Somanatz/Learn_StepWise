@@ -1,3 +1,4 @@
+
 // src/app/parent/layout.tsx
 'use client'; 
 
@@ -11,26 +12,24 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import Logo from '@/components/shared/Logo';
 import { ParentSidebarNav } from '@/components/layout/ParentSidebarNav';
 import { Button } from '@/components/ui/button';
 import { LogOut, UserCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ParentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+   const { logout } = useAuth();
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar collapsible="icon" variant="sidebar" side="left">
-        <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-between">
-            <Logo textSize="text-xl" iconSize={24} />
-            <div className="group-data-[collapsible=icon]:hidden">
-              <SidebarTrigger />
-            </div>
+        <SidebarHeader className="p-4 border-b border-sidebar-border h-[65px] flex items-center justify-end">
+          <div className="group-data-[collapsible=icon]:hidden">
+            <SidebarTrigger />
           </div>
         </SidebarHeader>
         <SidebarContent className="flex-1 p-2 overflow-y-auto">
@@ -43,7 +42,7 @@ export default function ParentLayout({
                 <span className="truncate group-data-[collapsible=icon]:hidden">Profile</span>
               </Button>
           </Link>
-          <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:justify-center text-destructive hover:text-destructive hover:bg-destructive/10">
+          <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:justify-center text-destructive hover:text-destructive hover:bg-destructive/10" onClick={logout}>
             <LogOut className="h-5 w-5 mr-3 group-data-[collapsible=icon]:mr-0" />
             <span className="truncate group-data-[collapsible=icon]:hidden">Logout</span>
           </Button>

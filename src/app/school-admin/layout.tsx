@@ -12,7 +12,6 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import Logo from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { LogOut, UserCircle, Settings, LayoutDashboard, Users, FileText, BarChart3, BookCopy, MessageSquare, CalendarDays, Users2 } from 'lucide-react';
 import Link from 'next/link';
@@ -54,12 +53,9 @@ export default function SchoolAdminLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar collapsible="icon" variant="sidebar" side="left">
-        <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-between">
-            <Logo textSize="text-xl" iconSize={24} />
-            <div className="group-data-[collapsible=icon]:hidden">
-              <SidebarTrigger />
-            </div>
+        <SidebarHeader className="p-4 border-b border-sidebar-border h-[65px] flex items-center justify-end">
+          <div className="group-data-[collapsible=icon]:hidden">
+            <SidebarTrigger />
           </div>
         </SidebarHeader>
         <SidebarContent className="flex-1 p-2 overflow-y-auto">

@@ -12,12 +12,11 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import Logo from '@/components/shared/Logo';
-import { StudentSidebarNav } from '@/components/layout/StudentSidebarNav'; // To be created
+import { StudentSidebarNav } from '@/components/layout/StudentSidebarNav'; 
 import { Button } from '@/components/ui/button';
 import { LogOut, UserCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext'; // For logout
+import { useAuth } from '@/context/AuthContext'; 
 
 export default function StudentLayout({
   children,
@@ -28,18 +27,14 @@ export default function StudentLayout({
 
   const handleLogout = () => {
     logout();
-    // router.push('/login'); // AuthContext might handle redirect or Header will update
   };
 
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar collapsible="icon" variant="sidebar" side="left">
-        <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-between">
-            <Logo />
-            <div className="group-data-[collapsible=icon]:hidden">
-              <SidebarTrigger />
-            </div>
+        <SidebarHeader className="p-4 border-b border-sidebar-border h-[65px] flex items-center justify-end">
+          <div className="group-data-[collapsible=icon]:hidden">
+            <SidebarTrigger />
           </div>
         </SidebarHeader>
         <SidebarContent className="flex-1 p-2 overflow-y-auto">

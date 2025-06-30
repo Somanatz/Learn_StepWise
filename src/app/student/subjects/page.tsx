@@ -1,3 +1,4 @@
+
 // src/app/student/subjects/page.tsx
 
 'use client';
@@ -16,40 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, BookOpen, PlusCircle, Trash2, HelpCircle, ChevronLeft, Search, UserCircle, Bell, Maximize2, Minimize2, Bookmark, Download } from 'lucide-react';
+import { Loader2, BookOpen, PlusCircle, Trash2, HelpCircle, ChevronLeft, Search, UserCircle, Bell, Maximize2, Minimize2, Bookmark, Download, Link as LinkIcon, Star, Tv, Sun, Moon } from 'lucide-react';
 import type { Subject as SubjectInterface, Class as ClassInterface, School, Lesson as LessonInterface, UserLessonProgress, LessonSummary } from '@/interfaces';
 import { useAuth } from '@/context/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import Logo from '@/components/shared/Logo';
-import { useDebounce } from 'use-debounce'; // Assuming a debounce hook is available or can be added
-
-// A simple debounce hook if not available
-function useDebouncedCallback<A extends any[]>(
-  callback: (...args: A) => void,
-  delay: number
-): (...args: A) => void {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const debouncedCallback = (...args: A) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      callback(...args);
-    }, delay);
-  };
-
-  return debouncedCallback;
-}
+import { useDebounce } from 'use-debounce';
+import Link from 'next/link';
 
 export default function StudentMySubjectsPage() {
     const { currentUser } = useAuth();
@@ -57,6 +31,7 @@ export default function StudentMySubjectsPage() {
     const { toast } = useToast();
     
     const [allSubjects, setAllSubjects] = useState<SubjectInterface[]>([]);
+    const [allClasses, setAllClasses] = useState<ClassInterface[]>([]);
     const [lessonsForSelectedSubject, setLessonsForSelectedSubject] = useState<LessonInterface[]>([]);
     const [lessonProgressMap, setLessonProgressMap] = useState<Map<string | number, UserLessonProgress>>(new Map());
 
@@ -73,21 +48,30 @@ export default function StudentMySubjectsPage() {
     const contentRef = useRef<HTMLDivElement>(null);
 
 
-    // Fetch all subjects for the dropdown
     useEffect(() => {
         if (!currentUser) return;
         setIsLoadingSubjects(true);
-        api.get<SubjectInterface[] | {results: SubjectInterface[]}>(`/subjects/?class_obj__school=${currentUser.student_profile?.school}`)
+        const schoolId = currentUser.student_profile?.school;
+        if (!schoolId) {
+            setError("No school assigned to student profile.");
+            setIsLoadingSubjects(false);
+            return;
+        }
+        
+        api.get<ClassInterface[] | {results: ClassInterface[]}>(`/classes/?school=${schoolId}&page_size=100`)
             .then(res => {
-                const data = Array.isArray(res) ? res : res.results || [];
-                setAllSubjects(data);
+                const classes = Array.isArray(res) ? res : res.results || [];
+                setAllClasses(classes);
+                const subjects = classes.flatMap(c => 
+                    (c.subjects || []).map(s => ({...s, class_obj_name: c.name}))
+                );
+                setAllSubjects(subjects);
             })
-            .catch(err => setError("Failed to load subjects."))
+            .catch(err => setError("Failed to load classes and subjects."))
             .finally(() => setIsLoadingSubjects(false));
     }, [currentUser]);
 
-    // Fetch lessons and their progress when a subject is selected
-    useEffect(() => {
+    const handleLoadLessons = useCallback(() => {
         if (!selectedSubjectId || !currentUser) return;
         
         setActiveLessonId(null);
@@ -117,15 +101,26 @@ export default function StudentMySubjectsPage() {
 
         fetchLessonsAndProgress();
     }, [selectedSubjectId, currentUser]);
+    
+    const [debouncedSaveScroll] = useDebounce((lessonId: string | number, scrollTop: number) => {
+        const existingProgress = lessonProgressMap.get(lessonId);
+        if (!existingProgress) return;
+        
+        const newProgressData = { ...existingProgress.progress_data, scrollPosition: scrollTop };
+        
+        api.patch(`/userprogress/${existingProgress.id}/`, { progress_data: newProgressData })
+            .catch(err => console.warn("Failed to save scroll position", err));
+    }, 500);
 
-    // Fetch full lesson content when a lesson is activated
-    useEffect(() => {
-        if (!activeLessonId) {
-            setActiveLessonDetails(null);
-            return;
-        }
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (!activeLessonId) return;
+        debouncedSaveScroll(activeLessonId, e.currentTarget.scrollTop);
+    };
+
+    const handleLessonClick = (lessonId: string | number) => {
+        setActiveLessonId(lessonId);
         setIsLoadingLessonContent(true);
-        api.get<LessonInterface>(`/lessons/${activeLessonId}/`)
+        api.get<LessonInterface>(`/lessons/${lessonId}/`)
             .then(data => {
                 setActiveLessonDetails(data);
             })
@@ -134,9 +129,8 @@ export default function StudentMySubjectsPage() {
                 setActiveLessonDetails(null);
             })
             .finally(() => setIsLoadingLessonContent(false));
-    }, [activeLessonId, toast]);
+    };
     
-    // Resume scroll position
     useEffect(() => {
         if (activeLessonDetails && contentRef.current) {
             const progress = lessonProgressMap.get(activeLessonDetails.id);
@@ -144,33 +138,41 @@ export default function StudentMySubjectsPage() {
             if (typeof scrollPosition === 'number') {
                 contentRef.current.scrollTop = scrollPosition;
             } else {
-                contentRef.current.scrollTop = 0; // Scroll to top for new lessons
+                contentRef.current.scrollTop = 0;
             }
         }
     }, [activeLessonDetails, lessonProgressMap]);
 
 
-    const saveScrollPosition = useDebouncedCallback((lessonId: string | number, scrollTop: number) => {
-        const existingProgress = lessonProgressMap.get(lessonId);
-        const newProgressData = { ...existingProgress?.progress_data, scrollPosition: scrollTop };
-        
-        api.patch(`/userprogress/${existingProgress?.id}/`, { progress_data: newProgressData })
-            .catch(err => console.error("Failed to save scroll position", err));
-    }, 500);
+    const toggleFullScreen = () => {
+        const elem = document.getElementById("content-learning-page-container");
+        if (!elem) return;
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (!activeLessonId) return;
-        saveScrollPosition(activeLessonId, e.currentTarget.scrollTop);
+        if (!isFullScreen) {
+          if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`));
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
     };
-
-    const toggleFullScreen = () => setIsFullScreen(!isFullScreen);
+    
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     return (
-        <div id="content-learning-page-container" className={`flex flex-col h-full ${isFullScreen ? 'fixed inset-0 bg-background z-[100] overflow-hidden' : ''}`}>
+        <div id="content-learning-page-container" className={`flex flex-col h-screen ${isFullScreen ? 'fixed inset-0 bg-background z-[200] overflow-hidden' : 'relative'}`}>
              {!isFullScreen && (
-                <header className="flex items-center justify-between p-4 border-b shrink-0">
-                    <Button variant="outline" onClick={() => router.push('/student')} className="mb-2">
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                <header className="flex items-center justify-between p-4 border-b shrink-0 h-[65px]">
+                     <Button variant="outline" asChild>
+                        <Link href="/student"><ChevronLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
                     </Button>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon"><Search className="h-5 w-5"/></Button>
@@ -181,25 +183,29 @@ export default function StudentMySubjectsPage() {
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Left Pane: Subject Selection and Lesson List */}
-                <aside className="w-1/3 min-w-[350px] max-w-[450px] border-r flex flex-col p-4 overflow-y-auto">
-                     <div className="mb-4">
+                <aside className="w-1/3 min-w-[350px] max-w-[450px] border-r flex flex-col p-4 overflow-y-auto bg-card">
+                     <div className="mb-4 space-y-2">
                         <Label htmlFor="subject-select">Select Subject</Label>
-                        <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId || ''} disabled={isLoadingSubjects}>
-                            <SelectTrigger id="subject-select">
-                                <SelectValue placeholder={isLoadingSubjects ? "Loading subjects..." : "Choose a subject"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {allSubjects.map(subject => (
-                                    <SelectItem key={subject.id} value={String(subject.id)}>{subject.name} - {subject.class_obj_name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                            <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId || ''} disabled={isLoadingSubjects}>
+                                <SelectTrigger id="subject-select">
+                                    <SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Choose a subject"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allSubjects.map(subject => (
+                                        <SelectItem key={subject.id} value={String(subject.id)}>{subject.name} - {subject.class_obj_name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleLoadLessons} disabled={!selectedSubjectId || isLoadingLessons}>
+                                {isLoadingLessons ? <Loader2 className="h-4 w-4 animate-spin"/> : "Load"}
+                            </Button>
+                        </div>
                      </div>
                      <h2 className="text-xl font-semibold mb-3">Chapters</h2>
                      {isLoadingLessons ? (
                         <div className="space-y-3">
-                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
                         </div>
                      ) : lessonsForSelectedSubject.length > 0 ? (
                         <div className="space-y-3">
@@ -207,17 +213,17 @@ export default function StudentMySubjectsPage() {
                                 const progress = lessonProgressMap.get(lesson.id);
                                 const isCompleted = progress?.completed || false;
                                 return (
-                                <Card key={lesson.id} className={`hover:shadow-md transition-shadow cursor-pointer ${activeLessonId === lesson.id ? 'border-primary' : ''}`} onClick={() => setActiveLessonId(lesson.id)}>
+                                <Card key={lesson.id} className={`hover:shadow-md transition-shadow cursor-pointer ${activeLessonId === lesson.id ? 'border-primary' : ''}`} onClick={() => handleLessonClick(lesson.id)}>
                                     <CardHeader className="p-3">
                                         <CardTitle className="text-base">{lesson.title}</CardTitle>
-                                        <CardDescription>By Dr. Teacher</CardDescription>
+                                        <CardDescription>By Jane Doe</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-3">
+                                    <CardContent className="p-3 pt-0">
                                         <Progress value={isCompleted ? 100 : 0} className="h-2" />
                                         <p className="text-xs text-muted-foreground mt-1">{isCompleted ? "Completed" : "Not Started"}</p>
                                     </CardContent>
                                     <CardFooter className="p-3">
-                                        <Button variant="default" size="sm" className="w-full" onClick={() => setActiveLessonId(lesson.id)}>
+                                        <Button variant="default" size="sm" className="w-full">
                                             {isCompleted ? "Review" : "Start"}
                                         </Button>
                                     </CardFooter>
@@ -226,24 +232,25 @@ export default function StudentMySubjectsPage() {
                         </div>
                      ) : (
                         <p className="text-sm text-muted-foreground text-center mt-4">
-                            {selectedSubjectId ? "No lessons in this subject yet." : "Please select a subject to see its lessons."}
+                            {selectedSubjectId ? "No lessons in this subject yet." : "Please select and load a subject."}
                         </p>
                      )}
                 </aside>
 
-                {/* Right Pane: Lesson Content */}
-                <main className="flex-1 flex flex-col p-6 overflow-hidden bg-muted/30">
+                <main className="flex-1 flex flex-col p-6 overflow-hidden bg-muted/20">
                     {activeLessonDetails ? (
                         <>
                          <div className="flex justify-between items-center mb-4 shrink-0">
                              <h1 className="text-2xl font-bold">{activeLessonDetails.title}</h1>
                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon"><Bookmark className="h-5 w-5"/></Button>
-                                <Button variant="ghost" size="icon"><Download className="h-5 w-5"/></Button>
-                                <Button variant="ghost" size="icon" onClick={toggleFullScreen}><Maximize2 className="h-5 w-5"/></Button>
+                                <Button variant="ghost" size="icon" title="Bookmark"><Bookmark className="h-5 w-5"/></Button>
+                                <Button variant="ghost" size="icon" title="Download"><Download className="h-5 w-5"/></Button>
+                                <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                                    {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5"/>}
+                                </Button>
                              </div>
                          </div>
-                         <div id="lesson-content-display-area" ref={contentRef} onScroll={handleScroll} className="prose prose-lg max-w-none dark:prose-invert overflow-y-auto bg-background p-6 rounded-lg shadow-inner flex-1">
+                         <div id="lesson-content-display-area" ref={contentRef} onScroll={handleScroll} className="prose prose-lg prose-p:leading-relaxed max-w-none dark:prose-invert overflow-y-auto bg-background p-8 rounded-lg shadow-inner flex-1">
                              <div dangerouslySetInnerHTML={{ __html: activeLessonDetails.content || '<p>No content available.</p>' }} />
                              {activeLessonDetails.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={activeLessonDetails.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}
                          </div>
@@ -263,4 +270,3 @@ export default function StudentMySubjectsPage() {
         </div>
     );
 }
-
