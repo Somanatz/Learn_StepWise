@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint, AILessonQuizAttempt
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint, AILessonQuizAttempt, UserNote, TranslatedLessonContent
 from accounts.models import School # Import School model
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -253,3 +253,18 @@ class AILessonQuizAttemptSerializer(serializers.ModelSerializer):
         model = AILessonQuizAttempt
         fields = ['id', 'user', 'lesson', 'lesson_id', 'score', 'passed', 'quiz_data', 'attempted_at', 'can_reattempt_at']
         read_only_fields = ['user', 'attempted_at', 'can_reattempt_at'] # User is set from request, others are set by logic
+
+class UserNoteSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = UserNote
+        fields = ['id', 'user', 'lesson', 'notes', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
+        
+class TranslatedLessonContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TranslatedLessonContent
+        fields = '__all__'
+        read_only_fields = ['created_at']
+

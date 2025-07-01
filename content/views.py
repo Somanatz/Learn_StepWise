@@ -4,13 +4,15 @@ from rest_framework.decorators import action, api_view, permission_classes as de
 from rest_framework.response import Response
 from .models import (
     Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, 
-    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward, Checkpoint, AILessonQuizAttempt
+    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward, Checkpoint, AILessonQuizAttempt,
+    UserNote, TranslatedLessonContent
 )
 from accounts.models import CustomUser, ParentStudentLink, StudentProfile
 from .serializers import ( 
     ProcessedNoteSerializer, ClassSerializer, SubjectSerializer, LessonSerializer, BookSerializer, 
     UserLessonProgressSerializer, QuizSerializer, QuestionSerializer, ChoiceSerializer, UserQuizAttemptSerializer,
-    RewardSerializer, UserRewardSerializer, CheckpointSerializer, AILessonQuizAttemptSerializer
+    RewardSerializer, UserRewardSerializer, CheckpointSerializer, AILessonQuizAttemptSerializer,
+    UserNoteSerializer, TranslatedLessonContentSerializer
 )
 from accounts.permissions import IsTeacher, IsTeacherOrReadOnly, IsStudent, IsParent
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny, IsAuthenticated
@@ -262,7 +264,7 @@ class ChoiceViewSet(viewsets.ModelViewSet):
 class UserLessonProgressViewSet(viewsets.ModelViewSet):
     queryset = UserLessonProgress.objects.all().select_related('user', 'lesson', 'lesson__subject')
     serializer_class = UserLessonProgressSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly] 
+    permission_classes = [IsAuthenticated] 
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['lesson', 'lesson__subject', 'lesson__subject__class_obj', 'user', 'completed']
 
@@ -510,3 +512,96 @@ class AILessonQuizAttemptViewSet(viewsets.ModelViewSet):
             can_reattempt_at = timezone.now() + timedelta(hours=2)
 
         serializer.save(user=user, can_reattempt_at=can_reattempt_at)
+
+class UserNoteViewSet(viewsets.ModelViewSet):
+    queryset = UserNote.objects.all()
+    serializer_class = UserNoteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        lesson = serializer.validated_data.get('lesson')
+        # Use update_or_create to handle both creation and updates seamlessly
+        note, created = UserNote.objects.update_or_create(
+            user=self.request.user,
+            lesson=lesson,
+            defaults={'notes': serializer.validated_data.get('notes')}
+        )
+        serializer.instance = note # Ensure serializer has the instance for response
+        # No need to call save again as update_or_create does it
+    
+    def perform_update(self, serializer):
+        # Ensure user can only update their own notes
+        if serializer.instance.user != self.request.user:
+            raise PermissionDenied("You can only update your own notes.")
+        serializer.save()
+
+
+class TranslatedLessonContentViewSet(viewsets.ModelViewSet):
+    queryset = TranslatedLessonContent.objects.all()
+    serializer_class = TranslatedLessonContentSerializer
+    permission_classes = [IsAuthenticated] # Or IsTeacherOrReadOnly etc.
+
+    def get_queryset(self):
+        # Allow users to fetch translations for any lesson they can access
+        return self.queryset
+
+    def perform_create(self, serializer):
+        # Logic can be added here to check if user has rights to create translations
+        # e.g., only teachers or admins
+        if not self.request.user.is_staff and self.request.user.role != 'Teacher':
+            raise PermissionDenied("You do not have permission to add translations.")
+        serializer.save()
+
+# AI-specific views
+@api_view(['POST'])
+@dec_permission_classes([IsAuthenticated])
+def ai_summarize_lesson(request):
+    lesson_id = request.data.get('lesson_id')
+    if not lesson_id:
+        return Response({'error': 'Lesson ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        # TODO: Here you would call your Genkit summarize_lesson flow
+        # from ai.flows.summarize_lesson_flow import summarizeLesson
+        # result = summarizeLesson({'lessonContent': lesson.content})
+        # For now, using a placeholder
+        summary_placeholder = f"<h3>Summary for {lesson.title}</h3><p>This is an AI-generated summary placeholder. Key topics include: ...</p>"
+        
+        # Save to ProcessedNote model
+        note, created = ProcessedNote.objects.update_or_create(
+            user=request.user,
+            lesson=lesson,
+            defaults={'original_notes': lesson.content, 'processed_output': summary_placeholder}
+        )
+        return Response(ProcessedNoteSerializer(note).data, status=status.HTTP_200_OK)
+
+    except Lesson.DoesNotExist:
+        return Response({'error': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@dec_permission_classes([IsAuthenticated])
+def ai_translate_lesson(request):
+    lesson_id = request.data.get('lesson_id')
+    language = request.data.get('language')
+    if not lesson_id or not language:
+        return Response({'error': 'Lesson ID and language are required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        # TODO: Call Genkit translate_content flow
+        # from ai.flows.translate_content_flow import translateContent
+        # result = translateContent({'content': lesson.content, 'targetLanguage': language})
+        # For now, using a placeholder
+        translation_placeholder = f"<h3>{lesson.title} (Translated to {language})</h3><p>This is a placeholder for the translated content of the lesson.</p>"
+
+        # Save to TranslatedLessonContent model
+        translation, created = TranslatedLessonContent.objects.update_or_create(
+            lesson=lesson,
+            language_code=language,
+            defaults={'translated_title': f"{lesson.title} ({language})", 'translated_content': translation_placeholder}
+        )
+        return Response(TranslatedLessonContentSerializer(translation).data, status=status.HTTP_200_OK)
+    except Lesson.DoesNotExist:
+        return Response({'error': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)

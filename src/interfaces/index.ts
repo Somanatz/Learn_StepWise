@@ -239,6 +239,23 @@ export interface AILessonQuizAttempt {
 }
 
 
+export interface UserNote {
+  id?: number;
+  user?: number;
+  lesson: number;
+  notes: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TranslatedLessonContent {
+  id?: number;
+  lesson: number;
+  language_code: string;
+  translated_title: string;
+  translated_content: string;
+}
+
 export interface Checkpoint {
   id: number;
   user_id: number;

@@ -189,3 +189,31 @@ class AILessonQuizAttempt(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s AI quiz attempt for {self.lesson.title}"
+
+class UserNote(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_notes')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='user_notes')
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = ('user', 'lesson')
+
+    def __str__(self):
+        return f"Note by {self.user.username} for {self.lesson.title}"
+
+class TranslatedLessonContent(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='translations')
+    language_code = models.CharField(max_length=10)
+    translated_title = models.CharField(max_length=255)
+    translated_content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('lesson', 'language_code')
+
+    def __str__(self):
+        return f"Translation for {self.lesson.title} into {self.language_code}"

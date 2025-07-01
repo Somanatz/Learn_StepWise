@@ -5,7 +5,8 @@ from .views import (
     ClassViewSet, SubjectViewSet, LessonViewSet, QuizViewSet, QuestionViewSet, ChoiceViewSet, 
     dictionary_lookup, BookViewSet, UserLessonProgressViewSet, ai_note_taking, 
     ProcessedNoteViewSet, UserQuizAttemptViewSet, RewardViewSet, UserRewardViewSet, CheckpointViewSet,
-    AILessonQuizAttemptViewSet
+    AILessonQuizAttemptViewSet, UserNoteViewSet, TranslatedLessonContentViewSet,
+    ai_summarize_lesson, ai_translate_lesson
 )
 
 router = DefaultRouter()
@@ -23,10 +24,14 @@ router.register(r'ai-quiz-attempts', AILessonQuizAttemptViewSet, basename='ai-qu
 router.register(r'rewards', RewardViewSet)
 router.register(r'user-rewards', UserRewardViewSet, basename='user-reward')
 router.register(r'checkpoints', CheckpointViewSet, basename='checkpoint')
+router.register(r'usernotes', UserNoteViewSet, basename='usernote')
+router.register(r'translated-content', TranslatedLessonContentViewSet, basename='translatedcontent')
 
 
 urlpatterns = [
     path('', include(router.urls)),
     path('ai/notes/', ai_note_taking, name='ai_note_taking'),
     path('dictionary/', dictionary_lookup, name='dictionary_lookup'),
+    path('ai/notes/summarize/', ai_summarize_lesson, name='ai_summarize_lesson'),
+    path('ai/translate/', ai_translate_lesson, name='ai_translate_lesson'),
 ]
