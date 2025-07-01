@@ -218,7 +218,7 @@ export interface UserLessonProgress {
   id: string | number;
   user: number;
   lesson: number;
-  lesson_title: string;
+  lesson_title?: string;
   completed: boolean;
   progress_data?: {
     scrollPosition?: number;

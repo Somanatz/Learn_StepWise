@@ -44,8 +44,7 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [showSimplified, setShowSimplified] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [progress, setProgress] = useState(0);
-
+  
   const [isCompleted, setIsCompleted] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   
@@ -58,6 +57,7 @@ export default function LessonPage() {
   const [quizResult, setQuizResult] = useState<{ score: number; passed: boolean } | null>(null);
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
   const [cooldownMessage, setCooldownMessage] = useState<string | null>(null);
+  const [hasPassedQuiz, setHasPassedQuiz] = useState(false);
 
 
   const fetchLessonData = useCallback(async () => {
@@ -67,10 +67,11 @@ export default function LessonPage() {
     setError(null);
 
     try {
-      const [lessonData, allLessonsData, progressData] = await Promise.all([
+      const [lessonData, allLessonsData, progressData, quizAttemptsData] = await Promise.all([
         api.get<LessonInterface>(`/lessons/${lessonId}/`),
         api.get<LessonSummary[] | {results: LessonSummary[]}>(`/lessons/?subject=${subjectId}`),
-        api.get<UserLessonProgress[] | {results: UserLessonProgress[]}>(`/userprogress/?user=${currentUser.id}&lesson=${lessonId}`)
+        api.get<UserLessonProgress[] | {results: UserLessonProgress[]}>(`/userprogress/?user=${currentUser.id}&lesson=${lessonId}`),
+        api.get<AILessonQuizAttemptInterface[]>(`/ai-quiz-attempts/?user=${currentUser?.id}&lesson=${lessonId}&passed=true`)
       ]);
 
       setLesson(lessonData);
@@ -83,6 +84,10 @@ export default function LessonPage() {
       } else {
         setIsCompleted(false);
       }
+      
+      const passedAttempts = Array.isArray(quizAttemptsData) ? quizAttemptsData : quizAttemptsData.results || [];
+      setHasPassedQuiz(passedAttempts.length > 0);
+
     } catch (err) {
       console.error("Failed to fetch lesson data:", err);
       setError(err instanceof Error ? err.message : "Failed to load lesson data.");
@@ -98,7 +103,7 @@ export default function LessonPage() {
 
 
   const handleStartQuiz = async () => {
-    if (!lesson?.content) return;
+    if (!lesson?.content || hasPassedQuiz) return;
     setIsQuizDialogOpen(true);
     setIsLoadingQuiz(true);
     setQuizError(null);
@@ -109,7 +114,7 @@ export default function LessonPage() {
     // Check for cooldown first
     try {
         const previousAttempts = await api.get<AILessonQuizAttemptInterface[]>(`/ai-quiz-attempts/?user=${currentUser?.id}&lesson=${lessonId}&ordering=-attempted_at`);
-        const latestAttempt = previousAttempts[0];
+        const latestAttempt = Array.isArray(previousAttempts) ? previousAttempts[0] : (previousAttempts as any).results[0];
         if (latestAttempt && latestAttempt.can_reattempt_at) {
             const now = new Date();
             const reattemptTime = new Date(latestAttempt.can_reattempt_at);
@@ -178,6 +183,7 @@ export default function LessonPage() {
         
         if (passed) {
             handleMarkAsComplete(true); // Automatically mark as complete and refetch
+            setHasPassedQuiz(true);
         } else {
             // Cooldown is set by backend
         }
@@ -258,6 +264,32 @@ export default function LessonPage() {
 
   const displayContent = showSimplified && lesson.simplified_content ? lesson.simplified_content : lesson.content;
 
+  const renderFooterButton = () => {
+    if (isCompleted) {
+        return (
+            <Button variant="secondary" disabled className="text-green-600 dark:text-green-400">
+                <CheckCircle2 className="mr-2 h-4 w-4"/> Completed
+            </Button>
+        );
+    }
+    
+    if (nextLesson && !hasPassedQuiz) {
+        return (
+            <Button onClick={handleStartQuiz} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white">
+                <HelpCircle className="mr-2 h-4 w-4" /> Take Quiz to Unlock Next Lesson
+            </Button>
+        );
+    }
+    
+    return (
+        <Button onClick={() => handleMarkAsComplete(false)} disabled={isMarkingComplete} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white">
+            {isMarkingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            Mark as Complete
+        </Button>
+    );
+  };
+
+
   return (
     <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto p-4 md:p-8' : ''}`}>
       <div className="flex justify-between items-center">
@@ -308,22 +340,9 @@ export default function LessonPage() {
               </Link>
           </Button>
           
-          {isCompleted ? (
-              <Button variant="secondary" disabled className="text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="mr-2 h-4 w-4"/> Completed
-              </Button>
-          ) : nextLesson ? (
-                <Button onClick={handleStartQuiz} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white">
-                    <HelpCircle className="mr-2 h-4 w-4" /> Take Quiz to Unlock Next Lesson
-                </Button>
-          ) : (
-            <Button onClick={() => handleMarkAsComplete(false)} disabled={isMarkingComplete} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white">
-                {isMarkingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                Mark Final Lesson as Complete
-            </Button>
-          )}
+          {renderFooterButton()}
 
-          <Button variant="default" asChild disabled={!nextLesson || (nextLesson.is_locked && !isCompleted)}>
+          <Button variant="default" asChild disabled={!nextLesson || (nextLesson.is_locked && !isCompleted && !hasPassedQuiz)}>
               <Link href={nextLesson ? `/student/learn/class/${classId}/subject/${subjectId}/lesson/${nextLesson.id}` : '#'}>
                   Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
               </Link>
