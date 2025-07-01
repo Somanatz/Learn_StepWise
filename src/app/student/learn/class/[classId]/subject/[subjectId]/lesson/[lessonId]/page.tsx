@@ -13,7 +13,7 @@ import { ChevronLeft, ChevronRight, PlayCircle, Lightbulb, CheckCircle2, AlertTr
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import Link from 'next/link';
 import { generateLessonQuiz } from '@/ai/flows/lesson-quiz-flow';
-import type { QuizQuestion } from '@/ai/flows/lesson-quiz-flow';
+import type { QuizQuestion } from '@/ai/flows/lesson-quiz-types';
 
 const PASSING_SCORE = 75;
 
@@ -397,4 +397,3 @@ export default function LessonPage() {
       </Dialog>
     </div>
   );
-}
