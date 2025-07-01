@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint
 from accounts.models import School # Import School model
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -224,3 +224,13 @@ class UserRewardSerializer(serializers.ModelSerializer):
     # If you want to create UserReward by passing user_id and reward_id
     # user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
     # reward = serializers.PrimaryKeyRelatedField(queryset=Reward.objects.all(), write_only=True)
+
+class CheckpointSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
+    lesson_id = serializers.PrimaryKeyRelatedField(queryset=Lesson.objects.all(), source='lesson', write_only=True)
+    lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+
+    class Meta:
+        model = Checkpoint
+        fields = ['id', 'user_id', 'lesson', 'lesson_id', 'lesson_title', 'name', 'progress_data', 'created_at']
+        read_only_fields = ['user_id', 'lesson', 'created_at']

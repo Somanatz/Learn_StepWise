@@ -161,3 +161,15 @@ class UserReward(models.Model):
     def __str__(self):
         return f"{self.user.username} achieved {self.reward.title}"
 
+class Checkpoint(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='checkpoints')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='checkpoints')
+    name = models.CharField(max_length=100, help_text="A name for this checkpoint, e.g., 'Before the quiz'")
+    progress_data = models.JSONField(blank=True, null=True, help_text="Stores lesson state like scroll position.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Checkpoint for {self.user.username} in {self.lesson.title} at {self.created_at}"

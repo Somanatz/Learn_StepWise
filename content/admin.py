@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, Book, Reward, UserReward, ProcessedNote, UserLessonProgress, UserQuizAttempt
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, Book, Reward, UserReward, ProcessedNote, UserLessonProgress, UserQuizAttempt, Checkpoint
 
 # Register your models here.
 admin.site.register(Class)
@@ -14,3 +14,4 @@ admin.site.register(UserReward)
 admin.site.register(ProcessedNote)
 admin.site.register(UserLessonProgress)
 admin.site.register(UserQuizAttempt)
+admin.site.register(Checkpoint)

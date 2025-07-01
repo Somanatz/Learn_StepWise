@@ -2,14 +2,14 @@
 // src/app/student/learn/class/[classId]/subject/[subjectId]/lesson/[lessonId]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Lesson as LessonInterface, Question as QuestionInterface, Choice as ChoiceInterface, Quiz as QuizInterface } from '@/interfaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, PlayCircle, Lightbulb, CheckCircle2, AlertTriangle, Send, Loader2, BookOpen, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlayCircle, Lightbulb, CheckCircle2, AlertTriangle, Send, Loader2, BookOpen, Maximize2, Minimize2, Bookmark } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,9 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { FormItem, FormControl } from '@/components/ui/form'; // Added for RadioGroupItem context
 import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 
 interface QuizAttemptPayload {
   answers: { question_id: string | number; choice_id: string | number }[];
@@ -37,6 +40,7 @@ export default function LessonPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const lessonId = params.lessonId as string;
   const subjectId = params.subjectId as string; // For navigation or fetching next lesson
@@ -51,6 +55,9 @@ export default function LessonPage() {
   const [showSimplified, setShowSimplified] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [progress, setProgress] = useState(0); // Lesson content scroll progress
+
+  const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
+  const [checkpointName, setCheckpointName] = useState("");
 
 
   useEffect(() => {
@@ -77,7 +84,7 @@ export default function LessonPage() {
 
   // Scroll progress
   useEffect(() => {
-    const contentElement = document.getElementById('lesson-content-area');
+    const contentElement = contentRef.current;
     if (!contentElement) return;
 
     const handleScroll = () => {
@@ -145,6 +152,39 @@ export default function LessonPage() {
     setIsFullScreen(!isFullScreen);
   };
   
+  const handleSaveCheckpoint = async () => {
+    if (!lessonId || !checkpointName.trim()) {
+      toast({ title: "Error", description: "Checkpoint name cannot be empty.", variant: "destructive" });
+      return;
+    }
+
+    const currentScrollPosition = contentRef.current?.scrollTop || 0;
+    
+    const payload = {
+      lesson_id: lessonId,
+      name: checkpointName.trim(),
+      progress_data: {
+        scrollPosition: currentScrollPosition
+      }
+    };
+
+    try {
+      await api.post('/checkpoints/', payload);
+      toast({
+        title: "Checkpoint Saved!",
+        description: `Your progress for "${checkpointName}" has been saved.`,
+      });
+      setIsCheckpointDialogOpen(false);
+      setCheckpointName("");
+    } catch (err: any) {
+      toast({
+        title: "Failed to Save Checkpoint",
+        description: err.message || "An unknown error occurred.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   // TODO: Fetch next/previous lesson for navigation
   // const navigateLesson = (direction: 'next' | 'prev') => { /* ... */ };
 
@@ -174,14 +214,34 @@ export default function LessonPage() {
 
   return (
     <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto p-4 md:p-8' : ''}`}>
-        <div className="flex justify-between items-center">
-            <Button variant="outline" onClick={() => router.push(`/student/learn/class/${classId}/subject/${subjectId}`)} className="mb-2">
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back to Subject
-            </Button>
-             <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
-                {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-            </Button>
-        </div>
+      <Dialog open={isCheckpointDialogOpen} onOpenChange={setIsCheckpointDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Checkpoint</DialogTitle>
+            <DialogDescription>
+              Give this checkpoint a name so you can easily return to this spot later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="checkpoint-name">Checkpoint Name</Label>
+            <Input
+              id="checkpoint-name"
+              value={checkpointName}
+              onChange={(e) => setCheckpointName(e.target.value)}
+              placeholder={`e.g., Chapter 1 Summary`}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCheckpointDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveCheckpoint} disabled={!checkpointName}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <div className="flex justify-between items-center">
+          <Button variant="outline" onClick={() => router.push(`/student/learn/class/${classId}/subject/${subjectId}`)} className="mb-2">
+              <ChevronLeft className="mr-2 h-4 w-4" /> Back to Subject
+          </Button>
+      </div>
 
       <Card className="shadow-xl rounded-xl overflow-hidden">
         <CardHeader className="bg-primary text-primary-foreground p-6 md:p-8">
@@ -194,17 +254,25 @@ export default function LessonPage() {
                         Subject: {lesson.subject_name || 'N/A'}
                     </CardDescription>
                 </div>
-                {lesson.simplified_content && (
-                    <Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)} className="mt-2 sm:mt-0">
-                        <Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}
-                    </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {lesson.simplified_content && (
+                      <Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)} className="mt-2 sm:mt-0">
+                          <Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}
+                      </Button>
+                  )}
+                  <Button variant="outline" size="icon" onClick={() => setIsCheckpointDialogOpen(true)} title="Save Checkpoint">
+                    <Bookmark className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                      {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                  </Button>
+                </div>
             </div>
         </CardHeader>
         <CardContent className="p-6 md:p-8 space-y-6">
             <div className="relative">
                 <Progress value={progress} className="absolute top-0 left-0 w-full h-1.5 z-10" />
-                <div id="lesson-content-area" className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-220px)]' : 'max-h-[60vh]' } p-4 md:p-6 rounded-md border bg-muted/30`}>
+                <div id="lesson-content-area" ref={contentRef} className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-220px)]' : 'max-h-[60vh]' } p-4 md:p-6 rounded-md border bg-muted/30`}>
                   {/* Assuming content might be HTML, otherwise use <p> or Markdown renderer */}
                   <div dangerouslySetInnerHTML={{ __html: displayContent || '<p>No content available.</p>' }} />
                   {lesson.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}

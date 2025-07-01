@@ -4,13 +4,13 @@ from rest_framework.decorators import action, api_view, permission_classes as de
 from rest_framework.response import Response
 from .models import (
     Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, 
-    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward
+    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward, Checkpoint
 )
 from accounts.models import CustomUser, ParentStudentLink, StudentProfile
 from .serializers import ( 
     ProcessedNoteSerializer, ClassSerializer, SubjectSerializer, LessonSerializer, BookSerializer, 
     UserLessonProgressSerializer, QuizSerializer, QuestionSerializer, ChoiceSerializer, UserQuizAttemptSerializer,
-    RewardSerializer, UserRewardSerializer
+    RewardSerializer, UserRewardSerializer, CheckpointSerializer
 )
 from accounts.permissions import IsTeacher, IsTeacherOrReadOnly, IsStudent, IsParent
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny, IsAuthenticated
@@ -318,7 +318,7 @@ class ProcessedNoteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         original_notes = serializer.validated_data.get('original_notes')
-        processed_output = f"AI Processed Summary (Placeholder): {original_notes[:50]}..." if original_notes else "No notes to process."
+        processed_output = f"AI Processed Output (Placeholder): {original_notes[:50]}..." if original_notes else "No notes to process."
         serializer.save(user=self.request.user, processed_output=processed_output)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
@@ -466,3 +466,14 @@ class UserRewardViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_staff and self.request.user.role != 'Teacher':
              raise PermissionDenied("You do not have permission to award rewards.")
         serializer.save() # User and reward should be in validated_data
+
+class CheckpointViewSet(viewsets.ModelViewSet):
+    queryset = Checkpoint.objects.all()
+    serializer_class = CheckpointSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

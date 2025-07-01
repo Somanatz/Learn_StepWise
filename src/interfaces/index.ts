@@ -220,3 +220,16 @@ export interface UserLessonProgress {
   progress_data?: any; 
   last_updated: string; 
 }
+
+export interface Checkpoint {
+  id: number;
+  user_id: number;
+  lesson: number;
+  lesson_title?: string;
+  name: string;
+  progress_data?: {
+    scrollPosition?: number;
+    videoTimestamp?: number;
+  };
+  created_at: string;
+}
