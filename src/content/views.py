@@ -109,21 +109,6 @@ class LessonViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 
-    @action(detail=True, methods=['post'], permission_classes=[IsTeacher | IsAdminUser])
-    def simplify_content(self, request, pk=None):
-        lesson = self.get_object()
-        simplified_text = request.data.get('simplified_text', None)
-        if simplified_text:
-            lesson.simplified_content = simplified_text
-        elif lesson.content:
-            # Placeholder for actual AI simplification logic
-            lesson.simplified_content = "Simplified (AI Placeholder): " + lesson.content[:100] + "..." 
-        else:
-            return Response({"error": "Lesson content is empty or no simplified text provided."}, status=status.HTTP_400_BAD_REQUEST)
-        lesson.save()
-        return Response(LessonSerializer(lesson, context=self.get_serializer_context()).data)
-
-
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all().select_related('lesson', 'lesson__subject').prefetch_related('questions__choices')
     serializer_class = QuizSerializer
@@ -274,13 +259,6 @@ class UserLessonProgressViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated: 
             return qs.none() 
 
-        # Filter for lesson__in needs to be handled carefully if it's a query param
-        lesson_ids_param = self.request.query_params.get('lesson__in')
-        if lesson_ids_param:
-            lesson_ids = [int(id_str) for id_str in lesson_ids_param.split(',') if id_str.isdigit()]
-            qs = qs.filter(lesson_id__in=lesson_ids)
-
-
         if user.role == 'Student':
             return qs.filter(user=user)
         elif user.role == 'Teacher' and user.school:
@@ -327,9 +305,8 @@ class ProcessedNoteViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # AI processing should happen in the frontend calling a Genkit flow
-        # This endpoint just saves the result.
         serializer.save(user=self.request.user)
+
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all().select_related('subject', 'class_obj')
@@ -378,9 +355,32 @@ class BookViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @dec_permission_classes([IsAuthenticated]) 
 def ai_note_taking(request):
-    # This view is deprecated in favor of frontend calling Genkit flows directly
-    # and saving results to a dedicated model like ProcessedNote
-    return Response({'message': 'This endpoint is deprecated.'}, status=status.HTTP_410_GONE)
+    notes_input = request.data.get('notes')
+    lesson_id = request.data.get('lesson_id') 
+    user = request.user
+
+    if not notes_input:
+        return Response({'error': 'No notes provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # This should be replaced with a call to a Genkit flow
+    processed_notes_result = f"AI Processed Output (Placeholder): {notes_input[:50]}..."
+    
+    lesson = None
+    if lesson_id:
+        try:
+            lesson = Lesson.objects.get(id=lesson_id)
+        except Lesson.DoesNotExist:
+            pass 
+
+    processed_note_obj = ProcessedNote.objects.create(
+        user=user,
+        lesson=lesson,
+        original_notes=notes_input,
+        processed_output=processed_notes_result
+    )
+    
+    serializer = ProcessedNoteSerializer(processed_note_obj, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 @dec_permission_classes([IsAuthenticated]) 
@@ -532,15 +532,51 @@ class TranslatedLessonContentViewSet(viewsets.ModelViewSet):
         # e.g., only teachers or admins
         if not self.request.user.is_staff and self.request.user.role != 'Teacher':
             raise PermissionDenied("You do not have permission to add translations.")
+        serializer.save()
+
+@api_view(['POST'])
+@dec_permission_classes([IsAuthenticated])
+def ai_summarize_lesson(request):
+    lesson_id = request.data.get('lesson_id')
+    if not lesson_id:
+        return Response({'error': 'Lesson ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        # TODO: Here you would call your Genkit summarize_lesson flow
+        # from ai.flows.summarize_lesson_flow import summarizeLesson
+        # result = summarizeLesson({'lessonContent': lesson.content})
+        # For now, using a placeholder
+        summary_placeholder = f"<h3>Summary for {lesson.title}</h3><p>This is an AI-generated summary placeholder. Key topics include: ...</p>"
         
-        # Prevent duplicates
-        lesson = serializer.validated_data.get('lesson')
-        language_code = serializer.validated_data.get('language_code')
-        
-        instance, created = TranslatedLessonContent.objects.update_or_create(
+        # This view should probably return the summary, and frontend saves it to a note if desired.
+        # Saving it to ProcessedNote automatically might not be the desired UX.
+        # For now, just returning the summary.
+        return Response({'summary': summary_placeholder}, status=status.HTTP_200_OK)
+
+    except Lesson.DoesNotExist:
+        return Response({'error': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@dec_permission_classes([IsAuthenticated])
+def ai_translate_lesson(request):
+    lesson_id = request.data.get('lesson_id')
+    language = request.data.get('language')
+    if not lesson_id or not language:
+        return Response({'error': 'Lesson ID and language are required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        # TODO: Call Genkit translate_content flow
+        # from ai.flows.translate_content_flow import translateContent
+        # result = translateContent({'content': lesson.content, 'targetLanguage': language})
+        # For now, using a placeholder
+        translation_placeholder = f"<h3>{lesson.title} (Translated to {language})</h3><p>This is a placeholder for the translated content of the lesson.</p>"
+
+        # Check if translation exists, otherwise create/update it
+        translation, created = TranslatedLessonContent.objects.update_or_create(
             lesson=lesson,
-            language_code=language_code,
-            defaults=serializer.validated_data
+            language_code=language,
+            defaults={'translated_title': f"{lesson.title} ({language})", 'translated_content': translation_placeholder}
         )
-        serializer.instance = instance
-        # No need to call save again
+        return Response(TranslatedLessonContentSerializer(translation).data, status=status.HTTP_200_OK)
+    except Lesson.DoesNotExist:
+        return Response({'error': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)
