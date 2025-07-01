@@ -14,9 +14,11 @@ from .serializers import (
     RewardSerializer, UserRewardSerializer, CheckpointSerializer, AILessonQuizAttemptSerializer,
     UserNoteSerializer, TranslatedLessonContentSerializer
 )
+from .filters import UserLessonProgressFilter
 from accounts.permissions import IsTeacher, IsTeacherOrReadOnly, IsStudent, IsParent
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny, IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend 
+from django.http import JsonResponse 
 from django.db.models import Q, Exists, OuterRef
 from django.utils import timezone
 from datetime import timedelta
@@ -251,7 +253,7 @@ class UserLessonProgressViewSet(viewsets.ModelViewSet):
     serializer_class = UserLessonProgressSerializer
     permission_classes = [IsAuthenticated] 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['lesson', 'lesson__subject', 'lesson__subject__class_obj', 'user', 'completed', 'lesson__in']
+    filterset_class = UserLessonProgressFilter
 
     def get_queryset(self):
         user = self.request.user
