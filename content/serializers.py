@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint, AILessonQuizAttempt
 from accounts.models import School # Import School model
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -91,32 +91,43 @@ class LessonSerializer(serializers.ModelSerializer):
     def get_is_locked(self, obj):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
-            # For unauthenticated users, or if locking logic is complex, default to not locked or based on requires_previous_quiz
-            return obj.requires_previous_quiz # Or False if content should be generally accessible
+            return obj.requires_previous_quiz
         
         user = request.user
-        if user.role == 'Teacher' or user.is_staff: # Teachers/staff bypass locking
+        if user.role in ['Teacher', 'Admin'] or user.is_staff:
              return False
 
-        if obj.requires_previous_quiz:
-            previous_lesson = Lesson.objects.filter(
-                subject=obj.subject, 
-                lesson_order__lt=obj.lesson_order
-            ).order_by('-lesson_order').first()
+        if obj.lesson_order == 0:
+            return False
 
-            if previous_lesson and hasattr(previous_lesson, 'quiz'):
-                previous_quiz = previous_lesson.quiz
-                # Check if the user has passed the previous quiz
-                passed_attempt_exists = UserQuizAttempt.objects.filter(
-                    user=user, 
-                    quiz=previous_quiz, 
-                    passed=True
-                ).exists()
-                return not passed_attempt_exists # Locked if no passed attempt
-            # If previous lesson has no quiz but requires_previous_quiz is true on current, it's effectively locked by missing prerequisite
-            elif previous_lesson: 
-                return True 
-        return False # Not locked
+        previous_lesson = Lesson.objects.filter(
+            subject=obj.subject, 
+            lesson_order__lt=obj.lesson_order
+        ).order_by('-lesson_order').first()
+
+        if not previous_lesson:
+            return False
+
+        if not previous_lesson.requires_previous_quiz:
+             return False # If previous lesson doesn't require a quiz, this one is unlocked by default
+
+        # Check if the user has a passed AI quiz attempt for the previous lesson
+        passed_ai_attempt_exists = AILessonQuizAttempt.objects.filter(
+            user=user,
+            lesson=previous_lesson,
+            passed=True
+        ).exists()
+        
+        # If no AI quiz attempt, check for a normal quiz attempt
+        if not passed_ai_attempt_exists and hasattr(previous_lesson, 'quiz'):
+             passed_normal_attempt_exists = UserQuizAttempt.objects.filter(
+                user=user, 
+                quiz=previous_lesson.quiz, 
+                passed=True
+            ).exists()
+             return not passed_normal_attempt_exists
+
+        return not passed_ai_attempt_exists
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -234,3 +245,11 @@ class CheckpointSerializer(serializers.ModelSerializer):
         model = Checkpoint
         fields = ['id', 'user_id', 'lesson', 'lesson_id', 'lesson_title', 'name', 'progress_data', 'created_at']
         read_only_fields = ['user_id', 'lesson', 'created_at']
+
+class AILessonQuizAttemptSerializer(serializers.ModelSerializer):
+    lesson_id = serializers.PrimaryKeyRelatedField(source='lesson', queryset=Lesson.objects.all(), write_only=True)
+    
+    class Meta:
+        model = AILessonQuizAttempt
+        fields = ['id', 'user', 'lesson', 'lesson_id', 'score', 'passed', 'quiz_data', 'attempted_at', 'can_reattempt_at']
+        read_only_fields = ['user', 'attempted_at', 'can_reattempt_at'] # User is set from request, others are set by logic

@@ -38,7 +38,7 @@ class Lesson(models.Model):
     image_url = models.URLField(blank=True, null=True) # Or use ImageField
     simplified_content = models.TextField(blank=True, null=True)
     lesson_order = models.PositiveIntegerField(default=0)
-    requires_previous_quiz = models.BooleanField(default=False, help_text="If true, student must pass the quiz of the previous lesson in order to access this one.")
+    requires_previous_quiz = models.BooleanField(default=True, help_text="If true, student must pass the quiz of the previous lesson in order to access this one.")
 
     class Meta:
         ordering = ['lesson_order']
@@ -173,3 +173,19 @@ class Checkpoint(models.Model):
 
     def __str__(self):
         return f"Checkpoint for {self.user.username} in {self.lesson.title} at {self.created_at}"
+
+class AILessonQuizAttempt(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ai_quiz_attempts')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='ai_quiz_attempts')
+    score = models.FloatField(default=0.0, help_text="Score as a percentage (0-100).")
+    passed = models.BooleanField(default=False)
+    quiz_data = models.JSONField(help_text="The AI-generated questions and the user's answers.")
+    attempted_at = models.DateTimeField(auto_now_add=True)
+    can_reattempt_at = models.DateTimeField(null=True, blank=True, help_text="The earliest time the user can re-attempt the quiz.")
+
+    class Meta:
+        ordering = ['-attempted_at']
+        unique_together = ('user', 'lesson', 'attempted_at')
+
+    def __str__(self):
+        return f"{self.user.username}'s AI quiz attempt for {self.lesson.title}"

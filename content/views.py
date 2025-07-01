@@ -4,20 +4,21 @@ from rest_framework.decorators import action, api_view, permission_classes as de
 from rest_framework.response import Response
 from .models import (
     Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, 
-    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward, Checkpoint
+    UserQuizAttempt, Book, ProcessedNote, Reward, UserReward, Checkpoint, AILessonQuizAttempt
 )
 from accounts.models import CustomUser, ParentStudentLink, StudentProfile
 from .serializers import ( 
     ProcessedNoteSerializer, ClassSerializer, SubjectSerializer, LessonSerializer, BookSerializer, 
     UserLessonProgressSerializer, QuizSerializer, QuestionSerializer, ChoiceSerializer, UserQuizAttemptSerializer,
-    RewardSerializer, UserRewardSerializer, CheckpointSerializer
+    RewardSerializer, UserRewardSerializer, CheckpointSerializer, AILessonQuizAttemptSerializer
 )
 from accounts.permissions import IsTeacher, IsTeacherOrReadOnly, IsStudent, IsParent
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend 
 from django.http import JsonResponse 
 from django.db.models import Q, Exists, OuterRef
-from django.utils import timezone 
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 
@@ -477,3 +478,35 @@ class CheckpointViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class AILessonQuizAttemptViewSet(viewsets.ModelViewSet):
+    queryset = AILessonQuizAttempt.objects.all()
+    serializer_class = AILessonQuizAttemptSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['user', 'lesson', 'passed']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.is_staff or user.role == 'Admin':
+            return qs
+        return qs.filter(user=user)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        lesson_id = serializer.validated_data.get('lesson').id
+        
+        # Check for cooldown
+        latest_attempt = AILessonQuizAttempt.objects.filter(user=user, lesson_id=lesson_id).order_by('-attempted_at').first()
+        if latest_attempt and latest_attempt.can_reattempt_at and timezone.now() < latest_attempt.can_reattempt_at:
+            raise PermissionDenied(f"You must wait until {latest_attempt.can_reattempt_at.strftime('%Y-%m-%d %H:%M:%S')} to attempt this quiz again.")
+
+        # Set cooldown if the quiz is failed
+        passed = serializer.validated_data.get('passed', False)
+        can_reattempt_at = None
+        if not passed:
+            can_reattempt_at = timezone.now() + timedelta(hours=2)
+
+        serializer.save(user=user, can_reattempt_at=can_reattempt_at)

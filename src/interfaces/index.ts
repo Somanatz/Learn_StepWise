@@ -15,6 +15,7 @@ export interface School {
   admin_user?: number; // ID of the admin user
   student_count?: number;
   staff_count?: number;
+  classes?: Class[]; // Added for dashboard fetches
 }
 
 export interface LessonSummary { 
@@ -69,9 +70,11 @@ export interface Subject {
   bgColor?: string; 
   textColor?: string; 
   href?: string; // Frontend only, optional
+  progress?: number; // Added for student dashboard
   is_locked?: boolean; 
   class_obj?: string | number; 
-  class_obj_name?: string; 
+  class_obj_name?: string;
+  classId?: string | number; // Added for linking
 }
 
 export interface Class {
@@ -217,9 +220,24 @@ export interface UserLessonProgress {
   lesson: number;
   lesson_title: string;
   completed: boolean;
-  progress_data?: any; 
+  progress_data?: {
+    scrollPosition?: number;
+    videoTimestamp?: number;
+  };
   last_updated: string; 
 }
+
+export interface AILessonQuizAttempt {
+  id: number;
+  user: number;
+  lesson: number;
+  score: number;
+  passed: boolean;
+  quiz_data: any;
+  attempted_at: string;
+  can_reattempt_at?: string | null;
+}
+
 
 export interface Checkpoint {
   id: number;
