@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Users, BookOpenText, BarChartBig, CalendarCheck2, PlusCircle, FileText, CalendarDays, AlertTriangle, Loader2, MessageSquare, ActivityIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from '@/lib/api';
-import type { Event as EventInterface, User as UserInterface } from '@/interfaces';
+import type { Event as EventInterface, User as UserInterface, Subject as SubjectInterface } from '@/interfaces';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 
@@ -48,18 +48,12 @@ export default function TeacherDashboard() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
 
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
-  const [activitiesError, setActivitiesError] = useState<string | null>(null);
-
-
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!currentUser || !currentUser.teacher_profile?.school) {
         setIsLoadingEvents(false);
         setIsLoadingStats(false);
-        setIsLoadingActivities(false);
-        // setStatsError("Teacher profile not fully configured or not associated with a school.");
+        setStatsError("Teacher profile is not associated with a school.");
         return;
       }
       const schoolId = currentUser.teacher_profile.school;
@@ -68,9 +62,8 @@ export default function TeacherDashboard() {
       setIsLoadingEvents(true);
       setEventsError(null); 
       try {
-        const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>(`/events/?school=${schoolId}&ordering=date`);
-        let actualApiEvents: EventInterface[] = Array.isArray(eventResponse) ? eventResponse : eventResponse.results || [];
-        setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
+        const eventResponse = await api.get<EventInterface[]>(`/events/?school=${schoolId}&ordering=date`);
+        setEvents(eventResponse.filter(e => new Date(e.date) >= new Date()).slice(0, 5)); 
       } catch (err) {
         console.error("Failed to fetch events:", err);
         setEventsError(err instanceof Error ? err.message : "Failed to load events"); 
@@ -78,20 +71,20 @@ export default function TeacherDashboard() {
         setIsLoadingEvents(false);
       }
 
-      // Fetch Stats (student count, course count - placeholders for now)
+      // Fetch Stats
       setIsLoadingStats(true);
       setStatsError(null);
       try {
-        // Placeholder: In a real app, these would be separate API calls or an aggregated dashboard API
-        const studentCountData = await api.get<{ count: number } | UserInterface[]>(`/users/?role=Student&school=${schoolId}&page_size=1`);
-        const studentCount = typeof (studentCountData as { count: number }).count === 'number' ? (studentCountData as { count: number }).count : (studentCountData as UserInterface[]).length;
-        
-        // Mock other stats for now
+        const [studentCountData, subjectCountData] = await Promise.all([
+          api.get<{ count: number }>(`/users/?school=${schoolId}&role=Student&page_size=1`),
+          api.get<{ count: number }>(`/subjects/?class_obj__school=${schoolId}&page_size=1`)
+        ]);
+
         const fetchedStats: Stat[] = [
-            { title: "Total Students", value: studentCount, icon: Users, color: "text-primary", link: "/teacher/students", note: "In your classes" }, 
-            { title: "Active Courses", value: "N/A", icon: BookOpenText, color: "text-accent", link: "/teacher/content", note:"Needs API"}, 
-            { title: "Pending Reviews", value: "N/A", icon: CalendarCheck2, color: "text-orange-500", link: "#", note:"Needs API"}, 
-            { title: "Overall Performance", value: "N/A", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics", note:"Needs API"}, 
+            { title: "Total Students", value: studentCountData.count, icon: Users, color: "text-primary", link: "/teacher/students", note: "In your school" }, 
+            { title: "Active Courses", value: subjectCountData.count, icon: BookOpenText, color: "text-accent", link: "/teacher/content", note:"Subjects across all classes"}, 
+            { title: "Pending Reviews", value: 0, icon: CalendarCheck2, color: "text-orange-500", link: "#", note:"(Feature in development)"}, 
+            { title: "Overall Performance", value: "N/A", icon: BarChartBig, color: "text-green-500", link: "/teacher/analytics", note:"(Feature in development)"}, 
         ];
         setStats(fetchedStats);
       } catch (err) {
@@ -100,17 +93,6 @@ export default function TeacherDashboard() {
       } finally {
         setIsLoadingStats(false);
       }
-
-      // Fetch Recent Activities (Placeholder)
-      setIsLoadingActivities(true);
-      setActivitiesError(null);
-      // TODO: Implement API endpoint for recent student activities relevant to the teacher
-      // For now, showing a placeholder message.
-      setRecentActivities([]); // Or some mock data if you want to illustrate structure
-      setIsLoadingActivities(false);
-      // setActivitiesError("Recent activities API not yet implemented.");
-
-
     };
     fetchDashboardData();
   }, [currentUser]);
@@ -161,30 +143,8 @@ export default function TeacherDashboard() {
             <CardDescription>Overview of recent student submissions and interactions.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingActivities ? (
-                 <div className="space-y-3">
-                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-                 </div>
-            ) : activitiesError ? (
-                 <p className="text-sm text-destructive p-4 text-center"><AlertTriangle className="inline mr-1 h-4 w-4" />{activitiesError}</p>
-            ) : recentActivities.length > 0 ? ( 
-            <ul className="space-y-3">
-              {recentActivities.map((activity) => (
-                <li key={activity.id} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-md">
-                  <Users className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{new Date(activity.timestamp).toLocaleString()}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            ) : (
-                 <p className="text-sm text-muted-foreground text-center py-4">No recent student activities to display. API integration needed.</p>
-            )}
-             <Button variant="outline" className="mt-6 w-full">View All Activities (TBI)</Button>
+            <p className="text-sm text-muted-foreground text-center py-4">No recent student activities to display. (Feature in development)</p>
+            <Button variant="outline" className="mt-6 w-full" disabled>View All Activities</Button>
           </CardContent>
         </Card>
 

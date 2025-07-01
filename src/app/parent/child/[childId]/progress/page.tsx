@@ -14,21 +14,14 @@ import { TrendingUp, BookOpen, Target, CheckCircle2, Activity, CalendarClock, Lo
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { api } from '@/lib/api';
-import type { User, StudentProfileData, UserLessonProgress, UserQuizAttempt } from '@/interfaces'; // Assuming you have these
+import type { User, StudentProfileData, UserLessonProgress, UserQuizAttempt, Subject as SubjectInterface, Class as ClassInterface } from '@/interfaces'; 
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SubjectProgress {
   name: string;
-  progress: number; // Percentage
-  lastActivity: string;
-  grade: string; // e.g., "B+"
-  color?: string; // For chart
-}
-
-interface Goal {
-  id: string;
-  description: string;
-  status: "In Progress" | "Completed" | "Pending";
+  progress: number; 
+  color?: string; 
 }
 
 interface RecentActivityItem {
@@ -42,12 +35,10 @@ interface ChildProgressData {
   studentId: string;
   name: string;
   avatarUrl?: string;
-  classLevel: number | string;
+  classLevel: string;
   overallProgress: number;
   subjects: SubjectProgress[];
   recentActivities: RecentActivityItem[];
-  attendance: number; // percentage
-  goals: Goal[];
 }
 
 
@@ -70,34 +61,54 @@ export default function ChildProgressPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // TODO: Implement these API endpoints on the backend
-        // const studentProfile = await api.get<User>(`/users/${childId}/`); // Assuming this returns student profile
-        // const lessonProgress = await api.get<UserLessonProgress[]>(`/userprogress/?user=${childId}`);
-        // const quizAttempts = await api.get<UserQuizAttempt[]>(`/quizattempts/?user=${childId}`);
+        const studentUser = await api.get<User>(`/users/${childId}/`);
+        if (!studentUser || !studentUser.student_profile) {
+            throw new Error("Student profile not found.");
+        }
+
+        const lessonProgress = await api.get<UserLessonProgress[]>(`/userprogress/?user=${childId}`);
+        const quizAttempts = await api.get<UserQuizAttempt[]>(`/quizattempts/?user=${childId}`);
         
-        // Simulating fetched data for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Replace with actual data transformation once APIs are ready
-        const mockStudentData = { // Keep for structure if API fails/not ready
+        let allSubjects: SubjectInterface[] = [];
+        if (studentUser.student_profile.enrolled_class) {
+            const classDetails = await api.get<ClassInterface>(`/classes/${studentUser.student_profile.enrolled_class}/`);
+            allSubjects = classDetails.subjects || [];
+        }
+
+        const completedLessonIds = new Set(lessonProgress.filter(p => p.completed).map(p => p.lesson));
+        
+        let totalLessons = 0;
+        const subjectProgressData: SubjectProgress[] = allSubjects.map((subject, index) => {
+            const lessonsInSubject = subject.lessons || [];
+            totalLessons += lessonsInSubject.length;
+            const completedInSubject = lessonsInSubject.filter(l => completedLessonIds.has(l.id)).length;
+            const progress = lessonsInSubject.length > 0 ? Math.round((completedInSubject / lessonsInSubject.length) * 100) : 0;
+            return {
+                name: subject.name,
+                progress: progress,
+                color: `hsl(var(--chart-${(index % 5) + 1}))`
+            };
+        });
+
+        const overallProgress = totalLessons > 0 ? Math.round((completedLessonIds.size / totalLessons) * 100) : 0;
+        
+        const recentActivities: RecentActivityItem[] = quizAttempts.slice(0, 5).map(attempt => ({
+            id: String(attempt.id),
+            date: attempt.completed_at,
+            description: `Attempted Quiz: ${attempt.quiz_title}`,
+            score: `${attempt.score.toFixed(0)}%`
+        }));
+
+
+        setChildData({
             studentId: childId,
-            name: `Child ${childId} Name (Fetched)`, // studentProfile.student_profile?.full_name || studentProfile.username
-            avatarUrl: `https://placehold.co/100x100.png?text=C${childId}`, // studentProfile.student_profile?.profile_picture_url
-            classLevel: `Class ${Math.floor(Math.random() * 5) + 1}`, // studentProfile.student_profile?.enrolled_class_name
-            overallProgress: Math.floor(Math.random() * 60) + 40,
-            subjects: [
-                { name: "Mathematics", progress: Math.floor(Math.random() * 50) + 50, lastActivity: "Completed Fractions Quiz", grade: "B+", color: "hsl(var(--chart-1))" },
-                { name: "Science", progress: Math.floor(Math.random() * 50) + 50, lastActivity: "Watched 'Cell Structures'", grade: "B-", color: "hsl(var(--chart-2))" },
-            ],
-            recentActivities: [
-                {id: "ra1", date: "2024-07-20", description: "Completed Math Topic: Decimals", score: "8/10" },
-            ],
-            attendance: Math.floor(Math.random() * 10) + 90,
-            goals: [
-                { id: "g1", description: "Improve Science grade", status: "In Progress" },
-            ]
-        };
-        setChildData(mockStudentData);
-        setError("Child progress API not yet fully implemented. Displaying placeholder structure with some mocked details.");
+            name: studentUser.student_profile.full_name || studentUser.username,
+            avatarUrl: studentUser.student_profile.profile_picture_url,
+            classLevel: studentUser.student_profile.enrolled_class_name || 'N/A',
+            overallProgress: overallProgress,
+            subjects: subjectProgressData,
+            recentActivities: recentActivities,
+        });
 
       } catch (err) {
         console.error("Failed to fetch child progress:", err);
@@ -124,7 +135,7 @@ export default function ChildProgressPage() {
     );
   }
 
-  if (error && !childData) { // Only show full error if no data could be even placeholder-loaded
+  if (error) { 
     return (
          <Card className="text-center py-10 bg-destructive/10 border-destructive rounded-xl shadow-lg">
             <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><CardTitle>Error Loading Progress</CardTitle></CardHeader>
@@ -133,7 +144,7 @@ export default function ChildProgressPage() {
     );
   }
   
-  if (!childData) { // Should be caught by error state usually
+  if (!childData) {
       return <p>No progress data available for this child.</p>;
   }
 
@@ -145,13 +156,6 @@ export default function ChildProgressPage() {
 
   return (
     <div className="space-y-8">
-      {error && childData && ( // Show non-blocking error if data is at least placeholder
-         <Alert variant="warning" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Note</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
       <Card className="shadow-xl rounded-xl overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground p-6">
           <div className="flex items-center gap-4">
@@ -204,16 +208,8 @@ export default function ChildProgressPage() {
                 <CardTitle className="flex items-center"><Target className="mr-2 text-primary"/>Active Goals</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {childData.goals.map(goal => (
-                  <div key={goal.id} className="flex items-center justify-between p-3 border rounded-md bg-secondary/30">
-                    <p className="text-sm">{goal.description}</p>
-                    <Badge variant={goal.status === "Completed" ? "default" : "outline"} 
-                           className={goal.status === "Completed" ? "bg-green-500 text-white" : ""}>
-                      {goal.status}
-                    </Badge>
-                  </div>
-                ))}
-                {childData.goals.length === 0 && <p className="text-sm text-muted-foreground">No active goals set.</p>}
+                {/* Goals section can be implemented later */}
+                <p className="text-sm text-muted-foreground">No active goals set. (Feature TBI)</p>
               </CardContent>
             </Card>
           </div>
@@ -248,21 +244,6 @@ export default function ChildProgressPage() {
               </div>
             </CardContent>
           </Card>
-
-           <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center"><CalendarClock className="mr-2 text-primary"/>Attendance</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center gap-4">
-                    <Progress value={childData.attendance} aria-label="Attendance" className="h-3 flex-1" />
-                    <span className="font-semibold text-lg text-primary">{childData.attendance}%</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">School attendance for the current term.</p>
-            </CardContent>
-          </Card>
-
-
         </CardContent>
       </Card>
     </div>

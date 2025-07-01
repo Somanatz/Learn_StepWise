@@ -1,3 +1,4 @@
+
 // src/app/teacher/students/page.tsx
 'use client';
 
@@ -13,48 +14,81 @@ import { Users, PlusCircle, Search, MoreHorizontal, Eye, Edit, MessageSquare, Lo
 import Link from "next/link";
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
+import type { User, UserLessonProgress } from '@/interfaces';
 
-interface StudentFromAPI {
+interface DisplayStudent {
   id: string | number;
   username: string;
   email: string;
-  // Add other fields your API might return, e.g., classLevel, overallProgress, lastLogin
-  // For now, we'll mock these or derive them if not directly available
-  role: string; // Should be 'Student'
-  // Mocking these for now, as they might not be directly on the CustomUser model from /api/users/
-  classLevel?: number; 
-  overallProgress?: number; 
-  lastLogin?: string; 
-  avatarUrl?: string; // if available
-}
-
-interface Student extends StudentFromAPI {
-  classLevel: number; // ensure it's number
+  full_name?: string | null;
+  class_name?: string | null;
   overallProgress: number;
-  lastLogin: string;
+  lastLogin?: string; // This would require backend tracking
+  avatarUrl?: string;
 }
-
 
 export default function ManageStudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const { currentUser } = useAuth();
+  const [students, setStudents] = useState<DisplayStudent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
+        if (!currentUser || !currentUser.teacher_profile?.school) {
+            setError("Cannot load students: teacher is not associated with a school.");
+            setIsLoading(false);
+            return;
+        }
+
       setIsLoading(true);
       setError(null);
       try {
-        const data: StudentFromAPI[] = await api.get<StudentFromAPI[]>('/users/?role=Student');
-        // Transform API data if necessary, e.g., for missing fields like classLevel, progress
-        const transformedData = data.map(s => ({
-          ...s,
-          classLevel: s.classLevel || 0, // Placeholder if not in API response
-          overallProgress: s.overallProgress || 0, // Placeholder
-          lastLogin: s.lastLogin || 'N/A', // Placeholder
-        }));
-        setStudents(transformedData);
+        const schoolId = currentUser.teacher_profile.school;
+        // Fetch all students for the school
+        const usersData = await api.get<User[]>(`/users/?school=${schoolId}&role=Student&page_size=1000`);
+        
+        // This is inefficient for large schools. A dedicated summary endpoint would be better.
+        // For now, fetching all progress for all students in the school.
+        const allProgressData = await api.get<UserLessonProgress[]>(`/userprogress/?lesson__subject__class_obj__school=${schoolId}`);
+        const allLessonsData = await api.get<any[]>(`/lessons/?subject__class_obj__school=${schoolId}`);
+
+        const progressByUser = new Map<number, number[]>();
+        allProgressData.forEach(p => {
+            if (p.completed) {
+                if (!progressByUser.has(p.user)) progressByUser.set(p.user, []);
+                progressByUser.get(p.user)?.push(p.lesson);
+            }
+        });
+        
+        const totalLessonsByUser = new Map<number, number>();
+        usersData.forEach(user => {
+            if (user.student_profile?.enrolled_class) {
+                const classLessons = allLessonsData.filter(l => String(l.subject.class_obj) === String(user.student_profile?.enrolled_class));
+                totalLessonsByUser.set(user.id, classLessons.length);
+            }
+        });
+
+        const transformedStudents: DisplayStudent[] = usersData.map(user => {
+            const completedCount = progressByUser.get(user.id)?.length || 0;
+            const totalLessons = totalLessonsByUser.get(user.id) || 0;
+            const overallProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+            return {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                full_name: user.student_profile?.full_name,
+                class_name: user.student_profile?.enrolled_class_name,
+                overallProgress: overallProgress,
+                avatarUrl: user.student_profile?.profile_picture_url,
+                lastLogin: 'N/A', // This requires backend implementation
+            };
+        });
+
+        setStudents(transformedStudents);
       } catch (err) {
         console.error("Failed to fetch students:", err);
         setError(err instanceof Error ? err.message : "Failed to load student data.");
@@ -63,10 +97,10 @@ export default function ManageStudentsPage() {
       }
     };
     fetchStudents();
-  }, []);
+  }, [currentUser]);
 
   const filteredStudents = students.filter(student =>
-    student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (student.full_name || student.username).toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -126,12 +160,12 @@ export default function ManageStudentsPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
                             <AvatarImage src={student.avatarUrl} alt={student.username} data-ai-hint="student avatar"/>
-                            <AvatarFallback>{student.username.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>{(student.full_name || student.username).split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{student.username}</span>
+                          <span className="font-medium">{student.full_name || student.username}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-center">{student.classLevel || 'N/A'}</TableCell>
+                      <TableCell className="hidden md:table-cell text-center">{student.class_name || 'N/A'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">{student.email}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={student.overallProgress > 70 ? "default" : "secondary"} className={student.overallProgress > 85 ? "bg-green-500 hover:bg-green-600 text-white" : student.overallProgress < 60 ? "bg-red-500 hover:bg-red-600 text-white" : ""}>
@@ -148,9 +182,7 @@ export default function ManageStudentsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/teacher/students/${student.id}/view`}><Eye className="mr-2 h-4 w-4" /> View Profile</Link>
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => alert('Feature TBI')}><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => alert(`Edit student ${student.id} - TBI`)}><Edit className="mr-2 h-4 w-4" /> Edit Details</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => alert(`Message student ${student.id} - TBI`)}><MessageSquare className="mr-2 h-4 w-4" /> Send Message</DropdownMenuItem>
                           </DropdownMenuContent>

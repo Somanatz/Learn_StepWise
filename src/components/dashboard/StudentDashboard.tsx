@@ -54,7 +54,6 @@ export default function StudentDashboard() {
   const [classData, setClassData] = useState<ClassLevelDisplay[]>([]);
   const [books, setBooks] = useState<BookInterface[]>([]);
   const [events, setEvents] = useState<EventInterface[]>([]);
-  const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([]);
   const [totalSubjects, setTotalSubjects] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -84,15 +83,13 @@ export default function StudentDashboard() {
         }
         
         const [classResponse, progressResponse] = await Promise.all([
-           api.get<ApiClass[] | { results: ApiClass[] }>(classesUrl),
-           api.get<UserLessonProgress[] | { results: UserLessonProgress[] }>(`/userprogress/?user=${currentUser.id}&page_size=1000`)
+           api.get<ApiClass[]>(classesUrl),
+           api.get<UserLessonProgress[]>(`/userprogress/?user=${currentUser.id}`)
         ]);
 
-        const actualApiClasses: ApiClass[] = Array.isArray(classResponse) ? classResponse : classResponse.results || [];
-        const actualProgress: UserLessonProgress[] = Array.isArray(progressResponse) ? progressResponse : progressResponse.results || [];
-        setLessonProgress(actualProgress);
+        const completedLessonIds = new Set(progressResponse.filter(p => p.completed).map(p => p.lesson));
 
-        const transformedClassData: ClassLevelDisplay[] = actualApiClasses
+        const transformedClassData: ClassLevelDisplay[] = classResponse
         .filter(apiClass => currentUser.student_profile?.enrolled_class ? String(apiClass.id) === String(currentUser.student_profile.enrolled_class) : true)
         .map(apiClass => {
           const levelMatch = apiClass.name.match(/\d+/);
@@ -101,7 +98,7 @@ export default function StudentDashboard() {
           const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => {
              const lessonsInSubject = apiSub.lessons || [];
              const completedLessonsCount = lessonsInSubject.filter(lesson => 
-                actualProgress.some(p => String(p.lesson) === String(lesson.id) && p.completed)
+                completedLessonIds.has(lesson.id)
              ).length;
              const progressPercentage = lessonsInSubject.length > 0 ? (completedLessonsCount / lessonsInSubject.length) * 100 : 0;
 
@@ -137,9 +134,8 @@ export default function StudentDashboard() {
       setIsLoadingBooks(true);
       setBooksError(null);
       try {
-          const bookResponse = await api.get<BookInterface[] | { results: BookInterface[] }>('/books/');
-          const actualApiBooks: BookInterface[] = Array.isArray(bookResponse) ? bookResponse : bookResponse.results || [];
-          setBooks(actualApiBooks.slice(0, 3)); 
+          const bookResponse = await api.get<BookInterface[]>('/books/');
+          setBooks(bookResponse.slice(0, 3)); 
       } catch (bookErr) {
           console.error("Failed to fetch books:", bookErr);
           setBooksError(bookErr instanceof Error ? bookErr.message : "Failed to load books");
@@ -150,9 +146,8 @@ export default function StudentDashboard() {
       setIsLoadingEvents(true);
       setEventsError(null);
       try {
-          const eventResponse = await api.get<EventInterface[] | { results: EventInterface[] }>('/events/?ordering=date');
-          const actualApiEvents: EventInterface[] = Array.isArray(eventResponse) ? eventResponse : eventResponse.results || [];
-          setEvents(actualApiEvents.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
+          const eventResponse = await api.get<EventInterface[]>('/events/?ordering=date');
+          setEvents(eventResponse.filter(e => new Date(e.date) >= new Date()).slice(0, 3));
       } catch (eventErr) {
           console.error("Failed to fetch events:", eventErr);
           setEventsError(eventErr instanceof Error ? eventErr.message : "Failed to load events");
