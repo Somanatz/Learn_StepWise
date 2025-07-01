@@ -1,11 +1,10 @@
-
 // src/app/student/learn/class/[classId]/subject/[subjectId]/lesson/[lessonId]/page.tsx
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { Lesson as LessonInterface, Question as QuestionInterface, Choice as ChoiceInterface, Quiz as QuizInterface } from '@/interfaces';
+import type { Lesson as LessonInterface, Question as QuestionInterface, Choice as ChoiceInterface, Quiz as QuizInterface, LessonSummary, UserLessonProgress } from '@/interfaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,11 +16,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
-import { FormItem, FormControl } from '@/components/ui/form'; // Added for RadioGroupItem context
-import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-
+import { FormItem, FormControl } from '@/components/ui/form';
+import { Textarea } from "@/components/ui/textarea"; 
+import Link from 'next/link';
 
 interface QuizAttemptPayload {
   answers: { question_id: string | number; choice_id: string | number }[];
@@ -32,7 +29,6 @@ interface QuizSubmissionResult {
   score: number;
   passed: boolean;
   quiz_title: string;
-  // ... other fields from UserQuizAttemptSerializer
 }
 
 export default function LessonPage() {
@@ -43,10 +39,11 @@ export default function LessonPage() {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const lessonId = params.lessonId as string;
-  const subjectId = params.subjectId as string; // For navigation or fetching next lesson
+  const subjectId = params.subjectId as string;
   const classId = params.classId as string;
 
   const [lesson, setLesson] = useState<LessonInterface | null>(null);
+  const [subjectLessons, setSubjectLessons] = useState<LessonSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string | number, string | number>>({});
@@ -54,42 +51,54 @@ export default function LessonPage() {
   const [quizResult, setQuizResult] = useState<QuizSubmissionResult | null>(null);
   const [showSimplified, setShowSimplified] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [progress, setProgress] = useState(0); // Lesson content scroll progress
+  const [progress, setProgress] = useState(0);
 
-  const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
-  const [checkpointName, setCheckpointName] = useState("");
-
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   useEffect(() => {
-    if (!lessonId) return;
+    if (!lessonId || !subjectId || !currentUser) return;
     setIsLoading(true);
     setError(null);
-    setQuizResult(null); // Reset quiz result when lesson changes
+    setQuizResult(null);
     setSelectedAnswers({});
     setShowSimplified(false);
 
-    const fetchLessonDetails = async () => {
+    const fetchLessonData = async () => {
       try {
-        const lessonData = await api.get<LessonInterface>(`/lessons/${lessonId}/`);
+        const [lessonData, allLessonsData, progressData] = await Promise.all([
+          api.get<LessonInterface>(`/lessons/${lessonId}/`),
+          api.get<LessonSummary[] | {results: LessonSummary[]}>(`/lessons/?subject=${subjectId}`),
+          api.get<UserLessonProgress[] | {results: UserLessonProgress[]}>(`/userprogress/?user=${currentUser.id}&lesson=${lessonId}`)
+        ]);
+
         setLesson(lessonData);
+        const lessonsList = Array.isArray(allLessonsData) ? allLessonsData : allLessonsData.results || [];
+        setSubjectLessons(lessonsList.sort((a,b) => (a.lesson_order || 0) - (b.lesson_order || 0)));
+
+        const currentProgress = Array.isArray(progressData) ? progressData[0] : (progressData.results || [])[0];
+        if (currentProgress) {
+          setIsCompleted(currentProgress.completed);
+        }
+
       } catch (err) {
-        console.error("Failed to fetch lesson details:", err);
+        console.error("Failed to fetch lesson data:", err);
         setError(err instanceof Error ? err.message : "Failed to load lesson data.");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchLessonDetails();
-  }, [lessonId]);
+    fetchLessonData();
+  }, [lessonId, subjectId, currentUser]);
 
-  // Scroll progress
+  // Scroll progress effect
   useEffect(() => {
     const contentElement = contentRef.current;
     if (!contentElement) return;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = contentElement;
-      if (scrollHeight - clientHeight <= 0) { // Avoid division by zero if content is not scrollable
+      if (scrollHeight <= clientHeight) {
         setProgress(100);
         return;
       }
@@ -97,14 +106,33 @@ export default function LessonPage() {
       setProgress(Math.min(100, Math.max(0, currentProgress)));
     };
     contentElement.addEventListener('scroll', handleScroll);
-    // Call handleScroll once initially to set progress for non-scrolling content
     handleScroll();
     return () => contentElement.removeEventListener('scroll', handleScroll);
   }, [lesson]);
 
-
   const handleAnswerChange = (questionId: string | number, choiceId: string | number) => {
     setSelectedAnswers(prev => ({ ...prev, [questionId]: choiceId }));
+  };
+
+  const handleMarkAsComplete = async () => {
+      if (!currentUser || isCompleted) return;
+      setIsMarkingComplete(true);
+      try {
+        await api.post(`/userprogress/`, { lesson_id: lessonId, completed: true });
+        toast({
+          title: "Lesson Complete!",
+          description: "Great work! Your progress has been saved.",
+        });
+        setIsCompleted(true);
+      } catch (err: any) {
+        toast({
+          title: "Error Saving Progress",
+          description: err.message || "Could not mark lesson as complete.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsMarkingComplete(false);
+      }
   };
 
   const handleSubmitQuiz = async () => {
@@ -124,17 +152,14 @@ export default function LessonPage() {
       setQuizResult(result);
       toast({
         title: `Quiz Submitted: ${result.quiz_title}`,
-        description: `You scored ${result.score.toFixed(0)}%. ${result.passed ? "Congratulations, you passed!" : "You didn't pass this time. Try the simplified content or review the lesson."}`,
+        description: `You scored ${result.score.toFixed(0)}%. ${result.passed ? "Congratulations, you passed!" : "You didn't pass this time. Review the lesson and try again."}`,
         variant: result.passed ? "default" : "destructive",
       });
-      if (!result.passed && lesson.simplified_content) {
+      if (result.passed) {
+        handleMarkAsComplete(); // Mark lesson as complete if quiz is passed
+      } else if (lesson.simplified_content) {
         setShowSimplified(true);
       }
-      // Update lesson progress if quiz passed
-      if (result.passed) {
-          await api.post(`/userprogress/`, {lesson_id: lessonId, completed: true});
-      }
-
     } catch (err: any) {
       toast({ title: "Quiz Submission Failed", description: err.message || "Could not submit quiz.", variant: "destructive" });
     } finally {
@@ -151,47 +176,11 @@ export default function LessonPage() {
     }
     setIsFullScreen(!isFullScreen);
   };
-  
-  const handleSaveCheckpoint = async () => {
-    if (!lessonId || !checkpointName.trim()) {
-      toast({ title: "Error", description: "Checkpoint name cannot be empty.", variant: "destructive" });
-      return;
-    }
-
-    const currentScrollPosition = contentRef.current?.scrollTop || 0;
-    
-    const payload = {
-      lesson_id: lessonId,
-      name: checkpointName.trim(),
-      progress_data: {
-        scrollPosition: currentScrollPosition
-      }
-    };
-
-    try {
-      await api.post('/checkpoints/', payload);
-      toast({
-        title: "Checkpoint Saved!",
-        description: `Your progress for "${checkpointName}" has been saved.`,
-      });
-      setIsCheckpointDialogOpen(false);
-      setCheckpointName("");
-    } catch (err: any) {
-      toast({
-        title: "Failed to Save Checkpoint",
-        description: err.message || "An unknown error occurred.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // TODO: Fetch next/previous lesson for navigation
-  // const navigateLesson = (direction: 'next' | 'prev') => { /* ... */ };
 
   if (isLoading) {
     return (
       <div className="space-y-6 p-4">
-        <Skeleton className="h-10 w-1/4" /> 
+        <Skeleton className="h-10 w-1/4" />
         <Skeleton className="h-16 w-3/4" />
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-48 w-full" />
@@ -211,32 +200,13 @@ export default function LessonPage() {
   if (!lesson) return <p>Lesson not found.</p>;
 
   const displayContent = showSimplified && lesson.simplified_content ? lesson.simplified_content : lesson.content;
+  
+  const currentLessonIndex = subjectLessons.findIndex(l => String(l.id) === lessonId);
+  const previousLesson = currentLessonIndex > 0 ? subjectLessons[currentLessonIndex - 1] : null;
+  const nextLesson = currentLessonIndex < subjectLessons.length - 1 ? subjectLessons[currentLessonIndex + 1] : null;
 
   return (
     <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto p-4 md:p-8' : ''}`}>
-      <Dialog open={isCheckpointDialogOpen} onOpenChange={setIsCheckpointDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save Checkpoint</DialogTitle>
-            <DialogDescription>
-              Give this checkpoint a name so you can easily return to this spot later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="checkpoint-name">Checkpoint Name</Label>
-            <Input
-              id="checkpoint-name"
-              value={checkpointName}
-              onChange={(e) => setCheckpointName(e.target.value)}
-              placeholder={`e.g., Chapter 1 Summary`}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCheckpointDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveCheckpoint} disabled={!checkpointName}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="flex justify-between items-center">
           <Button variant="outline" onClick={() => router.push(`/student/learn/class/${classId}/subject/${subjectId}`)} className="mb-2">
               <ChevronLeft className="mr-2 h-4 w-4" /> Back to Subject
@@ -260,9 +230,6 @@ export default function LessonPage() {
                           <Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}
                       </Button>
                   )}
-                  <Button variant="outline" size="icon" onClick={() => setIsCheckpointDialogOpen(true)} title="Save Checkpoint">
-                    <Bookmark className="h-5 w-5" />
-                  </Button>
                   <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
                       {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
                   </Button>
@@ -273,7 +240,6 @@ export default function LessonPage() {
             <div className="relative">
                 <Progress value={progress} className="absolute top-0 left-0 w-full h-1.5 z-10" />
                 <div id="lesson-content-area" ref={contentRef} className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-220px)]' : 'max-h-[60vh]' } p-4 md:p-6 rounded-md border bg-muted/30`}>
-                  {/* Assuming content might be HTML, otherwise use <p> or Markdown renderer */}
                   <div dangerouslySetInnerHTML={{ __html: displayContent || '<p>No content available.</p>' }} />
                   {lesson.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}
                   {lesson.audio_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Audio:</h4><audio src={lesson.audio_url} controls className="w-full"></audio></div>}
@@ -281,12 +247,12 @@ export default function LessonPage() {
                 </div>
             </div>
           
-          {lesson.quiz && !quizResult?.passed && ( // Show quiz if it exists and not passed yet
+          {lesson.quiz && !quizResult?.passed && (
             <>
             <Separator className="my-8" />
             <Card className="bg-secondary/70 border-primary/30 rounded-xl shadow-lg">
               <CardHeader className="p-6">
-                <CardTitle className="text-xl md:text-2xl text-primary flex items-center"><HelpCircle className="mr-2"/>{lesson.quiz.title}</CardTitle>
+                <CardTitle className="text-xl md:text-2xl text-primary flex items-center"><BookOpen className="mr-2"/>{lesson.quiz.title}</CardTitle>
                 <CardDescription className="text-foreground/80">{lesson.quiz.description || "Test your understanding of this lesson."} (Pass Mark: {lesson.quiz.pass_mark_percentage || 70}%)</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
@@ -332,34 +298,30 @@ export default function LessonPage() {
           )}
 
         </CardContent>
-        <CardFooter className="p-6 md:p-8 flex justify-between items-center border-t">
-          {/* Placeholder for Prev/Next Lesson buttons */}
-          <Button variant="outline" disabled>Previous Lesson</Button>
-          <Button variant="default" onClick={async () => { 
-              // Mark lesson as complete if not already done by quiz
-              if (!quizResult?.passed) { // Or if no quiz, mark complete on clicking next
-                  try {
-                     await api.post(`/userprogress/`, {lesson_id: lessonId, completed: true});
-                     toast({title: "Progress Saved", description: "Lesson marked as viewed."});
-                  } catch (e) { console.error("Failed to save progress", e); }
-              }
-              // Navigate to next lesson (implement this logic)
-              alert("Next Lesson functionality to be implemented.");
-           }}>
-            Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
+        <CardFooter className="p-6 md:p-8 flex justify-between items-center border-t bg-muted/50">
+          <Button variant="outline" asChild disabled={!previousLesson}>
+              <Link href={previousLesson ? `/student/learn/class/${classId}/subject/${subjectId}/lesson/${previousLesson.id}` : '#'}>
+                  <ChevronLeft className="mr-2 h-4 w-4" /> Previous Lesson
+              </Link>
+          </Button>
+          
+          {isCompleted ? (
+              <Button variant="secondary" disabled className="text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="mr-2 h-4 w-4"/> Completed
+              </Button>
+          ) : (
+              <Button onClick={handleMarkAsComplete} disabled={isMarkingComplete} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white">
+                  {isMarkingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                   Mark as Complete
+              </Button>
+          )}
+
+          <Button variant="default" asChild disabled={!nextLesson || nextLesson.is_locked}>
+              <Link href={nextLesson ? `/student/learn/class/${classId}/subject/${subjectId}/lesson/${nextLesson.id}` : '#'}>
+                  Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
+              </Link>
           </Button>
         </CardFooter>
-      </Card>
-       <Card className="rounded-xl shadow-lg">
-        <CardHeader className="p-6">
-            <CardTitle className="flex items-center text-xl md:text-2xl"><BookOpen className="mr-2 h-5 w-5 text-primary"/> AI Note Taker</CardTitle>
-            <CardDescription>Enter your notes about this lesson. Our AI will help summarize them later.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-            {/* TODO: Note taking component that calls /api/ai/notes/ */}
-            <Textarea placeholder="Start typing your notes here..." rows={5} className="mb-3 text-base"/>
-            <Button onClick={() => alert("Save notes - TBI")} className="w-full sm:w-auto">Save Notes</Button>
-        </CardContent>
       </Card>
     </div>
   );
