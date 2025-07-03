@@ -14,7 +14,6 @@ from .serializers import (
     RewardSerializer, UserRewardSerializer, CheckpointSerializer, AILessonQuizAttemptSerializer,
     UserNoteSerializer, TranslatedLessonContentSerializer
 )
-from .filters import UserLessonProgressFilter
 from accounts.permissions import IsTeacher, IsTeacherOrReadOnly, IsStudent, IsParent
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend 
@@ -27,7 +26,7 @@ from rest_framework.exceptions import PermissionDenied, NotFound, ValidationErro
 
 
 class ClassViewSet(viewsets.ModelViewSet):
-    queryset = Class.objects.all().select_related('school').prefetch_related('subjects__lessons')
+    queryset = Class.objects.all().select_related('school')
     serializer_class = ClassSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] 
     filter_backends = [DjangoFilterBackend]
@@ -53,11 +52,11 @@ class ClassViewSet(viewsets.ModelViewSet):
 
 
 class SubjectViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.all().select_related('class_obj', 'class_obj__school').prefetch_related('lessons')
+    queryset = Subject.objects.all().select_related('class_obj', 'class_obj__school')
     serializer_class = SubjectSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['class_obj', 'name', 'class_obj__school']
+    filterset_fields = ['class_obj', 'name']
 
     def get_serializer_context(self):
         return {'request': self.request, **super().get_serializer_context()}
@@ -85,7 +84,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['subject', 'subject__class_obj', 'title', 'subject__class_obj__school']
+    filterset_fields = ['subject', 'subject__class_obj', 'title']
 
     def get_queryset(self):
         return Lesson.objects.all().select_related('subject', 'subject__class_obj').order_by('subject__class_obj__id', 'subject__id', 'lesson_order')
@@ -109,6 +108,20 @@ class LessonViewSet(viewsets.ModelViewSet):
         if not can_create:
             raise PermissionDenied("You do not have permission to create lessons for this subject/class/school.")
         serializer.save()
+
+
+    @action(detail=True, methods=['post'], permission_classes=[IsTeacher | IsAdminUser])
+    def simplify_content(self, request, pk=None):
+        lesson = self.get_object()
+        simplified_text = request.data.get('simplified_text', None)
+        if simplified_text:
+            lesson.simplified_content = simplified_text
+        elif lesson.content:
+            lesson.simplified_content = "Simplified (AI Placeholder): " + lesson.content[:100] + "..." 
+        else:
+            return Response({"error": "Lesson content is empty or no simplified text provided."}, status=status.HTTP_400_BAD_REQUEST)
+        lesson.save()
+        return Response(LessonSerializer(lesson, context=self.get_serializer_context()).data)
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -253,7 +266,7 @@ class UserLessonProgressViewSet(viewsets.ModelViewSet):
     serializer_class = UserLessonProgressSerializer
     permission_classes = [IsAuthenticated] 
     filter_backends = [DjangoFilterBackend]
-    filterset_class = UserLessonProgressFilter
+    filterset_fields = ['lesson', 'lesson__subject', 'lesson__subject__class_obj', 'user', 'completed']
 
     def get_queryset(self):
         user = self.request.user
@@ -307,7 +320,14 @@ class ProcessedNoteViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        original_notes = serializer.validated_data.get('original_notes')
+        processed_output = f"AI Processed Output (Placeholder): {original_notes[:50]}..." if original_notes else "No notes to process."
+        serializer.save(user=self.request.user, processed_output=processed_output)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def export_email(self, request, pk=None):
+        note = self.get_object()
+        return Response({"message": f"Email export for note '{note.id}' requested (placeholder)."}, status=status.HTTP_200_OK)
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -364,7 +384,6 @@ def ai_note_taking(request):
     if not notes_input:
         return Response({'error': 'No notes provided'}, status=status.HTTP_400_BAD_REQUEST)
     
-    # This should be replaced with a call to a Genkit flow
     processed_notes_result = f"AI Processed Output (Placeholder): {notes_input[:50]}..."
     
     lesson = None
@@ -536,6 +555,7 @@ class TranslatedLessonContentViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You do not have permission to add translations.")
         serializer.save()
 
+# AI-specific views
 @api_view(['POST'])
 @dec_permission_classes([IsAuthenticated])
 def ai_summarize_lesson(request):
@@ -550,10 +570,13 @@ def ai_summarize_lesson(request):
         # For now, using a placeholder
         summary_placeholder = f"<h3>Summary for {lesson.title}</h3><p>This is an AI-generated summary placeholder. Key topics include: ...</p>"
         
-        # This view should probably return the summary, and frontend saves it to a note if desired.
-        # Saving it to ProcessedNote automatically might not be the desired UX.
-        # For now, just returning the summary.
-        return Response({'summary': summary_placeholder}, status=status.HTTP_200_OK)
+        # Save to ProcessedNote model
+        note, created = ProcessedNote.objects.update_or_create(
+            user=request.user,
+            lesson=lesson,
+            defaults={'original_notes': lesson.content, 'processed_output': summary_placeholder}
+        )
+        return Response(ProcessedNoteSerializer(note).data, status=status.HTTP_200_OK)
 
     except Lesson.DoesNotExist:
         return Response({'error': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -573,7 +596,7 @@ def ai_translate_lesson(request):
         # For now, using a placeholder
         translation_placeholder = f"<h3>{lesson.title} (Translated to {language})</h3><p>This is a placeholder for the translated content of the lesson.</p>"
 
-        # Check if translation exists, otherwise create/update it
+        # Save to TranslatedLessonContent model
         translation, created = TranslatedLessonContent.objects.update_or_create(
             lesson=lesson,
             language_code=language,

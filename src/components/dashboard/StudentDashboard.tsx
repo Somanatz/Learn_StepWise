@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import ClassSection from '@/components/dashboard/ClassSection';
-import type { Class as ClassInterfaceFull, Subject as SubjectInterfaceFull, Book as BookInterface, Event as EventInterface, UserLessonProgress, Subject as SubjectDisplay } from '@/interfaces'; // Renamed for clarity
+import type { Class as ClassInterface, Subject as SubjectInterfaceFull, Book as BookInterface, Event as EventInterface, UserLessonProgress, Subject as SubjectDisplay } from '@/interfaces'; // Renamed for clarity
 import { BookOpen, Calculator, FlaskConical, Globe, Library, CalendarDays, Loader2, AlertTriangle, FileText, Music, Palette, Brain, Users, Award, Lightbulb, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -42,6 +42,7 @@ interface ApiLesson { id: string | number; title: string; is_locked?: boolean; l
 interface ApiSubject {
   id: string | number; name: string; description: string;
   lessons: ApiLesson[]; class_obj_name?: string; class_obj: string | number;
+  progress: number;
 }
 interface ApiClass {
   id: string | number; name: string; description?: string;
@@ -82,12 +83,7 @@ export default function StudentDashboard() {
           classesUrl = `/classes/?school=${currentUser.student_profile.school}`;
         }
         
-        const [classResponse, progressResponse] = await Promise.all([
-           api.get<ApiClass[]>(classesUrl),
-           api.get<UserLessonProgress[]>(`/userprogress/?user=${currentUser.id}`)
-        ]);
-
-        const completedLessonIds = new Set(progressResponse.filter(p => p.completed).map(p => p.lesson));
+        const classResponse = await api.get<ApiClass[]>(classesUrl);
 
         const transformedClassData: ClassLevelDisplay[] = classResponse
         .filter(apiClass => currentUser.student_profile?.enrolled_class ? String(apiClass.id) === String(currentUser.student_profile.enrolled_class) : true)
@@ -96,17 +92,11 @@ export default function StudentDashboard() {
           const level = levelMatch ? parseInt(levelMatch[0], 10) : 0; 
           
           const subjects: SubjectDisplay[] = (apiClass.subjects || []).map((apiSub: ApiSubject) => {
-             const lessonsInSubject = apiSub.lessons || [];
-             const completedLessonsCount = lessonsInSubject.filter(lesson => 
-                completedLessonIds.has(lesson.id)
-             ).length;
-             const progressPercentage = lessonsInSubject.length > 0 ? (completedLessonsCount / lessonsInSubject.length) * 100 : 0;
-
             return {
               id: String(apiSub.id), name: apiSub.name, icon: getIconForSubject(apiSub.name),
               description: apiSub.description, 
-              lessonsCount: lessonsInSubject.length,
-              progress: progressPercentage,
+              lessonsCount: (apiSub.lessons || []).length,
+              progress: apiSub.progress,
               href: `/student/learn/class/${apiClass.id}/subject/${apiSub.id}`,
               is_locked: apiSub.lessons?.some(l => l.is_locked), 
               bgColor: "bg-primary", textColor: "text-primary-foreground",

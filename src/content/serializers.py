@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint, AILessonQuizAttempt
+from .models import Class, Subject, Lesson, Quiz, Question, Choice, UserLessonProgress, ProcessedNote, Book, UserQuizAttempt, Reward, UserReward, Checkpoint, AILessonQuizAttempt, UserNote, TranslatedLessonContent
 from accounts.models import School # Import School model
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -134,12 +134,31 @@ class SubjectSerializer(serializers.ModelSerializer):
     lessons = LessonSerializer(many=True, read_only=True, context={'request': serializers.CurrentUserDefault()}) 
     class_obj_id = serializers.PrimaryKeyRelatedField(source='class_obj', queryset=Class.objects.all(), write_only=True) # Changed for write
     class_obj_name = serializers.CharField(source='class_obj.name', read_only=True)
+    progress = serializers.SerializerMethodField()
 
 
     class Meta:
         model = Subject
-        fields = ['id', 'class_obj', 'class_obj_id', 'class_obj_name', 'name', 'description', 'lessons']
+        fields = ['id', 'class_obj', 'class_obj_id', 'class_obj_name', 'name', 'description', 'lessons', 'progress']
         read_only_fields = ['class_obj']
+
+    def get_progress(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return 0
+
+        user = request.user
+        total_lessons = obj.lessons.count()
+        if total_lessons == 0:
+            return 0
+        
+        completed_lessons_count = UserLessonProgress.objects.filter(
+            user=user,
+            lesson__subject=obj,
+            completed=True
+        ).count()
+        
+        return (completed_lessons_count / total_lessons) * 100 if total_lessons > 0 else 0
 
 
 class ClassSerializer(serializers.ModelSerializer):
@@ -253,3 +272,18 @@ class AILessonQuizAttemptSerializer(serializers.ModelSerializer):
         model = AILessonQuizAttempt
         fields = ['id', 'user', 'lesson', 'lesson_id', 'score', 'passed', 'quiz_data', 'attempted_at', 'can_reattempt_at']
         read_only_fields = ['user', 'attempted_at', 'can_reattempt_at'] # User is set from request, others are set by logic
+
+class UserNoteSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = UserNote
+        fields = ['id', 'user', 'lesson', 'notes', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
+        
+class TranslatedLessonContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TranslatedLessonContent
+        fields = '__all__'
+        read_only_fields = ['created_at']
+

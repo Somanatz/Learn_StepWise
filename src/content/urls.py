@@ -5,7 +5,8 @@ from .views import (
     ClassViewSet, SubjectViewSet, LessonViewSet, QuizViewSet, QuestionViewSet, ChoiceViewSet, 
     dictionary_lookup, BookViewSet, UserLessonProgressViewSet, ai_note_taking, 
     ProcessedNoteViewSet, UserQuizAttemptViewSet, RewardViewSet, UserRewardViewSet, CheckpointViewSet,
-    AILessonQuizAttemptViewSet, UserNoteViewSet, TranslatedLessonContentViewSet
+    AILessonQuizAttemptViewSet, UserNoteViewSet, TranslatedLessonContentViewSet,
+    ai_summarize_lesson, ai_translate_lesson
 )
 
 router = DefaultRouter()
@@ -31,4 +32,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('ai/notes/', ai_note_taking, name='ai_note_taking'),
     path('dictionary/', dictionary_lookup, name='dictionary_lookup'),
+    path('ai/notes/summarize/', ai_summarize_lesson, name='ai_summarize_lesson'),
+    path('ai/translate/', ai_translate_lesson, name='ai_translate_lesson'),
 ]
