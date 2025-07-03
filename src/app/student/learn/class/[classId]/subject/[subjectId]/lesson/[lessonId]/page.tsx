@@ -30,11 +30,9 @@ import { translateContent } from '@/ai/flows/translate-content-flow';
 
 const PASSING_SCORE = 75;
 const SUPPORTED_LANGUAGES = [
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
+  { code: 'te', name: 'Telugu' },
   { code: 'hi', name: 'Hindi' },
-  { code: 'ja', name: 'Japanese' },
+  { code: 'ta', name: 'Tamil' },
 ];
 
 export default function LessonPage() {
@@ -74,7 +72,7 @@ export default function LessonPage() {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState<string>('es');
+  const [targetLanguage, setTargetLanguage] = useState<string>('te');
 
 
   const fetchLessonData = useCallback(async () => {
@@ -186,7 +184,7 @@ export default function LessonPage() {
     const quizDataPayload = { questions: quizQuestions.map((q, i) => ({ ...q, user_answer: userAnswers[i] || "" })) };
     
     try {
-        await api.post('/ai-quiz-attempts/', { lesson_id: lessonId, score: score, passed: passed, quiz_data: quizDataPayload });
+        await api.post('/ai-quiz-attempts/', { lesson: lessonId, score: score, passed: passed, quiz_data: quizDataPayload });
         if (passed) {
             await handleMarkAsComplete(true);
             setHasPassedQuiz(true);
