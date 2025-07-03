@@ -93,7 +93,7 @@ export default function SchoolAdminLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="p-4 md:p-8 bg-background min-h-full">
+        <div className="p-4 sm:p-6 md:p-8 bg-background min-h-full">
           {children}
         </div>
       </SidebarInset>

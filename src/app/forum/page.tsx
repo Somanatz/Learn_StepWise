@@ -57,46 +57,48 @@ export default function ForumPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <header className="py-10 bg-gradient-to-r from-accent to-blue-600 text-center rounded-xl shadow-xl">
-        <MessageSquare className="mx-auto h-16 w-16 text-primary-foreground mb-4" />
-        <h1 className="text-4xl font-bold text-primary-foreground">GenAI-Campus Community Forum</h1>
-        <p className="text-lg mt-2 text-primary-foreground/90 max-w-2xl mx-auto">
-          Connect, discuss, and learn together. Ask questions, share insights, and help fellow GenAI-Campus users.
-        </p>
-      </header>
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-8">
+        <header className="py-10 bg-gradient-to-r from-accent to-blue-600 text-center rounded-xl shadow-xl">
+          <MessageSquare className="mx-auto h-16 w-16 text-primary-foreground mb-4" />
+          <h1 className="text-4xl font-bold text-primary-foreground">GenAI-Campus Community Forum</h1>
+          <p className="text-lg mt-2 text-primary-foreground/90 max-w-2xl mx-auto">
+            Connect, discuss, and learn together. Ask questions, share insights, and help fellow GenAI-Campus users.
+          </p>
+        </header>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="relative w-full md:w-1/2 lg:w-1/3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input type="search" placeholder="Search forum threads..." className="pl-10 h-10 text-base" />
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="relative w-full md:w-1/2 lg:w-1/3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input type="search" placeholder="Search forum threads..." className="pl-10 h-10 text-base" />
+          </div>
+          <Button size="lg" onClick={() => alert("Create new thread - TBI")}>
+            <PlusCircle className="mr-2 h-5 w-5" /> Start New Thread
+          </Button>
         </div>
-        <Button size="lg" onClick={() => alert("Create new thread - TBI")}>
-          <PlusCircle className="mr-2 h-5 w-5" /> Start New Thread
-        </Button>
+
+        <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
+            <TabsTrigger value="all">All Threads</TabsTrigger>
+            <TabsTrigger value="general">General Discussion</TabsTrigger>
+            <TabsTrigger value="help">Subject Help</TabsTrigger>
+            <TabsTrigger value="announcements">Announcements</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all">
+            <ThreadList threads={threads} isLoading={isLoading} error={error} />
+          </TabsContent>
+          <TabsContent value="general">
+            <ThreadList threads={threads.filter(t => t.category_name === "General Discussion")} isLoading={isLoading} error={error} />
+          </TabsContent>
+          <TabsContent value="help">
+            <ThreadList threads={threads.filter(t => t.category_name === "Subject Help")} isLoading={isLoading} error={error} />
+          </TabsContent>
+          <TabsContent value="announcements">
+            <ThreadList threads={threads.filter(t => t.category_name === "Announcements")} isLoading={isLoading} error={error} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
-          <TabsTrigger value="all">All Threads</TabsTrigger>
-          <TabsTrigger value="general">General Discussion</TabsTrigger>
-          <TabsTrigger value="help">Subject Help</TabsTrigger>
-          <TabsTrigger value="announcements">Announcements</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all">
-          <ThreadList threads={threads} isLoading={isLoading} error={error} />
-        </TabsContent>
-        <TabsContent value="general">
-          <ThreadList threads={threads.filter(t => t.category_name === "General Discussion")} isLoading={isLoading} error={error} />
-        </TabsContent>
-        <TabsContent value="help">
-          <ThreadList threads={threads.filter(t => t.category_name === "Subject Help")} isLoading={isLoading} error={error} />
-        </TabsContent>
-        <TabsContent value="announcements">
-          <ThreadList threads={threads.filter(t => t.category_name === "Announcements")} isLoading={isLoading} error={error} />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

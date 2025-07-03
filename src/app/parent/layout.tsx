@@ -49,7 +49,7 @@ export default function ParentLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="p-2 md:p-6 bg-background min-h-full">
+        <div className="p-4 sm:p-6 md:p-8 bg-background min-h-full">
           {children}
         </div>
       </SidebarInset>
