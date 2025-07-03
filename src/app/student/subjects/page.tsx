@@ -1,272 +1,152 @@
-
 // src/app/student/subjects/page.tsx
-
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { api } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, BookOpen, PlusCircle, Trash2, HelpCircle, ChevronLeft, Search, UserCircle, Bell, Maximize2, Minimize2, Bookmark, Download, Link as LinkIcon, Star, Tv, Sun, Moon } from 'lucide-react';
-import type { Subject as SubjectInterface, Class as ClassInterface, School, Lesson as LessonInterface, UserLessonProgress, LessonSummary } from '@/interfaces';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Progress } from '@/components/ui/progress';
+import { api } from '@/lib/api';
+import type { Class as ClassInterface, Subject as SubjectInterface } from '@/interfaces';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from 'use-debounce';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, BookOpen, Calculator, FlaskConical, Globe, Palette, Music, Brain } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 
-export default function StudentMySubjectsPage() {
-    const { currentUser } = useAuth();
-    const router = useRouter();
-    const { toast } = useToast();
-    
-    const [allSubjects, setAllSubjects] = useState<SubjectInterface[]>([]);
-    const [allClasses, setAllClasses] = useState<ClassInterface[]>([]);
-    const [lessonsForSelectedSubject, setLessonsForSelectedSubject] = useState<LessonInterface[]>([]);
-    const [lessonProgressMap, setLessonProgressMap] = useState<Map<string | number, UserLessonProgress>>(new Map());
+// Helper to map subject names to icons
+const subjectIconMap: Record<string, LucideIcon> = {
+  default: BookOpen, math: Calculator, mathematics: Calculator, english: BookOpen,
+  science: FlaskConical, history: Globe, geography: Globe, physics: Brain,
+  chemistry: FlaskConical, biology: Brain, art: Palette, music: Music,
+};
 
-    const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
-    const [activeLessonId, setActiveLessonId] = useState<string | number | null>(null);
-    const [activeLessonDetails, setActiveLessonDetails] = useState<LessonInterface | null>(null);
-
-    const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
-    const [isLoadingLessons, setIsLoadingLessons] = useState(false);
-    const [isLoadingLessonContent, setIsLoadingLessonContent] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    
-    const [isFullScreen, setIsFullScreen] = useState(false);
-    const contentRef = useRef<HTMLDivElement>(null);
+const getIconForSubject = (subjectName: string): LucideIcon => {
+  const nameLower = subjectName.toLowerCase();
+  for (const key in subjectIconMap) {
+    if (nameLower.includes(key)) { return subjectIconMap[key]; }
+  }
+  return subjectIconMap.default;
+};
 
 
-    useEffect(() => {
-        if (!currentUser) return;
-        setIsLoadingSubjects(true);
-        const schoolId = currentUser.student_profile?.school;
-        if (!schoolId) {
-            setError("No school assigned to student profile.");
-            setIsLoadingSubjects(false);
-            return;
+export default function MySubjectsPage() {
+  const { currentUser } = useAuth();
+  const [classes, setClasses] = useState<ClassInterface[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser || !currentUser.student_profile?.school) {
+      setError("Student profile is not set up or not assigned to a school.");
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchClassesAndSubjects = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const enrolledClassId = currentUser.student_profile?.enrolled_class;
+        if (!enrolledClassId) {
+          setError("You are not enrolled in any class. Please contact your administrator.");
+          setIsLoading(false);
+          return;
         }
+
+        // Fetch only the student's enrolled class, which should contain the relevant subjects
+        const classData = await api.get<ClassInterface>(`/classes/${enrolledClassId}/`);
         
-        api.get<ClassInterface[] | {results: ClassInterface[]}>(`/classes/?school=${schoolId}&page_size=100`)
-            .then(res => {
-                const classes = Array.isArray(res) ? res : res.results || [];
-                setAllClasses(classes);
-                const subjects = classes.flatMap(c => 
-                    (c.subjects || []).map(s => ({...s, class_obj_name: c.name}))
-                );
-                setAllSubjects(subjects);
-            })
-            .catch(err => setError("Failed to load classes and subjects."))
-            .finally(() => setIsLoadingSubjects(false));
-    }, [currentUser]);
-
-    const handleLoadLessons = useCallback(() => {
-        if (!selectedSubjectId || !currentUser) return;
+        // The subjects are nested in the class data, let's process them
+        const subjectsWithIcons = (classData.subjects || []).map(subject => ({
+          ...subject,
+          icon: getIconForSubject(subject.name),
+        }));
         
-        setActiveLessonId(null);
-        setActiveLessonDetails(null);
-        setIsLoadingLessons(true);
+        classData.subjects = subjectsWithIcons;
+        setClasses([classData]);
 
-        const fetchLessonsAndProgress = async () => {
-            try {
-                const lessonsRes = await api.get<LessonInterface[] | { results: LessonInterface[] }>(`/lessons/?subject=${selectedSubjectId}`);
-                const lessons = Array.isArray(lessonsRes) ? lessonsRes : lessonsRes.results || [];
-                setLessonsForSelectedSubject(lessons);
-
-                const lessonIds = lessons.map(l => l.id);
-                if (lessonIds.length > 0) {
-                    const progressRes = await api.get<UserLessonProgress[] | {results: UserLessonProgress[]}>(`/userprogress/?user=${currentUser.id}&lesson__in=${lessonIds.join(',')}`);
-                    const progress = Array.isArray(progressRes) ? progressRes : progressRes.results || [];
-                    const progressMap = new Map(progress.map(p => [p.lesson, p]));
-                    setLessonProgressMap(progressMap);
-                }
-            } catch (err) {
-                setError("Failed to load lessons for the selected subject.");
-                setLessonsForSelectedSubject([]);
-            } finally {
-                setIsLoadingLessons(false);
-            }
-        };
-
-        fetchLessonsAndProgress();
-    }, [selectedSubjectId, currentUser]);
-    
-    const [debouncedSaveScroll] = useDebounce((lessonId: string | number, scrollTop: number) => {
-        const existingProgress = lessonProgressMap.get(lessonId);
-        if (!existingProgress) return;
-        
-        const newProgressData = { ...existingProgress.progress_data, scrollPosition: scrollTop };
-        
-        api.patch(`/userprogress/${existingProgress.id}/`, { progress_data: newProgressData })
-            .catch(err => console.warn("Failed to save scroll position", err));
-    }, 500);
-
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (!activeLessonId) return;
-        debouncedSaveScroll(activeLessonId, e.currentTarget.scrollTop);
+      } catch (err) {
+        console.error("Failed to fetch subjects:", err);
+        setError(err instanceof Error ? err.message : "Could not load your subjects.");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const handleLessonClick = (lessonId: string | number) => {
-        setActiveLessonId(lessonId);
-        setIsLoadingLessonContent(true);
-        api.get<LessonInterface>(`/lessons/${lessonId}/`)
-            .then(data => {
-                setActiveLessonDetails(data);
-            })
-            .catch(err => {
-                toast({ title: "Error", description: "Could not load lesson content.", variant: "destructive"});
-                setActiveLessonDetails(null);
-            })
-            .finally(() => setIsLoadingLessonContent(false));
-    };
-    
-    useEffect(() => {
-        if (activeLessonDetails && contentRef.current) {
-            const progress = lessonProgressMap.get(activeLessonDetails.id);
-            const scrollPosition = progress?.progress_data?.scrollPosition;
-            if (typeof scrollPosition === 'number') {
-                contentRef.current.scrollTop = scrollPosition;
-            } else {
-                contentRef.current.scrollTop = 0;
-            }
-        }
-    }, [activeLessonDetails, lessonProgressMap]);
+    fetchClassesAndSubjects();
+  }, [currentUser]);
 
-
-    const toggleFullScreen = () => {
-        const elem = document.getElementById("content-learning-page-container");
-        if (!elem) return;
-
-        if (!isFullScreen) {
-          if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(err => console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`));
-          }
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          }
-        }
-    };
-    
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullScreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
-
-    return (
-        <div id="content-learning-page-container" className={`flex flex-col h-screen ${isFullScreen ? 'fixed inset-0 bg-background z-[200] overflow-hidden' : 'relative'}`}>
-             {!isFullScreen && (
-                <header className="flex items-center justify-between p-4 border-b shrink-0 h-[65px]">
-                     <Button variant="outline" asChild>
-                        <Link href="/student"><ChevronLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
-                    </Button>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon"><Search className="h-5 w-5"/></Button>
-                        <Button variant="ghost" size="icon"><Bell className="h-5 w-5"/></Button>
-                        <Button variant="ghost" size="icon"><UserCircle className="h-5 w-5"/></Button>
-                    </div>
-                </header>
-            )}
-
-            <div className="flex flex-1 overflow-hidden">
-                <aside className="w-1/3 min-w-[350px] max-w-[450px] border-r flex flex-col p-4 overflow-y-auto bg-card">
-                     <div className="mb-4 space-y-2">
-                        <Label htmlFor="subject-select">Select Subject</Label>
-                        <div className="flex gap-2">
-                            <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId || ''} disabled={isLoadingSubjects}>
-                                <SelectTrigger id="subject-select">
-                                    <SelectValue placeholder={isLoadingSubjects ? "Loading..." : "Choose a subject"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {allSubjects.map(subject => (
-                                        <SelectItem key={subject.id} value={String(subject.id)}>{subject.name} - {subject.class_obj_name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button onClick={handleLoadLessons} disabled={!selectedSubjectId || isLoadingLessons}>
-                                {isLoadingLessons ? <Loader2 className="h-4 w-4 animate-spin"/> : "Load"}
-                            </Button>
-                        </div>
-                     </div>
-                     <h2 className="text-xl font-semibold mb-3">Chapters</h2>
-                     {isLoadingLessons ? (
-                        <div className="space-y-3">
-                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
-                        </div>
-                     ) : lessonsForSelectedSubject.length > 0 ? (
-                        <div className="space-y-3">
-                            {lessonsForSelectedSubject.map(lesson => {
-                                const progress = lessonProgressMap.get(lesson.id);
-                                const isCompleted = progress?.completed || false;
-                                return (
-                                <Card key={lesson.id} className={`hover:shadow-md transition-shadow cursor-pointer ${activeLessonId === lesson.id ? 'border-primary' : ''}`} onClick={() => handleLessonClick(lesson.id)}>
-                                    <CardHeader className="p-3">
-                                        <CardTitle className="text-base">{lesson.title}</CardTitle>
-                                        <CardDescription>By Jane Doe</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-3 pt-0">
-                                        <Progress value={isCompleted ? 100 : 0} className="h-2" />
-                                        <p className="text-xs text-muted-foreground mt-1">{isCompleted ? "Completed" : "Not Started"}</p>
-                                    </CardContent>
-                                    <CardFooter className="p-3">
-                                        <Button variant="default" size="sm" className="w-full">
-                                            {isCompleted ? "Review" : "Start"}
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            )})}
-                        </div>
-                     ) : (
-                        <p className="text-sm text-muted-foreground text-center mt-4">
-                            {selectedSubjectId ? "No lessons in this subject yet." : "Please select and load a subject."}
-                        </p>
-                     )}
-                </aside>
-
-                <main className="flex-1 flex flex-col p-6 overflow-hidden bg-muted/20">
-                    {activeLessonDetails ? (
-                        <>
-                         <div className="flex justify-between items-center mb-4 shrink-0">
-                             <h1 className="text-2xl font-bold">{activeLessonDetails.title}</h1>
-                             <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" title="Bookmark"><Bookmark className="h-5 w-5"/></Button>
-                                <Button variant="ghost" size="icon" title="Download"><Download className="h-5 w-5"/></Button>
-                                <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
-                                    {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5"/>}
-                                </Button>
-                             </div>
-                         </div>
-                         <div id="lesson-content-display-area" ref={contentRef} onScroll={handleScroll} className="prose prose-lg prose-p:leading-relaxed max-w-none dark:prose-invert overflow-y-auto bg-background p-8 rounded-lg shadow-inner flex-1">
-                             <div dangerouslySetInnerHTML={{ __html: activeLessonDetails.content || '<p>No content available.</p>' }} />
-                             {activeLessonDetails.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={activeLessonDetails.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}
-                         </div>
-                        </>
-                    ) : isLoadingLessonContent ? (
-                        <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-                            <div>
-                                <BookOpen className="h-16 w-16 mx-auto mb-4" />
-                                <p>Select a lesson from the left to begin learning.</p>
-                            </div>
-                        </div>
-                    )}
-                </main>
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center gap-4">
+        <BookOpen className="h-10 w-10 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold">My Subjects</h1>
+          <p className="text-muted-foreground">Here are all the subjects for your enrolled class. Select one to start learning.</p>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="space-y-6">
+            <Skeleton className="h-10 w-1/3 rounded-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-56 w-full rounded-xl" />)}
             </div>
         </div>
-    );
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Subjects</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : classes.length === 0 ? (
+        <Card className="text-center py-10">
+            <CardHeader>
+                <CardTitle>No Subjects Found</CardTitle>
+                <CardDescription>We couldn't find any subjects for your enrolled class.</CardDescription>
+            </CardHeader>
+        </Card>
+      ) : (
+        classes.map(cls => (
+          <section key={cls.id} className="space-y-6">
+            <h2 className="text-2xl font-semibold border-b pb-2">{cls.name}</h2>
+            {cls.subjects && cls.subjects.length > 0 ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {cls.subjects.map(subject => (
+                        <Card key={subject.id} className="flex flex-col shadow-md hover:shadow-xl hover:border-primary/30 transition-all duration-200">
+                           <CardHeader>
+                            <div className="flex items-center gap-3">
+                                {subject.icon && <subject.icon className="h-8 w-8 text-primary" />}
+                                <CardTitle>{subject.name}</CardTitle>
+                            </div>
+                           </CardHeader>
+                           <CardContent className="flex-grow">
+                             <CardDescription>{subject.description || `Lessons and quizzes for ${subject.name}.`}</CardDescription>
+                           </CardContent>
+                           <CardFooter className="flex-col items-start gap-3">
+                                <div className="w-full">
+                                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                        <span>Progress</span>
+                                        <span>{Math.round(subject.progress || 0)}%</span>
+                                    </div>
+                                    <Progress value={subject.progress || 0} className="h-2" />
+                                </div>
+                                <Button asChild className="w-full">
+                                    <Link href={`/student/learn/class/${cls.id}/subject/${subject.id}`}>
+                                        Go to Subject
+                                    </Link>
+                                </Button>
+                           </CardFooter>
+                        </Card>
+                    ))}
+                 </div>
+            ) : (
+                <p className="text-muted-foreground">No subjects found for this class.</p>
+            )}
+          </section>
+        ))
+      )}
+    </div>
+  );
 }
