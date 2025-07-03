@@ -264,72 +264,30 @@ export default function ProfilePage() {
         formData.append('password', data.newPassword);
     }
 
-    // Role-specific profile fields
-    const currentRoleProfile = currentUser.role === 'Student' ? currentUser.student_profile 
-                             : currentUser.role === 'Teacher' ? currentUser.teacher_profile
-                             : currentUser.role === 'Parent' ? currentUser.parent_profile
-                             : null;
-
-    const appendProfileFieldIfChanged = (key: string, formValue: any) => {
-        // @ts-ignore
-        const originalValue = currentRoleProfile ? currentRoleProfile[key] : undefined;
-        if (formValue !== undefined && formValue !== originalValue) {
-            if (typeof formValue === 'boolean') formData.append(key, String(formValue));
-            else if (formValue === null) formData.append(key, '');
-            else if (typeof formValue === 'string' && (formValue !== '' || (formValue === '' && originalValue !== null && originalValue !== ''))) {
-                formData.append(key, formValue);
-            } else if (typeof formValue === 'number') {
-                 formData.append(key, String(formValue));
-            }
-        }
-    };
-    
-    if (currentUser.role === 'Student') {
-        Object.keys(studentSpecificSchema.shape).forEach(key => {
-            // @ts-ignore
-            appendProfileFieldIfChanged(key, data[key]);
-        });
-    } else if (currentUser.role === 'Teacher') {
-        Object.keys(teacherSpecificSchema.shape).forEach(key => {
-            if (key === 'assigned_classes_ids' || key === 'subject_expertise_ids') {
-                // @ts-ignore
-                const originalIds = (currentRoleProfile?.[key] as (string|number)[] | undefined)?.map(String) || [];
-                // @ts-ignore
-                const formIds = (data[key] as string[] | undefined) || [];
-                if (JSON.stringify(originalIds.sort()) !== JSON.stringify(formIds.sort())) {
-                    // Clear existing M2M for these fields on backend or send all current formIds
-                    // For simplicity, backend should handle clearing and re-adding if all IDs are sent
-                    formIds.forEach(id => formData.append(key, id));
-                }
-            } else {
-                // @ts-ignore
-                appendProfileFieldIfChanged(key, data[key]);
-            }
-        });
-    } else if (currentUser.role === 'Parent') {
-         Object.keys(parentSpecificSchema.shape).forEach(key => {
-            // @ts-ignore
-            appendProfileFieldIfChanged(key, data[key]);
-        });
-    }
-    
-    if (selectedProfilePicture) {
-        formData.append('profile_picture', selectedProfilePicture);
-    }
-
-    let hasUpdates = false;
-    for (const _ of formData.keys()) { // Iterate to check if any field was appended
-        hasUpdates = true;
-        break;
-    }
-
-    if (!hasUpdates) {
-        toast({ title: "No Changes Detected", description: "You haven't made any changes to your profile."});
-        setIsSubmitting(false);
+    Object.entries(data).forEach(([key, value]) => {
+      // Skip fields that are handled separately or shouldn't be sent
+      const fieldsToSkip = ['profile_picture', 'username', 'email', 'currentPassword', 'newPassword', 'confirmNewPassword'];
+      if (fieldsToSkip.includes(key) || value === undefined) {
         return;
+      }
+      
+      if (Array.isArray(value)) {
+        // For M2M fields like assigned_classes_ids, subject_expertise_ids
+        value.forEach(item => formData.append(key, item));
+      } else if (value === null) {
+        formData.append(key, '');
+      } else if (typeof value === 'boolean') {
+        formData.append(key, String(value));
+      } else {
+        // For all other types (string, number which gets coerced)
+        formData.append(key, String(value));
+      }
+    });
+
+    if (selectedProfilePicture) {
+      formData.append('profile_picture', selectedProfilePicture);
     }
-
-
+    
     try {
       const updatedUserResponse = await api.patch<User>(`/users/${currentUser.id}/profile/`, formData, true); 
       setCurrentUser(updatedUserResponse); // Update AuthContext with the full new user object

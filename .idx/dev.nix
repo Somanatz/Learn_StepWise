@@ -9,6 +9,11 @@
     pkgs.zulu
     (pkgs.python311.withPackages (ps: with ps; [
       djangorestframework
+      django-cors-headers  # For CORS
+      twilio               # For WhatsApp communication
+      cryptography         # For digital signing features
+      django-filter        # For filtering querysets
+      pillow               # For image processing
       pip
     ]))
   ];

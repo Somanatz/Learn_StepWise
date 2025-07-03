@@ -16,12 +16,13 @@ const Logo: React.FC<LogoProps> = ({
   return (
     <Link href="/" className={`flex items-center group ${className}`} style={{ minHeight: `${imageHeight}px` }}>
       <Image
-        src="/images/Genai.png"
-        alt="GenAI-Campus Logo"
-        width={imageWidth}
-        height={imageHeight}
-        priority
-        className="group-hover:opacity-90 transition-opacity duration-200"
+      src="/images/Genai.png"
+      alt="GenAI-Campus Logo"
+      width={imageWidth}
+      height={imageHeight}
+      priority
+      className="group-hover:opacity-90 transition-opacity duration-200"
+      style={{ height: 'auto' }} // Ensure aspect ratio is maintained if width is constrained/modified
       />
     </Link>
   );

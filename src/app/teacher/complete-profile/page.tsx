@@ -147,26 +147,23 @@ export default function CompleteTeacherProfilePage() {
     setIsSubmitting(true);
 
     const formData = new FormData();
-    (Object.keys(data) as Array<keyof TeacherProfileFormValues>).forEach(key => {
-        if (key === 'profile_picture') return;
-        const value = data[key];
-        const originalValue = currentUser.teacher_profile ? currentUser.teacher_profile[key as keyof typeof currentUser.teacher_profile] : undefined;
-
-        if (key === 'assigned_classes_ids' || key === 'subject_expertise_ids') {
-            (value as string[] | undefined)?.forEach(id => formData.append(key, id));
-        } else if (value !== undefined && value !== null) {
-            if (typeof value === 'boolean') {
-                formData.append(key, String(value));
-            } else if (typeof value === 'string') { 
-                formData.append(key, value);
-            } else if (typeof value === 'number') {
-                 formData.append(key, String(value));
-            }
-        } else if (value === null && originalValue !== undefined && originalValue !== null){
-            formData.append(key, '');
-        }
-    });
     
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'profile_picture' || value === undefined) {
+        return;
+      }
+      
+      if (Array.isArray(value)) {
+        value.forEach(item => formData.append(key, item));
+      } else if (value === null) {
+        formData.append(key, '');
+      } else if (typeof value === 'boolean') {
+        formData.append(key, String(value));
+      } else {
+        formData.append(key, String(value));
+      }
+    });
+
     if (selectedProfilePictureFile) {
       formData.append('profile_picture', selectedProfilePictureFile);
     }
