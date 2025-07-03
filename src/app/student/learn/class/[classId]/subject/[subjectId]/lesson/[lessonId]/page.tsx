@@ -53,7 +53,6 @@ export default function LessonPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSimplified, setShowSimplified] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   
   const [isCompleted, setIsCompleted] = useState(false);
   
@@ -124,6 +123,10 @@ export default function LessonPage() {
   }, [fetchLessonData]);
 
 
+  const currentLessonIndex = useMemo(() => subjectLessons.findIndex(l => String(l.id) === lessonId), [subjectLessons, lessonId]);
+  const previousLesson = useMemo(() => currentLessonIndex > 0 ? subjectLessons[currentLessonIndex - 1] : null, [subjectLessons, currentLessonIndex]);
+  const nextLesson = useMemo(() => currentLessonIndex > -1 && currentLessonIndex < subjectLessons.length - 1 ? subjectLessons[currentLessonIndex + 1] : null, [subjectLessons, currentLessonIndex]);
+  
   const handleStartQuiz = async () => {
     if (!lesson?.content || hasPassedQuiz) return;
     setIsQuizDialogOpen(true);
@@ -187,6 +190,17 @@ export default function LessonPage() {
         if (passed) {
             await handleMarkAsComplete(true);
             setHasPassedQuiz(true);
+            // Manually unlock the next lesson in the local state for immediate UI feedback.
+            if (nextLesson) {
+                setSubjectLessons(prevLessons => {
+                    return prevLessons.map(l => {
+                        if (l.id === nextLesson.id) {
+                            return { ...l, is_locked: false };
+                        }
+                        return l;
+                    });
+                });
+            }
         }
     } catch (err: any) {
         toast({ title: "Error Saving Quiz Result", description: err.message, variant: "destructive" });
@@ -256,18 +270,6 @@ export default function LessonPage() {
         setIsTranslating(false);
     }
   }
-
-
-  const toggleFullScreen = () => {
-    const elem = document.documentElement;
-    if (!isFullScreen) { if (elem.requestFullscreen) elem.requestFullscreen(); }
-    else { if (document.exitFullscreen) document.exitFullscreen(); }
-    setIsFullScreen(!isFullScreen);
-  };
-  
-  const currentLessonIndex = useMemo(() => subjectLessons.findIndex(l => String(l.id) === lessonId), [subjectLessons, lessonId]);
-  const previousLesson = useMemo(() => currentLessonIndex > 0 ? subjectLessons[currentLessonIndex - 1] : null, [subjectLessons, currentLessonIndex]);
-  const nextLesson = useMemo(() => currentLessonIndex > -1 && currentLessonIndex < subjectLessons.length - 1 ? subjectLessons[currentLessonIndex + 1] : null, [subjectLessons, currentLessonIndex]);
   
   if (isLoading) return <div className="space-y-6 p-4"><Skeleton className="h-10 w-1/4" /><Skeleton className="h-16 w-3/4" /><Skeleton className="h-64 w-full" /><Skeleton className="h-48 w-full" /></div>;
   if (error) return <Card className="text-center py-10 bg-destructive/10 border-destructive"><CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><CardTitle>Error Loading Lesson</CardTitle></CardHeader><CardContent><CardDescription className="text-destructive-foreground">{error}</CardDescription><Button variant="outline" onClick={() => router.back()} className="mt-4"><ChevronLeft className="mr-2 h-4 w-4"/> Go Back</Button></CardContent></Card>;
@@ -282,22 +284,48 @@ export default function LessonPage() {
   };
 
   return (
-    <div className={`space-y-8 ${isFullScreen ? 'fixed inset-0 bg-background z-50 overflow-y-auto p-4 md:p-8' : ''}`}>
+    <div className="space-y-8">
       <div className="flex justify-between items-center">
           <Button variant="outline" asChild><Link href={`/student/learn/class/${classId}/subject/${subjectId}`}><ChevronLeft className="mr-2 h-4 w-4" /> Back to Subject</Link></Button>
       </div>
       <Card className="shadow-xl rounded-xl overflow-hidden">
-        <CardHeader className="bg-primary text-primary-foreground p-6 md:p-8"><div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div><CardTitle className="text-2xl md:text-3xl font-bold flex items-center"><PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8" /> {lesson.title}</CardTitle><CardDescription className="text-primary-foreground/80 mt-1">Subject: {lesson.subject_name || 'N/A'}</CardDescription></div><div className="flex items-center gap-1">{lesson.simplified_content && (<Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)} className="mt-2 sm:mt-0"><Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}</Button>)}<Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>{isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}</Button></div></div></CardHeader>
+        <CardHeader className="bg-primary text-primary-foreground p-6 md:p-8"><div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div><CardTitle className="text-2xl md:text-3xl font-bold flex items-center"><PlayCircle className="mr-3 h-7 w-7 md:h-8 md:w-8" /> {lesson.title}</CardTitle><CardDescription className="text-primary-foreground/80 mt-1">Subject: {lesson.subject_name || 'N/A'}</CardDescription></div><div className="flex items-center gap-1">{lesson.simplified_content && (<Button variant="secondary" onClick={() => setShowSimplified(!showSimplified)} className="mt-2 sm:mt-0"><Lightbulb className="mr-2 h-4 w-4" /> {showSimplified ? "Show Original" : "Show Simplified"}</Button>)}</div></div></CardHeader>
         <CardContent className="p-6 md:p-8 space-y-6">
             <Tabs defaultValue="content" className="w-full">
                 <TabsList className="grid w-full grid-cols-4"><TabsTrigger value="content"><BookOpen className="mr-2 h-4 w-4"/>Lesson</TabsTrigger><TabsTrigger value="notes"><FilePenLine className="mr-2 h-4 w-4"/>My Notes</TabsTrigger><TabsTrigger value="summary"><Lightbulb className="mr-2 h-4 w-4"/>AI Summary</TabsTrigger><TabsTrigger value="translate"><Languages className="mr-2 h-4 w-4"/>Translate</TabsTrigger></TabsList>
-                <TabsContent value="content" className="mt-4"><div id="lesson-content-area" ref={contentRef} className={`prose prose-lg max-w-none dark:prose-invert overflow-y-auto ${isFullScreen ? 'h-[calc(100vh-220px)]' : 'max-h-[60vh]' } p-4 md:p-6 rounded-md border bg-muted/30`}><div dangerouslySetInnerHTML={{ __html: displayContent || '<p>No content available.</p>' }} />{lesson.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}{lesson.audio_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Audio:</h4><audio src={lesson.audio_url} controls className="w-full"></audio></div>}{lesson.image_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Image:</h4><img src={lesson.image_url} alt={lesson.title || "Lesson image"} className="max-w-full h-auto rounded-md shadow-lg" data-ai-hint="lesson image"/></div>}</div></TabsContent>
+                <TabsContent value="content" className="mt-4"><div id="lesson-content-area" ref={contentRef} className="prose prose-lg max-w-none dark:prose-invert overflow-y-auto max-h-[60vh] p-4 md:p-6 rounded-md border bg-muted/30"><div dangerouslySetInnerHTML={{ __html: displayContent || '<p>No content available.</p>' }} />{lesson.video_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Video:</h4><video src={lesson.video_url} controls className="w-full rounded-md shadow-lg aspect-video"></video></div>}{lesson.audio_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Audio:</h4><audio src={lesson.audio_url} controls className="w-full"></audio></div>}{lesson.image_url && <div className="mt-6"><h4 className="font-semibold mb-2 text-lg">Image:</h4><img src={lesson.image_url} alt={lesson.title || "Lesson image"} className="max-w-full h-auto rounded-md shadow-lg" data-ai-hint="lesson image"/></div>}</div></TabsContent>
                 <TabsContent value="notes" className="mt-4"><Textarea placeholder="Write your notes here..." className="min-h-[300px] text-base" value={userNote?.notes || ''} onChange={(e) => setUserNote(prev => ({...(prev || {lesson: lessonId, user: currentUser?.id}), notes: e.target.value}))} /><Button onClick={handleSaveNote} disabled={isSavingNote} className="mt-2">{isSavingNote && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Save Notes</Button></TabsContent>
                 <TabsContent value="summary" className="mt-4 space-y-4"><Button onClick={handleGenerateSummary} disabled={isSummarizing}>{isSummarizing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Generate AI Summary</Button>{aiSummary && <div className="p-4 border rounded-md bg-background prose dark:prose-invert max-w-none"><div dangerouslySetInnerHTML={{__html: aiSummary}}/><Button variant="outline" size="sm" className="mt-4" onClick={() => alert("Download TBI")}><Download className="mr-2 h-4"/>Download</Button></div>}</TabsContent>
                 <TabsContent value="translate" className="mt-4 space-y-4"><div className="flex gap-2 items-center"><Select value={targetLanguage} onValueChange={setTargetLanguage}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Select Language"/></SelectTrigger><SelectContent>{SUPPORTED_LANGUAGES.map(lang => <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>)}</SelectContent></Select><Button onClick={handleTranslate} disabled={isTranslating}>{isTranslating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Translate Lesson</Button></div>{translatedContent && <div className="p-4 border rounded-md bg-background prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html: translatedContent}}/>}</TabsContent>
             </Tabs>
         </CardContent>
-        <CardFooter className="p-6 md:p-8 flex justify-between items-center border-t bg-muted/50"><Button variant="outline" asChild disabled={!previousLesson}><Link href={previousLesson ? `/student/learn/class/${classId}/subject/${subjectId}/lesson/${previousLesson.id}` : '#'}><ChevronLeft className="mr-2 h-4 w-4" /> Previous Lesson</Link></Button>{renderFooterButton()}<Button variant="default" asChild disabled={!nextLesson || (nextLesson.is_locked && !hasPassedQuiz && !isCompleted)}><Link href={nextLesson ? `/student/learn/class/${classId}/subject/${subjectId}/lesson/${nextLesson.id}` : '#'}>Next Lesson <ChevronRight className="ml-2 h-4 w-4" /></Link></Button></CardFooter>
+        <CardFooter className="p-6 md:p-8 flex justify-between items-center border-t bg-muted/50">
+            <Button 
+                variant="outline" 
+                disabled={!previousLesson}
+                onClick={() => {
+                    if (previousLesson) {
+                        router.push(`/student/learn/class/${classId}/subject/${subjectId}/lesson/${previousLesson.id}`);
+                    }
+                }}
+            >
+                <ChevronLeft className="mr-2 h-4 w-4" /> Previous Lesson
+            </Button>
+            
+            {renderFooterButton()}
+
+            <Button 
+                variant="default" 
+                disabled={!nextLesson || nextLesson.is_locked}
+                onClick={() => {
+                    if (nextLesson && !nextLesson.is_locked) {
+                        router.push(`/student/learn/class/${classId}/subject/${subjectId}/lesson/${nextLesson.id}`);
+                    }
+                }}
+            >
+                Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+        </CardFooter>
       </Card>
 
       <Dialog open={isQuizDialogOpen} onOpenChange={setIsQuizDialogOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle className="text-2xl">Quiz for: {lesson.title}</DialogTitle><DialogDescription>You must score at least {PASSING_SCORE}% to unlock the next lesson.</DialogDescription></DialogHeader><div className="py-4 max-h-[60vh] overflow-y-auto">{isLoadingQuiz && <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>}{quizError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{quizError}</AlertDescription></Alert>}{cooldownMessage && <Alert variant="destructive"><AlertTitle>Attempt Cooldown</AlertTitle><AlertDescription>{cooldownMessage}</AlertDescription></Alert>}{!isLoadingQuiz && !quizError && !cooldownMessage && !quizResult && quizQuestions.length > 0 && (<div className="space-y-6">{quizQuestions.map((q, qIndex) => (<fieldset key={qIndex} className="p-4 border rounded-lg bg-background shadow-sm"><legend className="font-semibold mb-3 text-md">Question {qIndex + 1}: {q.question_text}</legend>{q.question_type === 'multiple_choice' && (<RadioGroup onValueChange={(value) => handleQuizAnswerChange(qIndex, value)} value={userAnswers[qIndex] || ''} className="space-y-2">{q.options?.map((option, oIndex) => (<FormItem key={oIndex} className="flex items-center space-x-3 space-y-0 p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"><FormControl><RadioGroupItem value={option} id={`q${qIndex}-o${oIndex}`} /></FormControl><Label htmlFor={`q${qIndex}-o${oIndex}`} className="font-normal cursor-pointer flex-1 text-sm">{option}</Label></FormItem>))}</RadioGroup>)}{q.question_type === 'true_false' && (<RadioGroup onValueChange={(value) => handleQuizAnswerChange(qIndex, value)} value={userAnswers[qIndex] || ''} className="space-y-2"><FormItem className="flex items-center space-x-3"><FormControl><RadioGroupItem value="True" id={`q${qIndex}-true`} /></FormControl><Label htmlFor={`q${qIndex}-true`} className="font-normal">True</Label></FormItem><FormItem className="flex items-center space-x-3"><FormControl><RadioGroupItem value="False" id={`q${qIndex}-false`} /></FormControl><Label htmlFor={`q${qIndex}-false`} className="font-normal">False</Label></FormItem></RadioGroup>)}{q.question_type === 'fill_in_the_blank' && (<Input placeholder="Type your answer here..." value={userAnswers[qIndex] || ''} onChange={(e) => handleQuizAnswerChange(qIndex, e.target.value)} />)}</fieldset>))}</div>)}{quizResult && (<Alert variant={quizResult.passed ? "default" : "destructive"} className="mt-4 rounded-lg shadow-md"><AlertTitle className="font-bold text-lg">{quizResult.passed ? `Passed! Score: ${quizResult.score.toFixed(0)}%` : `Failed. Score: ${quizResult.score.toFixed(0)}%`}</AlertTitle><AlertDescription>{quizResult.passed ? "Congratulations! You have unlocked the next lesson." : "Please review the material and try again later. There is a 2-hour cooldown before your next attempt."}</AlertDescription></Alert>)}</div><DialogFooter><Button variant="outline" onClick={() => setIsQuizDialogOpen(false)}>Close</Button>{!quizResult && !cooldownMessage && (<Button onClick={handleSubmitQuiz} disabled={isSubmittingQuiz || Object.keys(userAnswers).length < quizQuestions.length}>{isSubmittingQuiz ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Submit Quiz</Button>)}</DialogFooter></DialogContent></Dialog>
