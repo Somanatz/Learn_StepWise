@@ -5,17 +5,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-export const SummarizeLessonInputSchema = z.object({
-  lessonContent: z.string().describe("The full text content of the lesson to summarize."),
-});
-export type SummarizeLessonInput = z.infer<typeof SummarizeLessonInputSchema>;
-
-export const SummarizeLessonOutputSchema = z.object({
-  summary: z.string().describe("The concise summary of the lesson, formatted as HTML with headings and lists."),
-});
-export type SummarizeLessonOutput = z.infer<typeof SummarizeLessonOutputSchema>;
-
+import { SummarizeLessonInput, SummarizeLessonInputSchema, SummarizeLessonOutput, SummarizeLessonOutputSchema } from './summarize-lesson-types';
 
 export async function summarizeLesson(input: SummarizeLessonInput): Promise<SummarizeLessonOutput> {
   return summarizeLessonFlow(input);
