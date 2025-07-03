@@ -186,7 +186,7 @@ export default function LessonPage() {
     const quizDataPayload = { questions: quizQuestions.map((q, i) => ({ ...q, user_answer: userAnswers[i] || "" })) };
     
     try {
-        await api.post('/ai-quiz-attempts/', { lesson: lessonId, score: score, passed: passed, quiz_data: quizDataPayload });
+        await api.post('/ai-quiz-attempts/', { lesson_id: lessonId, score: score, passed: passed, quiz_data: quizDataPayload });
         if (passed) {
             await handleMarkAsComplete(true);
             setHasPassedQuiz(true);
