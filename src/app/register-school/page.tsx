@@ -1,3 +1,4 @@
+
 // src/app/register-school/page.tsx
 'use client';
 
@@ -96,62 +97,78 @@ export default function RegisterSchoolPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted p-4 py-12">
-      <Card className="w-full max-w-2xl shadow-xl">
-        <CardHeader className="text-center">
-          <SchoolIcon className="mx-auto h-12 w-12 text-primary mb-4" />
-          <CardTitle className="text-3xl font-bold">Register Your School</CardTitle>
-          <CardDescription>Join GenAI-Campus and create an admin account for your institution.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden p-4 py-12">
+       <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        poster="https://placehold.co/1920x1080.png"
+        data-ai-hint="educational abstract technology"
+      >
+        <source src="/videos/educational-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <div className="absolute top-0 left-0 w-full h-full bg-black/60 dark:bg-black/70 z-10"></div>
+      
+      <div className="relative z-20 w-full max-w-2xl">
+        <Card className="w-full shadow-xl bg-card/80 backdrop-blur-md border-border/50 animate-fade-in-up">
+            <CardHeader className="text-center">
+            <SchoolIcon className="mx-auto h-12 w-12 text-primary mb-4" />
+            <CardTitle className="text-3xl font-bold">Register Your School</CardTitle>
+            <CardDescription>Join GenAI-Campus and create an admin account for your institution.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-              <h3 className="text-lg font-semibold flex items-center"><SchoolIcon className="mr-2 h-5 w-5 text-accent"/> School Details</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>School Name</FormLabel><FormControl><Input placeholder="e.g., Oakwood Academy" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="school_id_code" render={({ field }) => (<FormItem><FormLabel>School ID Code</FormLabel><FormControl><Input placeholder="Unique school identifier" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="official_email" render={({ field }) => (<FormItem><FormLabel>Official School Email</FormLabel><FormControl><Input type="email" placeholder="e.g., admin@oakwoodacademy.edu" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="license_number" render={({ field }) => (<FormItem><FormLabel>School License Number (Optional)</FormLabel><FormControl><Input placeholder="For verification" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="phone_number" render={({ field }) => (<FormItem><FormLabel>School Phone Number (Optional)</FormLabel><FormControl><Input placeholder="e.g., +1-555-123-4567" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>School Address (Optional)</FormLabel><FormControl><Textarea placeholder="Full school address" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <h3 className="text-lg font-semibold flex items-center"><SchoolIcon className="mr-2 h-5 w-5 text-accent"/> School Details</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>School Name</FormLabel><FormControl><Input placeholder="e.g., Oakwood Academy" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="school_id_code" render={({ field }) => (<FormItem><FormLabel>School ID Code</FormLabel><FormControl><Input placeholder="Unique school identifier" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+                <FormField control={form.control} name="official_email" render={({ field }) => (<FormItem><FormLabel>Official School Email</FormLabel><FormControl><Input type="email" placeholder="e.g., admin@oakwoodacademy.edu" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="license_number" render={({ field }) => (<FormItem><FormLabel>School License Number (Optional)</FormLabel><FormControl><Input placeholder="For verification" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="phone_number" render={({ field }) => (<FormItem><FormLabel>School Phone Number (Optional)</FormLabel><FormControl><Input placeholder="e.g., +1-555-123-4567" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>School Address (Optional)</FormLabel><FormControl><Textarea placeholder="Full school address" {...field} /></FormControl><FormMessage /></FormItem>)} />
 
-              <Separator className="my-6" />
-              <h3 className="text-lg font-semibold flex items-center"><UserCog className="mr-2 h-5 w-5 text-accent"/> Principal's Information (Optional)</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                 <FormField control={form.control} name="principal_full_name" render={({ field }) => (<FormItem><FormLabel>Principal's Full Name</FormLabel><FormControl><Input placeholder="e.g., Dr. Jane Smith" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                 <FormField control={form.control} name="principal_contact_number" render={({ field }) => (<FormItem><FormLabel>Principal's Contact Number</FormLabel><FormControl><Input placeholder="e.g., +1-555-987-6543" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="principal_email" render={({ field }) => (<FormItem><FormLabel>Principal's Email</FormLabel><FormControl><Input type="email" placeholder="e.g., principal@oakwoodacademy.edu" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <Separator className="my-6" />
+                <h3 className="text-lg font-semibold flex items-center"><UserCog className="mr-2 h-5 w-5 text-accent"/> Principal's Information (Optional)</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <FormField control={form.control} name="principal_full_name" render={({ field }) => (<FormItem><FormLabel>Principal's Full Name</FormLabel><FormControl><Input placeholder="e.g., Dr. Jane Smith" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="principal_contact_number" render={({ field }) => (<FormItem><FormLabel>Principal's Contact Number</FormLabel><FormControl><Input placeholder="e.g., +1-555-987-6543" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+                <FormField control={form.control} name="principal_email" render={({ field }) => (<FormItem><FormLabel>Principal's Email</FormLabel><FormControl><Input type="email" placeholder="e.g., principal@oakwoodacademy.edu" {...field} /></FormControl><FormMessage /></FormItem>)} />
 
-              <Separator className="my-6" />
-              <h3 className="text-lg font-semibold flex items-center"><Lock className="mr-2 h-5 w-5 text-accent"/> Initial School Admin Account</h3>
-               <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="admin_username" render={({ field }) => (<FormItem><FormLabel>Admin Username</FormLabel><FormControl><Input placeholder="Choose an admin username" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="admin_email" render={({ field }) => (<FormItem><FormLabel>Admin Email</FormLabel><FormControl><Input type="email" placeholder="Admin's email address" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="admin_password" render={({ field }) => (<FormItem><FormLabel>Admin Password</FormLabel><FormControl><Input type="password" placeholder="Create a strong password" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="admin_confirm_password" render={({ field }) => (<FormItem><FormLabel>Confirm Admin Password</FormLabel><FormControl><Input type="password" placeholder="Confirm admin password" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
+                <Separator className="my-6" />
+                <h3 className="text-lg font-semibold flex items-center"><Lock className="mr-2 h-5 w-5 text-accent"/> Initial School Admin Account</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <FormField control={form.control} name="admin_username" render={({ field }) => (<FormItem><FormLabel>Admin Username</FormLabel><FormControl><Input placeholder="Choose an admin username" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="admin_email" render={({ field }) => (<FormItem><FormLabel>Admin Email</FormLabel><FormControl><Input type="email" placeholder="Admin's email address" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <FormField control={form.control} name="admin_password" render={({ field }) => (<FormItem><FormLabel>Admin Password</FormLabel><FormControl><Input type="password" placeholder="Create a strong password" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="admin_confirm_password" render={({ field }) => (<FormItem><FormLabel>Confirm Admin Password</FormLabel><FormControl><Input type="password" placeholder="Confirm admin password" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
 
-              <Button type="submit" className="w-full !mt-8" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                {isLoading ? 'Registering School...' : 'Register School & Create Admin'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Already registered or need to login?{' '}
-            <Link href="/login" legacyBehavior>
-              <a className="font-medium text-primary hover:underline">Login</a>
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+                <Button type="submit" className="w-full !mt-8" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                    {isLoading ? 'Registering School...' : 'Register School & Create Admin'}
+                </Button>
+                </form>
+            </Form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+            <p className="text-sm text-muted-foreground">
+                Already registered or need to login?{' '}
+                <Link href="/login" legacyBehavior>
+                <a className="font-medium text-primary hover:underline">Login</a>
+                </Link>
+            </p>
+            </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }

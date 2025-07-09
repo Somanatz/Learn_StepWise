@@ -1,3 +1,4 @@
+
 // src/app/login/page.tsx
 'use client';
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
         muted
         playsInline
         className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        poster="https://placehold.co/1920x1080.png?text=GenAI+Campus+Loading..."
+        poster="https://placehold.co/1920x1080.png"
         data-ai-hint="educational abstract technology"
       >
         <source src="/videos/educational-bg.mp4" type="video/mp4" />

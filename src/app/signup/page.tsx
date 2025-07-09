@@ -1,3 +1,4 @@
+
 // src/app/signup/page.tsx
 'use client';
 
@@ -88,8 +89,17 @@ export default function SignupPage() {
 
   return (
     <div className="relative flex flex-col md:flex-row items-center justify-center min-h-screen overflow-hidden p-4 py-10">
-      <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        poster="https://placehold.co/1920x1080.png"
+        data-ai-hint="educational abstract technology"
+      >
         <source src="/videos/educational-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
       </video>
       <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10"></div>
 
