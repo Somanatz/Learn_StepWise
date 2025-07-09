@@ -76,28 +76,6 @@ const schoolTeacherFeatures: FeatureCardProps[] = [
   { videoUrl: "/videos/admin-portal.mp4", title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", animationDelay:"animation-delay-500" },
 ];
 
-const FixedBackground = () => (
-  <div
-    id="fixed-background-container"
-    className="fixed inset-0 z-[-10] overflow-hidden"
-  >
-    <video
-      autoPlay
-      loop
-      muted
-      playsInline
-      className="absolute top-0 left-0 w-full h-full object-cover"
-      poster="https://placehold.co/1920x1080.png"
-      data-ai-hint="educational abstract technology"
-    >
-      <source src="/videos/educational-bg.mp4" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-    {/* Updated overlay for better video visibility */}
-    <div className="absolute inset-0 bg-black/50"></div>
-  </div>
-);
-
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -106,7 +84,21 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)] flex flex-col items-center justify-center text-center p-4 overflow-hidden">
+    <section className="relative min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-180px)] flex flex-col items-center justify-center text-center p-4 overflow-hidden rounded-xl shadow-lg my-8">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        poster="https://placehold.co/1920x1080.png"
+        data-ai-hint="educational students walking"
+      >
+        <source src="/videos/educational-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <div className="absolute inset-0 bg-black/50 z-0"></div>
+
        <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8",
           isMounted ? "opacity-0 animate-fade-in-up" : 'opacity-0'
@@ -118,16 +110,16 @@ const HeroSection = () => {
         <h1
           className={cn(
             "font-extrabold mb-10 animate-text-pulse",
-            "text-4xl sm:text-5xl md:text-6xl text-primary-foreground", // Changed to primary-foreground for better contrast on dark overlay
+            "text-4xl sm:text-5xl md:text-6xl text-primary-foreground",
             "leading-tight",
-            "[text-shadow:_1px_1px_8px_rgb(0_0_0_/_0.8)]" // Increased shadow for readability
+            "[text-shadow:_1px_1px_8px_rgb(0_0_0_/_0.8)]"
           )}
         >
           Empowering Every <span className="text-primary-foreground drop-shadow-lg">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-primary-foreground/90", // Changed for better contrast
+            "text-base sm:text-xl text-primary-foreground/90",
             "font-medium animate-text-pulse",
             "[text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.7)]",
             isMounted ? 'animation-delay-300' : ''
@@ -140,13 +132,6 @@ const HeroSection = () => {
     </section>
   );
 };
-
-// Updated wrapper for a more transparent look
-const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative z-0 bg-background/60 backdrop-blur-md">
-    {children}
-  </div>
-);
 
 export default function UnifiedDashboardPage() {
   const { currentUser, isLoadingAuth } = useAuth();
@@ -207,64 +192,63 @@ export default function UnifiedDashboardPage() {
   }
 
   return (
-    <div className="w-full">
-      <FixedBackground />
-      <HeroSection />
+    <div className="w-full bg-background">
+      <div className="container mx-auto px-4">
+        <HeroSection />
+      </div>
 
-      <ContentWrapper>
-        <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
-          <section>
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-              {studentFeatures.map((feature, index) => (
-                <FeatureCard
-                  key={feature.title}
-                  videoUrl={feature.videoUrl}
-                  title={feature.title}
-                  description={feature.description}
-                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
-                />
-              ))}
-            </div>
-          </section>
+      <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
+        <section>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+            {studentFeatures.map((feature, index) => (
+              <FeatureCard
+                key={feature.title}
+                videoUrl={feature.videoUrl}
+                title={feature.title}
+                description={feature.description}
+                animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+              />
+            ))}
+          </div>
+        </section>
 
-          <section>
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 xl:gap-8">
-              {parentFeatures.map((feature, index) => (
-                <FeatureCard
-                  key={feature.title}
-                  videoUrl={feature.videoUrl}
-                  title={feature.title}
-                  description={feature.description}
-                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
-                />
-              ))}
-            </div>
-          </section>
+        <section>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 xl:gap-8">
+            {parentFeatures.map((feature, index) => (
+              <FeatureCard
+                key={feature.title}
+                videoUrl={feature.videoUrl}
+                title={feature.title}
+                description={feature.description}
+                animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+              />
+            ))}
+          </div>
+        </section>
 
-          <section>
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-              {schoolTeacherFeatures.map((feature, index) => (
-                <FeatureCard
-                  key={feature.title}
-                  videoUrl={feature.videoUrl}
-                  title={feature.title}
-                  description={feature.description}
-                  animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
-                />
-              ))}
-            </div>
-          </section>
+        <section>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+            {schoolTeacherFeatures.map((feature, index) => (
+              <FeatureCard
+                key={feature.title}
+                videoUrl={feature.videoUrl}
+                title={feature.title}
+                description={feature.description}
+                animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
+              />
+            ))}
+          </div>
+        </section>
 
-          <section className="py-12 bg-card/90 rounded-xl shadow-lg border border-border/50">
-            <div className="container mx-auto px-4">
-                 <ContactSalesForm />
-            </div>
-          </section>
-        </div>
-      </ContentWrapper>
+        <section className="py-12 bg-card rounded-xl shadow-lg border border-border/50">
+          <div className="container mx-auto px-4">
+               <ContactSalesForm />
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
