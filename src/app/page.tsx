@@ -25,7 +25,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 }) => {
   return (
     <Card className={cn(
-      "relative group overflow-hidden rounded-xl min-h-[45vh] flex flex-col justify-center items-center text-center p-8",
+      "relative group overflow-hidden rounded-xl aspect-video flex flex-col justify-center items-center text-center p-8",
       "transform-gpu shadow-lg hover:shadow-2xl transition-all duration-300",
       "opacity-0 animate-fade-in-up",
       animationDelay
