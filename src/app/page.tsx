@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 'use client';
 
@@ -24,34 +25,37 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 }) => {
   return (
     <Card className={cn(
-      "transform-gpu shadow-lg hover:scale-105 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 rounded-xl flex flex-col bg-card/70 backdrop-blur-md border-border/50 h-full",
+      "relative group overflow-hidden rounded-xl h-80 flex flex-col justify-end",
+      "transform-gpu shadow-lg hover:shadow-2xl transition-all duration-300",
       "opacity-0 animate-fade-in-up",
       animationDelay
     )}>
-      <CardHeader className="flex flex-col items-center text-center gap-2 pb-3 pt-6">
-        <div className="h-32 w-32 rounded-lg overflow-hidden border shadow-inner">
-          <video
-            src={videoUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-            poster="https://placehold.co/128x128.png"
-            data-ai-hint="feature animation"
-          />
-        </div>
-        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow pb-6 text-center">
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
+      <video
+        src={videoUrl}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0 transition-transform duration-500 group-hover:scale-110"
+        poster="https://placehold.co/600x400.png"
+        data-ai-hint="feature animation"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10"></div>
+      
+      <div className="relative z-20 p-6 text-white transform transition-transform duration-500 group-hover:-translate-y-2">
+        <h3 className="text-2xl font-bold mb-2 [text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.5)]">
+          {title}
+        </h3>
+        <p className="text-sm text-white/90 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.5)]">
+          {description}
+        </p>
+      </div>
     </Card>
   );
 };
 
 const studentFeatures: FeatureCardProps[] = [
-  { videoUrl: "/videos/interactive-lessons.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
+  { videoUrl: "/videos/learning.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
   { videoUrl: "/videos/ai-notes.mp4", title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", animationDelay:"animation-delay-200" },
   { videoUrl: "/videos/quizzes.mp4", title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", animationDelay:"animation-delay-300" },
   { videoUrl: "/videos/progress-tracking.mp4", title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", animationDelay:"animation-delay-400" },
