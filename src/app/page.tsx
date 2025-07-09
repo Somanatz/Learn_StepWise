@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 'use client';
 
@@ -24,7 +25,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 }) => {
   return (
     <Card className={cn(
-      "relative group overflow-hidden rounded-xl h-80 flex flex-col justify-end",
+      "relative group overflow-hidden rounded-xl min-h-[45vh] flex flex-col justify-center items-center text-center p-8",
       "transform-gpu shadow-lg hover:shadow-2xl transition-all duration-300",
       "opacity-0 animate-fade-in-up",
       animationDelay
@@ -39,19 +40,20 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
         poster="https://placehold.co/600x400.png"
         data-ai-hint="feature animation"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/20 z-10"></div>
       
-      <div className="relative z-20 p-6 text-white transform transition-transform duration-500 group-hover:-translate-y-2">
-        <h3 className="text-2xl font-bold mb-2 [text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.5)]">
+      <div className="relative z-20 max-w-3xl text-white transform transition-transform duration-500">
+        <h3 className="text-4xl font-bold mb-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.6)]">
           {title}
         </h3>
-        <p className="text-sm text-white/90 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.5)]">
+        <p className="text-lg text-white/95 [text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.5)]">
           {description}
         </p>
       </div>
     </Card>
   );
 };
+
 
 const studentFeatures: FeatureCardProps[] = [
   { videoUrl: "/videos/learning.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
@@ -200,7 +202,7 @@ export default function UnifiedDashboardPage() {
       <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+          <div className="space-y-8">
             {studentFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
@@ -215,7 +217,7 @@ export default function UnifiedDashboardPage() {
 
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 xl:gap-8">
+          <div className="space-y-8">
             {parentFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
@@ -230,7 +232,7 @@ export default function UnifiedDashboardPage() {
 
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+          <div className="space-y-8">
             {schoolTeacherFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
