@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 'use client';
 
@@ -94,7 +93,8 @@ const FixedBackground = () => (
       <source src="/videos/educational-bg.mp4" type="video/mp4" />
       Your browser does not support the video tag.
     </video>
-    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm"></div>
+    {/* Updated overlay for better video visibility */}
+    <div className="absolute inset-0 bg-black/50"></div>
   </div>
 );
 
@@ -118,18 +118,18 @@ const HeroSection = () => {
         <h1
           className={cn(
             "font-extrabold mb-10 animate-text-pulse",
-            "text-4xl sm:text-5xl md:text-6xl text-primary",
+            "text-4xl sm:text-5xl md:text-6xl text-primary-foreground", // Changed to primary-foreground for better contrast on dark overlay
             "leading-tight",
-            "[text-shadow:_1px_1px_3px_rgb(0_0_0_/_0.3)]"
+            "[text-shadow:_1px_1px_8px_rgb(0_0_0_/_0.8)]" // Increased shadow for readability
           )}
         >
-          Empowering Every <span className="text-primary">Learner's</span> Journey!
+          Empowering Every <span className="text-primary-foreground drop-shadow-lg">Learner's</span> Journey!
         </h1>
         <p
           className={cn(
-            "text-base sm:text-xl text-accent",
+            "text-base sm:text-xl text-primary-foreground/90", // Changed for better contrast
             "font-medium animate-text-pulse",
-            "[text-shadow:_1px_1px_2px_rgb(0_0_0_/_0.3)]",
+            "[text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.7)]",
             isMounted ? 'animation-delay-300' : ''
           )}
           style={{ animationDelay: isMounted ? '0.3s' : undefined }}
@@ -141,8 +141,9 @@ const HeroSection = () => {
   );
 };
 
+// Updated wrapper for a more transparent look
 const ContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative z-0 bg-card/80 backdrop-blur-sm">
+  <div className="relative z-0 bg-background/60 backdrop-blur-md">
     {children}
   </div>
 );
@@ -257,7 +258,7 @@ export default function UnifiedDashboardPage() {
             </div>
           </section>
 
-          <section className="py-12 bg-card rounded-xl shadow-lg border border-border/50">
+          <section className="py-12 bg-card/90 rounded-xl shadow-lg border border-border/50">
             <div className="container mx-auto px-4">
                  <ContactSalesForm />
             </div>
