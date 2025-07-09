@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 'use client';
 
@@ -52,26 +51,26 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 };
 
 const studentFeatures: FeatureCardProps[] = [
-  { videoUrl: "https://cdn.pixabay.com/video/2023/11/24/187843-888939774_large.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
-  { videoUrl: "https://cdn.pixabay.com/video/2024/02/09/200003-911360699_large.mp4", title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", animationDelay:"animation-delay-200" },
-  { videoUrl: "https://cdn.pixabay.com/video/2022/05/24/115132-714013143_large.mp4", title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", animationDelay:"animation-delay-300" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/05/25/166060-830238120_large.mp4", title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", animationDelay:"animation-delay-400" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/11/26/188440-889895056_large.mp4", title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", animationDelay:"animation-delay-500" },
+  { videoUrl: "/videos/interactive-lessons.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
+  { videoUrl: "/videos/ai-notes.mp4", title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", animationDelay:"animation-delay-200" },
+  { videoUrl: "/videos/quizzes.mp4", title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", animationDelay:"animation-delay-300" },
+  { videoUrl: "/videos/progress-tracking.mp4", title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", animationDelay:"animation-delay-400" },
+  { videoUrl: "/videos/rewards.mp4", title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", animationDelay:"animation-delay-500" },
 ];
 
 const parentFeatures: FeatureCardProps[] = [
-  { videoUrl: "https://cdn.pixabay.com/video/2023/05/25/166060-830238120_large.mp4", title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", animationDelay:"animation-delay-100" },
-  { videoUrl: "https://cdn.pixabay.com/video/2020/09/02/49171-453184617_large.mp4", title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", animationDelay:"animation-delay-200" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/05/25/166060-830238120_large.mp4", title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", animationDelay:"animation-delay-300" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/03/26/156073-812169528_large.mp4", title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", animationDelay:"animation-delay-400" },
+  { videoUrl: "/videos/child-progress.mp4", title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", animationDelay:"animation-delay-100" },
+  { videoUrl: "/videos/communication.mp4", title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", animationDelay:"animation-delay-200" },
+  { videoUrl: "/videos/report-cards.mp4", title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", animationDelay:"animation-delay-300" },
+  { videoUrl: "/videos/calendar.mp4", title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", animationDelay:"animation-delay-400" },
 ];
 
 const schoolTeacherFeatures: FeatureCardProps[] = [
-  { videoUrl: "https://cdn.pixabay.com/video/2021/09/16/88899-617830882_large.mp4", title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", animationDelay:"animation-delay-100" },
-  { videoUrl: "https://cdn.pixabay.com/video/2020/09/02/49171-453184617_large.mp4", title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", animationDelay:"animation-delay-200" },
-  { videoUrl: "https://cdn.pixabay.com/video/2024/02/09/200003-911360699_large.mp4", title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", animationDelay:"animation-delay-300" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/03/26/156073-812169528_large.mp4", title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", animationDelay:"animation-delay-400" },
-  { videoUrl: "https://cdn.pixabay.com/video/2023/05/02/161470-824125740_large.mp4", title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", animationDelay:"animation-delay-500" },
+  { videoUrl: "/videos/content-management.mp4", title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", animationDelay:"animation-delay-100" },
+  { videoUrl: "/videos/class-management.mp4", title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", animationDelay:"animation-delay-200" },
+  { videoUrl: "/videos/ai-reports.mp4", title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", animationDelay:"animation-delay-300" },
+  { videoUrl: "/videos/announcements.mp4", title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", animationDelay:"animation-delay-400" },
+  { videoUrl: "/videos/admin-portal.mp4", title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", animationDelay:"animation-delay-500" },
 ];
 
 const FixedBackground = () => (
