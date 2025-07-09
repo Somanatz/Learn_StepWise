@@ -5,24 +5,24 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, BookOpen, Lightbulb, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe, HelpCircle } from 'lucide-react'; // Added HelpCircle
+import { Loader2, BookOpen, Lightbulb, TrendingUp, Award, BarChart3, Users, GraduationCap, Megaphone, Building, User, School as SchoolIconLucide, Users2, HeartHandshake, Sigma, ClipboardEdit, PlayCircle, Lock, CheckCircle2, AlertTriangle, ChevronLeft, FileText, MessageSquare, CalendarDays, Palette, Library, FlaskConical, Globe, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactSalesForm from '@/components/shared/ContactSalesForm';
 import Logo from '@/components/shared/Logo';
+import Player from 'lottie-react';
 
 interface FeatureCardProps {
-  icon: LucideIcon;
+  animationUrl: string;
   title: string;
   description: string;
-  iconColor?: string;
   animationDelay?: string;
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({
-  icon: Icon, title, description, iconColor = "text-primary", animationDelay
+  animationUrl, title, description, animationDelay
 }) => {
   return (
     <Card className={cn(
@@ -30,11 +30,18 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
       "opacity-0 animate-fade-in-up",
       animationDelay
     )}>
-      <CardHeader className="flex-row items-center gap-4 pb-3 pt-6">
-        <Icon size={32} className={cn(iconColor, "flex-shrink-0")} />
+      <CardHeader className="flex flex-col items-center text-center gap-2 pb-3 pt-6">
+        <div className="h-32 w-32">
+          <Player
+            src={animationUrl}
+            className="w-full h-full"
+            autoplay
+            loop
+          />
+        </div>
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow pb-6">
+      <CardContent className="flex-grow pb-6 text-center">
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
@@ -42,26 +49,26 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 };
 
 const studentFeatures: FeatureCardProps[] = [
-  { icon: BookOpen, title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", iconColor:"text-emerald-400", animationDelay:"animation-delay-100" },
-  { icon: Lightbulb, title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", iconColor:"text-emerald-400", animationDelay:"animation-delay-200" },
-  { icon: HelpCircle, title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", iconColor:"text-emerald-400", animationDelay:"animation-delay-300" },
-  { icon: TrendingUp, title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", iconColor:"text-emerald-400", animationDelay:"animation-delay-400" },
-  { icon: Award, title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", iconColor:"text-emerald-400", animationDelay:"animation-delay-500" },
+  { animationUrl: "https://lottie.host/57530869-38e5-4a55-835c-457c5e2d137b/l8A5h2jIqL.json", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
+  { animationUrl: "https://lottie.host/59c77d91-3c94-47aa-85b4-3a5f0e2b4f9f/7Q5uJ8g6k4.json", title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", animationDelay:"animation-delay-200" },
+  { animationUrl: "https://lottie.host/790135d5-8f69-4a94-b15a-277121b65e9b/yF0I2VzW9g.json", title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", animationDelay:"animation-delay-300" },
+  { animationUrl: "https://lottie.host/a60c9164-3c66-4148-a003-888f4e92a874/a9Q3g1J0hP.json", title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", animationDelay:"animation-delay-400" },
+  { animationUrl: "https://lottie.host/bf340c21-ab10-4835-a13a-237c95e1c841/Tq7Z2u3y4x.json", title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", animationDelay:"animation-delay-500" },
 ];
 
 const parentFeatures: FeatureCardProps[] = [
-  { icon: BarChart3, title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", iconColor:"text-sky-400", animationDelay:"animation-delay-100" },
-  { icon: MessageSquare, title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", iconColor:"text-sky-400", animationDelay:"animation-delay-200" },
-  { icon: FileText, title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", iconColor:"text-sky-400", animationDelay:"animation-delay-300" },
-  { icon: CalendarDays, title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", iconColor:"text-sky-400", animationDelay:"animation-delay-400" },
+  { animationUrl: "https://lottie.host/a60c9164-3c66-4148-a003-888f4e92a874/a9Q3g1J0hP.json", title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", animationDelay:"animation-delay-100" },
+  { animationUrl: "https://lottie.host/9e0a2c09-5b7d-4c9f-8a0b-1d2e3f4a5b6c/m1N2o3P4q5.json", title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", animationDelay:"animation-delay-200" },
+  { animationUrl: "https://lottie.host/d19318b2-132d-4d7a-9a8b-98f5da7e6e5f/1p2o3i4u5y.json", title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", animationDelay:"animation-delay-300" },
+  { animationUrl: "https://lottie.host/b09a65f1-3d5e-4c7a-8b1b-2c3d4e5f6a7b/c3R4t5Y6u7.json", title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", animationDelay:"animation-delay-400" },
 ];
 
 const schoolTeacherFeatures: FeatureCardProps[] = [
-  { icon: ClipboardEdit, title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", iconColor:"text-amber-400", animationDelay:"animation-delay-100" },
-  { icon: Users2, title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", iconColor:"text-amber-400", animationDelay:"animation-delay-200" },
-  { icon: GraduationCap, title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", iconColor:"text-amber-400", animationDelay:"animation-delay-300" },
-  { icon: Megaphone, title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", iconColor:"text-amber-400", animationDelay:"animation-delay-400" },
-  { icon: Building, title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", iconColor:"text-amber-400", animationDelay:"animation-delay-500" },
+  { animationUrl: "https://lottie.host/e8c8f8b8-3e4d-4b8a-8b1a-2c3d4e5f6a7b/m2n3b4v5c6.json", title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", animationDelay:"animation-delay-100" },
+  { animationUrl: "https://lottie.host/f9e8d7c6-5b4a-3e2d-1c0b-9a8b7c6d5e4f/x1Y2z3A4b5.json", title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", animationDelay:"animation-delay-200" },
+  { animationUrl: "https://lottie.host/a0b1c2d3-e4f5-a6b7-8c9d-0e1f2a3b4c5d/o4p5q6r7s8.json", title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", animationDelay:"animation-delay-300" },
+  { animationUrl: "https://lottie.host/63a56b63-14e3-4d43-9a3c-53c847e3a9f0/Vn5xH6y7z8.json", title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", animationDelay:"animation-delay-400" },
+  { animationUrl: "https://lottie.host/80261ca2-2598-4a6c-9c98-12d8a3a0e377/2eW6i8P3nQ.json", title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", animationDelay:"animation-delay-500" },
 ];
 
 const FixedBackground = () => (
@@ -205,10 +212,9 @@ export default function UnifiedDashboardPage() {
               {studentFeatures.map((feature, index) => (
                 <FeatureCard
                   key={feature.title}
-                  icon={feature.icon}
+                  animationUrl={feature.animationUrl}
                   title={feature.title}
                   description={feature.description}
-                  iconColor={feature.iconColor}
                   animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
                 />
               ))}
@@ -217,14 +223,13 @@ export default function UnifiedDashboardPage() {
 
           <section>
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 xl:gap-8">
               {parentFeatures.map((feature, index) => (
                 <FeatureCard
                   key={feature.title}
-                  icon={feature.icon}
+                  animationUrl={feature.animationUrl}
                   title={feature.title}
                   description={feature.description}
-                  iconColor={feature.iconColor}
                   animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
                 />
               ))}
@@ -237,10 +242,9 @@ export default function UnifiedDashboardPage() {
               {schoolTeacherFeatures.map((feature, index) => (
                 <FeatureCard
                   key={feature.title}
-                  icon={feature.icon}
+                  animationUrl={feature.animationUrl}
                   title={feature.title}
                   description={feature.description}
-                  iconColor={feature.iconColor}
                   animationDelay={cn('animation-delay-100', `md:animation-delay-${(index + 1) * 100}`)}
                 />
               ))}
