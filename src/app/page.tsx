@@ -40,7 +40,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
         poster="https://placehold.co/600x400.png"
         data-ai-hint="feature animation"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10 z-10 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10 z-10"></div>
       
       <div className="relative z-20 max-w-3xl text-white transform transition-transform duration-500 translate-y-4 group-hover:translate-y-0">
         <h3 className="text-4xl font-bold mb-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.6)]">
@@ -99,7 +99,7 @@ const HeroSection = () => {
         <source src="/videos/educational-bg.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      <div className="absolute inset-0 bg-black/50 z-0 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-black/50 z-0"></div>
 
        <div className={cn(
           "relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto p-6 sm:p-8",
