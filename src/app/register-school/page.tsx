@@ -110,7 +110,7 @@ export default function RegisterSchoolPage() {
         <source src="/videos/educational-bg.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      <div className="absolute top-0 left-0 w-full h-full bg-black/60 dark:bg-black/70 z-10"></div>
+      <div className="absolute top-0 left-0 w-full h-full bg-black/50 dark:bg-black/60 z-10 backdrop-blur-sm"></div>
       
       <div className="relative z-20 w-full max-w-2xl">
         <Card className="w-full shadow-xl bg-card/80 backdrop-blur-md border-border/50 animate-fade-in-up">
