@@ -56,26 +56,24 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 
 
 const studentFeatures: FeatureCardProps[] = [
-  { videoUrl: "/videos/learning.mp4", title: "Interactive Lessons", description: "Engage with rich multimedia content, including videos, audio, and interactive elements designed for effective learning.", animationDelay:"animation-delay-100" },
-  { videoUrl: "/videos/ai-notes.mp4", title: "AI Note Taker", description: "Automatically summarize key points from your lessons, helping you focus and revise efficiently.", animationDelay:"animation-delay-200" },
-  { videoUrl: "/videos/quizzes.mp4", title: "Personalized Quizzes", description: "Test your understanding with quizzes tailored to each lesson, reinforcing concepts and identifying areas for improvement.", animationDelay:"animation-delay-300" },
-  { videoUrl: "/videos/progress-tracking.mp4", title: "Progress Tracking", description: "Monitor your learning journey, see how far you've come, and stay motivated with clear progress indicators.", animationDelay:"animation-delay-400" },
-  { videoUrl: "/videos/rewards.mp4", title: "Rewards & Badges", description: "Earn badges and unlock achievements as you complete lessons and master new skills, making learning fun.", animationDelay:"animation-delay-500" },
+    { videoUrl: "/videos/learning.mp4", title: "🎓 Interactive Learning", description: "Dive into dynamic lessons filled with videos, audio clips, and interactive elements. Our AI can simplify complex topics and generate quizzes on the fly to ensure you master every concept before moving on.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/ai-notes.mp4", title: "✍️ AI Note Taker & Summarizer", description: "Focus on learning, not just transcription. Our AI assistant takes smart notes for you and provides concise summaries of entire lessons, perfect for quick revisions and exam preparation.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/progress-tracking.mp4", title: "📊 Progress & Rewards", description: "Visually track your journey through subjects, monitor your quiz scores, and earn badges for your achievements. Stay motivated by seeing how far you’ve come and what’s next.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/rewards.mp4", title: "💡 AI-Powered Suggestions", description: "Receive personalized recommendations for lessons, videos, and quizzes based on your performance. Our AI helps you focus on areas that need improvement, making your study time more effective.", animationDelay:"animation-delay-400" },
 ];
 
 const parentFeatures: FeatureCardProps[] = [
-  { videoUrl: "/videos/child-progress.mp4", title: "Child Progress Monitoring", description: "Stay informed about your child's academic journey with detailed progress reports and performance insights.", animationDelay:"animation-delay-100" },
-  { videoUrl: "/videos/communication.mp4", title: "Direct Communication", description: "Easily connect with teachers to discuss your child's learning, ask questions, and collaborate effectively.", animationDelay:"animation-delay-200" },
-  { videoUrl: "/videos/report-cards.mp4", title: "Report Card Access", description: "View and download your child's report cards digitally, keeping all academic records organized and accessible.", animationDelay:"animation-delay-300" },
-  { videoUrl: "/videos/calendar.mp4", title: "School Event Calendar", description: "Keep track of important school dates, holidays, exams, and meetings with a synchronized calendar.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/child-progress.mp4", title: "📈 Child Progress Monitoring", description: "Get a clear and comprehensive view of your child's academic performance. Track their progress in different subjects, view quiz results, and understand their learning patterns at a glance.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/communication.mp4", title: "💬 Secure Communication", description: "Connect directly and securely with your child's teachers. Ask questions, share concerns, and stay aligned on your child's educational journey through our integrated messaging system.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/report-cards.mp4", title: "📋 Digital Report Cards", description: "Access your child's official report cards anytime, anywhere. View detailed performance feedback and historical records to support their long-term academic growth.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/calendar.mp4", title: "🗓️ Unified Calendar", description: "Never miss an important date. Stay updated with a centralized calendar for school-wide events, holidays, exam schedules, and parent-teacher meetings.", animationDelay:"animation-delay-400" },
 ];
 
 const schoolTeacherFeatures: FeatureCardProps[] = [
-  { videoUrl: "/videos/content-management.mp4", title: "Content Management", description: "Easily create, organize, and update lessons, quizzes, and supplementary materials for your students.", animationDelay:"animation-delay-100" },
-  { videoUrl: "/videos/class-management.mp4", title: "Student & Class Management", description: "Oversee student profiles, track class performance, and manage enrollments efficiently.", animationDelay:"animation-delay-200" },
-  { videoUrl: "/videos/ai-reports.mp4", title: "AI-Powered Report Generation", description: "Generate comprehensive student report cards with insights, saving time and enhancing feedback.", animationDelay:"animation-delay-300" },
-  { videoUrl: "/videos/announcements.mp4", title: "School-Wide Announcements", description: "Communicate important updates, events, and news to students, parents, and staff seamlessly.", animationDelay:"animation-delay-400" },
-  { videoUrl: "/videos/admin-portal.mp4", title: "School Administration Portal", description: "Manage school settings, user accounts, and access platform-wide analytics for institutional improvement.", animationDelay:"animation-delay-500" },
+    { videoUrl: "/videos/content-management.mp4", title: "📚 Effortless Content Management", description: "Create, upload, and organize lessons, quizzes, and supplementary materials with ease. Our intuitive tools let you build a rich curriculum for your students.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/class-management.mp4", title: "👩‍🏫 Student & Class Oversight", description: "Manage student profiles, track class-wide performance, and monitor engagement from a centralized dashboard. Get the data you need to support every student effectively.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/ai-reports.mp4", title: "🤖 AI-Assisted Report Generation", description: "Save hours of administrative work. Our Genkit-powered AI analyzes student performance data to generate insightful and comprehensive report cards automatically.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/admin-portal.mp4", title: "📢 School-Wide Communication", description: "Broadcast announcements, share important updates, and manage school events through a powerful administration portal, ensuring everyone in your community stays informed.", animationDelay:"animation-delay-400" },
 ];
 
 const HeroSection = () => {
