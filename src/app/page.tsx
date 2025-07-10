@@ -25,8 +25,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 }) => {
   return (
     <Card className={cn(
-      "relative group overflow-hidden rounded-xl aspect-video flex flex-col justify-end items-center text-center p-8",
-      "transform-gpu shadow-lg hover:shadow-2xl transition-all duration-300",
+      "relative group overflow-hidden rounded-xl aspect-[4/3] flex flex-col justify-end items-center text-center p-6", // Changed to aspect-ratio and smaller padding
+      "transform-gpu shadow-lg hover:shadow-2xl transition-all duration-300 border", // Added border
       "opacity-0 animate-fade-in-up",
       animationDelay
     )}>
@@ -40,13 +40,13 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
         poster="https://placehold.co/600x400.png"
         data-ai-hint="feature animation"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10 z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/10 z-10"></div> 
       
-      <div className="relative z-20 max-w-3xl text-white transform transition-transform duration-500 translate-y-4 group-hover:translate-y-0">
-        <h3 className="text-4xl font-bold mb-4 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.6)]">
+      <div className="relative z-20 max-w-full text-white transform transition-transform duration-500 translate-y-4 group-hover:translate-y-0">
+        <h3 className="text-2xl md:text-3xl font-bold mb-3 [text-shadow:_2px_2px_6px_rgb(0_0_0_/_0.6)]">
           {title}
         </h3>
-        <p className="text-lg text-white/95 [text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.5)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <p className="text-sm md:text-base text-white/90 [text-shadow:_1px_1px_4px_rgb(0_0_0_/_0.5)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           {description}
         </p>
       </div>
@@ -56,24 +56,24 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 
 
 const studentFeatures: FeatureCardProps[] = [
-    { videoUrl: "/videos/learning.mp4", title: "🎓 Interactive Learning", description: "Dive into dynamic lessons filled with videos, audio clips, and interactive elements. Our AI can simplify complex topics and generate quizzes on the fly to ensure you master every concept before moving on.", animationDelay:"animation-delay-100" },
-    { videoUrl: "/videos/ai-notes.mp4", title: "✍️ AI Note Taker & Summarizer", description: "Focus on learning, not just transcription. Our AI assistant takes smart notes for you and provides concise summaries of entire lessons, perfect for quick revisions and exam preparation.", animationDelay:"animation-delay-200" },
-    { videoUrl: "/videos/progress-tracking.mp4", title: "📊 Progress & Rewards", description: "Visually track your journey through subjects, monitor your quiz scores, and earn badges for your achievements. Stay motivated by seeing how far you’ve come and what’s next.", animationDelay:"animation-delay-300" },
-    { videoUrl: "/videos/rewards.mp4", title: "💡 AI-Powered Suggestions", description: "Receive personalized recommendations for lessons, videos, and quizzes based on your performance. Our AI helps you focus on areas that need improvement, making your study time more effective.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/learning.mp4", title: "🎓 Interactive Learning", description: "Dive into dynamic lessons with videos, audio, and interactive quizzes. Our AI can simplify complex topics on demand and generate practice tests to ensure you master every concept before moving on.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/ai-notes.mp4", title: "✍️ AI Note Taker & Summarizer", description: "Focus on learning, not just transcription. Our AI assistant takes smart notes, highlights key points, and provides concise summaries of entire lessons, perfect for quick revisions.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/progress-tracking.mp4", title: "📊 Progress & Rewards", description: "Visually track your journey through subjects with detailed analytics. Monitor quiz scores, view completed lessons, and earn badges for your achievements to stay motivated.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/rewards.mp4", title: "💡 AI-Powered Suggestions", description: "Receive personalized recommendations for lessons, videos, and quizzes based on your performance. Our AI helps you focus on areas that need improvement, making study time more effective.", animationDelay:"animation-delay-400" },
 ];
 
 const parentFeatures: FeatureCardProps[] = [
-    { videoUrl: "/videos/child-progress.mp4", title: "📈 Child Progress Monitoring", description: "Get a clear and comprehensive view of your child's academic performance. Track their progress in different subjects, view quiz results, and understand their learning patterns at a glance.", animationDelay:"animation-delay-100" },
-    { videoUrl: "/videos/communication.mp4", title: "💬 Secure Communication", description: "Connect directly and securely with your child's teachers. Ask questions, share concerns, and stay aligned on your child's educational journey through our integrated messaging system.", animationDelay:"animation-delay-200" },
-    { videoUrl: "/videos/report-cards.mp4", title: "📋 Digital Report Cards", description: "Access your child's official report cards anytime, anywhere. View detailed performance feedback and historical records to support their long-term academic growth.", animationDelay:"animation-delay-300" },
-    { videoUrl: "/videos/calendar.mp4", title: "🗓️ Unified Calendar", description: "Never miss an important date. Stay updated with a centralized calendar for school-wide events, holidays, exam schedules, and parent-teacher meetings.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/child-progress.mp4", title: "📈 Child Progress Monitoring", description: "Get a clear and comprehensive view of your child's academic performance. Track their progress, view quiz results, and understand their learning patterns at a glance from your dedicated dashboard.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/communication.mp4", title: "💬 Secure Communication", description: "Connect directly and securely with your child's teachers. Ask questions, share concerns, and stay aligned on their educational journey through our integrated messaging system.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/report-cards.mp4", title: "📋 Digital Report Cards", description: "Access your child's official, AI-assisted report cards anytime, anywhere. View detailed performance feedback and historical records to support their long-term academic growth.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/calendar.mp4", title: "🗓️ Unified Calendar", description: "Never miss an important date. Stay updated with a centralized calendar for school-wide events, holidays, exam schedules, and parent-teacher meetings, all in one place.", animationDelay:"animation-delay-400" },
 ];
 
 const schoolTeacherFeatures: FeatureCardProps[] = [
-    { videoUrl: "/videos/content-management.mp4", title: "📚 Effortless Content Management", description: "Create, upload, and organize lessons, quizzes, and supplementary materials with ease. Our intuitive tools let you build a rich curriculum for your students.", animationDelay:"animation-delay-100" },
-    { videoUrl: "/videos/class-management.mp4", title: "👩‍🏫 Student & Class Oversight", description: "Manage student profiles, track class-wide performance, and monitor engagement from a centralized dashboard. Get the data you need to support every student effectively.", animationDelay:"animation-delay-200" },
-    { videoUrl: "/videos/ai-reports.mp4", title: "🤖 AI-Assisted Report Generation", description: "Save hours of administrative work. Our Genkit-powered AI analyzes student performance data to generate insightful and comprehensive report cards automatically.", animationDelay:"animation-delay-300" },
-    { videoUrl: "/videos/admin-portal.mp4", title: "📢 School-Wide Communication", description: "Broadcast announcements, share important updates, and manage school events through a powerful administration portal, ensuring everyone in your community stays informed.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/content-management.mp4", title: "📚 Effortless Content Management", description: "Create, upload, and organize lessons, quizzes, and supplementary materials with an intuitive interface. Build a rich and structured curriculum for your students with powerful tools.", animationDelay:"animation-delay-100" },
+    { videoUrl: "/videos/class-management.mp4", title: "👩‍🏫 Student & Class Oversight", description: "Manage student profiles, track class-wide performance, and monitor engagement from a centralized dashboard. Get the data you need to support every student effectively and efficiently.", animationDelay:"animation-delay-200" },
+    { videoUrl: "/videos/ai-reports.mp4", title: "🤖 AI-Assisted Report Generation", description: "Save countless hours of administrative work. Our Genkit-powered AI analyzes student performance data to generate insightful, comprehensive, and personalized report cards automatically.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/admin-portal.mp4", title: "📢 School-Wide Communication", description: "Broadcast announcements, share important updates, and manage school events through a powerful administration portal, ensuring everyone in your community stays informed and connected.", animationDelay:"animation-delay-400" },
 ];
 
 const HeroSection = () => {
@@ -197,10 +197,10 @@ export default function UnifiedDashboardPage() {
         <HeroSection />
       </div>
 
-      <div className="space-y-16 py-16 md:py-24 container mx-auto px-4">
+      <div className="space-y-20 py-16 md:py-24 container mx-auto px-4">
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Students</h2>
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {studentFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
@@ -215,7 +215,7 @@ export default function UnifiedDashboardPage() {
 
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Parents</h2>
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {parentFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
@@ -230,7 +230,7 @@ export default function UnifiedDashboardPage() {
 
         <section>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 md:mb-12 text-foreground">For Schools & Teachers</h2>
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {schoolTeacherFeatures.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
