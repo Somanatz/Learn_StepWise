@@ -58,8 +58,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 const studentFeatures: FeatureCardProps[] = [
     { videoUrl: "/videos/learning.mp4", title: "🎓 Interactive Learning", description: "Dive into dynamic lessons with videos, audio, and interactive quizzes. Our AI can simplify complex topics on demand and generate practice tests to ensure you master every concept before moving on.", animationDelay:"animation-delay-100" },
     { videoUrl: "/videos/ai-notes.mp4", title: "✍️ AI Note Taker & Summarizer", description: "Focus on learning, not just transcription. Our AI assistant takes smart notes, highlights key points, and provides concise summaries of entire lessons, perfect for quick revisions.", animationDelay:"animation-delay-200" },
-    { videoUrl: "/videos/progress-tracking.mp4", title: "📊 Progress & Rewards", description: "Visually track your journey through subjects with detailed analytics. Monitor quiz scores, view completed lessons, and earn badges for your achievements to stay motivated.", animationDelay:"animation-delay-300" },
-    { videoUrl: "/videos/rewards.mp4", title: "💡 AI-Powered Suggestions", description: "Receive personalized recommendations for lessons, videos, and quizzes based on your performance. Our AI helps you focus on areas that need improvement, making study time more effective.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/rewards.mp4", title: "🏅 Rewards & Badges", description: "Visually track your journey through subjects with detailed analytics. Monitor quiz scores, view completed lessons, and earn badges for your achievements to stay motivated.", animationDelay:"animation-delay-300" },
+    { videoUrl: "/videos/progress-tracking.mp4", title: "📊 Progress & AI-Powered Suggestions", description: "Receive personalized recommendations for lessons, videos, and quizzes based on your performance. Our AI helps you focus on areas that need improvement, making study time more effective.", animationDelay:"animation-delay-400" },
 ];
 
 const parentFeatures: FeatureCardProps[] = [
@@ -73,7 +73,7 @@ const schoolTeacherFeatures: FeatureCardProps[] = [
     { videoUrl: "/videos/content-management.mp4", title: "📚 Effortless Content Management", description: "Create, upload, and organize lessons, quizzes, and supplementary materials with an intuitive interface. Build a rich and structured curriculum for your students with powerful tools.", animationDelay:"animation-delay-100" },
     { videoUrl: "/videos/class-management.mp4", title: "👩‍🏫 Student & Class Oversight", description: "Manage student profiles, track class-wide performance, and monitor engagement from a centralized dashboard. Get the data you need to support every student effectively and efficiently.", animationDelay:"animation-delay-200" },
     { videoUrl: "/videos/ai-reports.mp4", title: "🤖 AI-Assisted Report Generation", description: "Save countless hours of administrative work. Our Genkit-powered AI analyzes student performance data to generate insightful, comprehensive, and personalized report cards automatically.", animationDelay:"animation-delay-300" },
-    { videoUrl: "/videos/admin-portal.mp4", title: "📢 School-Wide Communication", description: "Broadcast announcements, share important updates, and manage school events through a powerful administration portal, ensuring everyone in your community stays informed and connected.", animationDelay:"animation-delay-400" },
+    { videoUrl: "/videos/announcements.mp4", title: "📢 School-Wide Communication", description: "Broadcast announcements, share important updates, and manage school events through a powerful administration portal, ensuring everyone in your community stays informed and connected.", animationDelay:"animation-delay-400" },
 ];
 
 const HeroSection = () => {
